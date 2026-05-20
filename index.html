@@ -201,6 +201,11 @@
             <h3>Blitz Robot</h3>
             <p><b>E</b> or <b>Left Trigger</b> changes the side the intake is on.</p>
         </div>
+
+        <div class="control-section" style="border-left-color:#a78bfa;background:rgba(167,139,250,0.08);">
+            <h3 style="color:#a78bfa;">Boomerang Robot</h3>
+            <p>Fires <b>homing arced shots</b> (purple) that curve back toward the hub. Just shoot normally!</p>
+        </div>
         
         <button id="close-controls-btn">CLOSE</button>
     </div>
@@ -293,6 +298,8 @@ const BOT_MODELS = {
     '2910':  { accel: 0.38, rotSpeed: 0.036, capacity: 62, fireRate: -0, w: 41, h: 41 },
     '3636': { accel: 0.38, rotSpeed: 0.036, capacity: 50, fireRate: 180, w: 41, h: 41 },
     '3636 main season': { accel: 0.36, rotSpeed: 0.036, capacity: 20, fireRate: 500, w: 41, h: 41 },
+    '3636 real': { accel: 0.45, rotSpeed: 0.036, capacity: 150, fireRate: -75, w: 45, h: 45 },
+    'Boomerang': { accel: 0.52, rotSpeed: 0.055, capacity: 40, fireRate: 380, w: 41, h: 41 },
 };
 
 const S = 1.6; 
@@ -580,7 +587,7 @@ class Robot {
         }
 
         let speedMod = inDepot ? 0.65 : 1.0;
-        let passSpeedDampen = this.name === 'Blitz' ? 0.60 : (this.name === 'dumper' ? 0.25 : (this.name === '2910' ? 0.25 : (this.name === '3636' ? 0.8 : (this.name === '3636 main season' ? 1.0 : 0.50))));
+        let passSpeedDampen = this.name === 'Blitz' ? 0.60 : (this.name === 'dumper' ? 0.25 : (this.name === '2910' ? 0.25 : (this.name === '3636' ? 0.8 : (this.name === '3636 main season' ? 1.0 : (this.name === 'Boomerang' ? 0.70 : 0.50)))));
         this.vx += moveX * (onBump ? 0.18 : (this.model.accel * speedMod * (isActionActive ? passSpeedDampen : 1.0)));
         this.vy += moveY * (onBump ? 0.18 : (this.model.accel * speedMod * (isActionActive ? passSpeedDampen : 1.0)));
 
@@ -691,6 +698,8 @@ class Robot {
                         }
                     }
                 }
+            } else if (this.name === 'Boomerang' && !isDisrupted && now - this.lastShot > this.model.fireRate) {
+                this.fireBoomerang(isShootingZone, alliance, rcx, rcy, now);
             } else if (this.name === 'double turret' && !isDisrupted) {
                 if (now - this.lastShot > 500) {
                     this.streamCooldowns[0] = now;
@@ -747,6 +756,39 @@ class Robot {
         document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
     }
 
+    fireBoomerang(isShooting, alliance, rcx, rcy, now) {
+        let launchAngle = this.angle;
+        let speed = 10 + Math.random() * 3;
+        let hubX, hubY;
+        if (isShooting) {
+            let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+            hubX = z.x + z.w / 2; hubY = z.y + z.h / 2;
+            launchAngle = Math.atan2(hubY - rcy, hubX - rcx);
+            speed = 9;
+        } else {
+            hubX = alliance === 'red' ? 40 : FIELD_W - 40;
+            hubY = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40;
+            launchAngle = Math.atan2(hubY - rcy, hubX - rcx) + (Math.random() - 0.5) * 0.25;
+            speed = 11 + Math.random() * 2;
+        }
+        let perpAngle = launchAngle + Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1);
+        let curveMag = 1.8 + Math.random() * 1.2;
+        projectiles.push({
+            x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5),
+            y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5),
+            vx: Math.cos(launchAngle) * speed + Math.cos(perpAngle) * curveMag,
+            vy: Math.sin(launchAngle) * speed + Math.sin(perpAngle) * curveMag,
+            r: 5, owner: alliance, isPass: !isShooting,
+            isBoomerang: true,
+            boomerangTargetX: hubX, boomerangTargetY: hubY,
+            boomerangCurve: curveMag * 0.045,
+            boomerangAge: 0,
+        });
+        this.inventory--;
+        this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+
     fireStandard(isShooting, alliance, rcx, rcy, now) {
         let launchAngle = this.angle, speed = 16;
 
@@ -783,6 +825,25 @@ class Robot {
             } else {
                 ctx.fillRect(-this.model.w/2 + 2, -this.model.h/2 - 6, this.model.w - 4, 12);
             }
+        } else if (this.name === 'Boomerang') {
+            let t = Date.now() / 180;
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.model.w / 2 + 5, t, t + Math.PI * 1.25);
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(251,191,36,0.3)';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.model.w / 2 + 5, t + Math.PI, t + Math.PI * 2.25);
+            ctx.stroke();
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.moveTo(this.model.w / 2 - 1, -7);
+            ctx.lineTo(this.model.w / 2 + 10, 0);
+            ctx.lineTo(this.model.w / 2 - 1, 7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.lineWidth = 2;
         } else {
             ctx.fillStyle = "#fbbf24";
             let bY = (this.name === 'dumper' || this.name === '2910') ? -19 : -17.5;
@@ -1276,6 +1337,19 @@ function update() {
 
     projectiles = projectiles.filter(p => {
         p.x+=p.vx; p.y+=p.vy; if (p.isPass) { p.vx*=0.975; p.vy*=0.975; }
+        if (p.isBoomerang) {
+            p.boomerangAge++;
+            if (p.boomerangAge > 18) {
+                let dx = p.boomerangTargetX - p.x, dy = p.boomerangTargetY - p.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist > 8) {
+                    let str = Math.min(0.28, p.boomerangCurve * (1 + p.boomerangAge * 0.012));
+                    p.vx += (dx / dist) * str; p.vy += (dy / dist) * str;
+                    let spd = Math.hypot(p.vx, p.vy);
+                    if (spd > 14) { p.vx = p.vx/spd*14; p.vy = p.vy/spd*14; }
+                }
+            }
+        }
         if (p.x<p.r || p.x>FIELD_W-p.r) p.vx*=-0.4; if (p.y<p.r || p.y>FIELD_H-p.r) p.vy*=-0.4;
         obstacles.forEach(o => { if (o.type==='hub' && !p.isPass && o.side!==p.owner) { let col = circleRectCollision(p, o); if(col.hit){p.vx*=-0.2;p.vy*=-0.2;} } });
         let scored = false;
@@ -1362,7 +1436,16 @@ function draw() {
     }
 
     ctx.fillStyle = "#fbbf24"; balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); });
-    projectiles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); });
+    projectiles.forEach(p => {
+        if (p.isBoomerang) {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(167,139,250,0.3)'; ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = '#a78bfa'; ctx.fill();
+        } else {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        }
+    });
 
     // Show warning if a robot is too full to go under the trench
     const robots = p2Enabled ? [botRed, botBlue] : [botRed];
