@@ -1646,8 +1646,10 @@ function update() {
     if (p3Enabled && botP3) { activeBotsList.push(botP3); botP3.update(p3State.x, p3State.y, p3State.rot, p3State.act, p3State.ability, sameTeamMode ? 'red' : 'blue', obstacles, zones); }
     if (p4Enabled && botP4) { activeBotsList.push(botP4); botP4.update(p4State.x, p4State.y, p4State.rot, p4State.act, p4State.ability, sameTeamMode ? 'red' : 'blue', obstacles, zones); }
     
+    // Update barricades
     barricades = barricades.filter(b => { b.life--; return b.life > 0; });
     
+    // Power-ups mode
     if (gameMode === 'power-ups') {
         if (matchRunning && now >= nextPowerupSpawnTime && powerups.length < 6) { spawnPowerup(now); nextPowerupSpawnTime = now + 2200 + Math.random() * 2600; }
         powerups = powerups.filter(p => now < p.expires);
@@ -1659,6 +1661,7 @@ function update() {
         }
     } else if (powerups.length) powerups = [];
     
+    // Robot vs robot collisions
     for (let i = 0; i < activeBotsList.length; i++) {
         for (let j = i + 1; j < activeBotsList.length; j++) {
             const r1 = activeBotsList[i], r2 = activeBotsList[j];
@@ -1671,15 +1674,29 @@ function update() {
         }
     }
     
+    // Scoring balls exit (balls that scored and are being ejected)
     scoringBalls = scoringBalls.filter(sb => {
         if (now >= sb.exitTime) {
             let dir = sb.side === 'red' ? 1 : -1, eS = 4 + Math.random()*0.9, eA = (Math.random()-0.5)*0.8;
-            balls.push({ x: sb.side==='red' ? sb.hubX+HUB_S+BALL_R+2 : sb.hubX-BALL_R-2, y: sb.hubY+HUB_S/2, r: BALL_R, vx: Math.cos(eA)*(dir*eS), vy: Math.sin(eA)*eS, isStatic: false, frictionMod: 0.985, rollTimer: now + 1500, wasOnBump: false, owner: sb.side, noCollideUntil: now + 300 });
+            balls.push({ 
+                x: sb.side==='red' ? sb.hubX+HUB_S+BALL_R+2 : sb.hubX-BALL_R-2, 
+                y: sb.hubY+HUB_S/2, 
+                r: BALL_R, 
+                vx: Math.cos(eA)*(dir*eS), 
+                vy: Math.sin(eA)*eS, 
+                isStatic: false, 
+                frictionMod: 0.985, 
+                rollTimer: now + 1500, 
+                wasOnBump: false, 
+                owner: sb.side, 
+                noCollideUntil: now + 300 
+            });
             return false;
         }
         return true;
     });
     
+    // Ball vs ball collisions
     for (let i = 0; i < balls.length; i++) {
         for (let j = i + 1; j < balls.length; j++) {
             if (balls[i].noCollideUntil && now < balls[i].noCollideUntil) continue;
@@ -1688,28 +1705,108 @@ function update() {
         }
     }
     
+    // Update ball positions, collisions with obstacles, and robot intakes
     balls = balls.filter(b => {
-        let onB = false; zones.forEach(z => { if (z.type==='bump' && b.x>z.x && b.x<z.x+z.w && b.y>z.y && b.y<z.y+z.h) { onB = true; b.isStatic = false; b.vx += (b.x<z.x+z.w/2)?-0.12:0.12; } });
-        if (!onB && b.wasOnBump) { b.vx *= 0.15; b.vy *= 0.15; } b.wasOnBump = onB;
-        if (!b.isStatic) { b.x += b.vx; b.y += b.vy; let f = (b.rollTimer && now < b.rollTimer) ? b.frictionMod : (onB?0.96:0.91); b.vx *= f; b.vy *= f; if (Math.hypot(b.vx, b.vy) < 0.15) { b.vx=0; b.vy=0; b.isStatic=true; } }
-        if (b.x < b.r) { b.x = b.r; b.vx *= -0.2; b.isStatic = false; } if (b.x > FIELD_W - b.r) { b.x = FIELD_W - b.r; b.vx *= -0.2; b.isStatic = false; }
-        if (b.y < b.r) { b.y = b.r; b.vy *= -0.2; b.isStatic = false; } if (b.y > FIELD_H - b.r) { b.y = FIELD_H - b.r; b.vy *= -0.2; b.isStatic = false; }
-        obstacles.forEach(o => { if (o.type !== 'trench') { let col = circleRectCollision(b, o); if (col.hit) { b.isStatic = false; b.vx *= 0.8; b.vy *= 0.8; b.x += col.nx * col.overlap; b.y += col.ny * col.overlap; } } });
-        for(let bot of activeBotsList) {
-            let alliance = (bot === botP1 || bot === botP2) ? 'red' : (sameTeamMode ? 'red' : 'blue');
-            let ix, iy;
-            if (bot.name === 'Blitz') { let intakeAngleOffset = bot.intakeSide === 'right' ? Math.PI/2 : -Math.PI/2; ix = (bot.x+bot.model.w/2) + Math.cos(bot.angle + intakeAngleOffset)*(bot.model.w/2+5); iy = (bot.y+bot.model.h/2) + Math.sin(bot.angle + intakeAngleOffset)*(bot.model.w/2+5); }
-            else { ix = (bot.x+bot.model.w/2) + Math.cos(bot.angle)*(bot.model.w/2+10); iy = (bot.y+bot.model.h/2) + Math.sin(bot.angle)*(bot.model.w/2+10); }
-            if (bot.name === 'Dozer') { const bcx = bot.x + bot.model.w/2, bcy = bot.y + bot.model.h/2; if (Math.hypot(b.x - bcx, b.y - bcy) < bot.model.w/2 + b.r + 2 && bot.inventory < bot.model.capacity) { bot.inventory++; return false; } }
-            if (Math.hypot(b.x-ix, b.y-iy)<9 && bot.inventory<bot.model.capacity) { bot.inventory++; return false; }
-            let rCol = circleRectCollision(b, {x: bot.x, y: bot.y, w: bot.model.w, h: bot.model.h});
-            if (rCol.hit) { b.isStatic = false; b.owner = alliance; b.x += rCol.nx * rCol.overlap; b.y += rCol.ny * rCol.overlap; const shieldKick = now < (bot.shieldUntil || 0) ? 2.2 : 1.0; b.vx += rCol.nx * (Math.abs(bot.vx) * 0.5 + 1.0) * shieldKick; b.vy += rCol.ny * (Math.abs(bot.vy) * 0.5 + 1.0) * shieldKick; }
+        // Bumpers (speed boosts)
+        let onBump = false; 
+        zones.forEach(z => { 
+            if (z.type === 'bump' && b.x > z.x && b.x < z.x + z.w && b.y > z.y && b.y < z.y + z.h) { 
+                onBump = true; 
+                b.isStatic = false; 
+                b.vx += (b.x < z.x + z.w/2) ? -0.12 : 0.12; 
+            } 
+        });
+        if (!onBump && b.wasOnBump) { b.vx *= 0.15; b.vy *= 0.15; } 
+        b.wasOnBump = onBump;
+        
+        // Movement
+        if (!b.isStatic) { 
+            b.x += b.vx; 
+            b.y += b.vy; 
+            let f = (b.rollTimer && now < b.rollTimer) ? b.frictionMod : (onBump ? 0.96 : 0.91); 
+            b.vx *= f; 
+            b.vy *= f; 
+            if (Math.hypot(b.vx, b.vy) < 0.15) { 
+                b.vx = 0; 
+                b.vy = 0; 
+                b.isStatic = true; 
+            } 
         }
-        let speed = Math.hypot(b.vx, b.vy); if (speed > 25) { b.vx = (b.vx / speed) * 25; b.vy = (b.vy / speed) * 25; }
+        
+        // Wall collisions
+        if (b.x < b.r) { b.x = b.r; b.vx *= -0.2; b.isStatic = false; } 
+        if (b.x > FIELD_W - b.r) { b.x = FIELD_W - b.r; b.vx *= -0.2; b.isStatic = false; }
+        if (b.y < b.r) { b.y = b.r; b.vy *= -0.2; b.isStatic = false; } 
+        if (b.y > FIELD_H - b.r) { b.y = FIELD_H - b.r; b.vy *= -0.2; b.isStatic = false; }
+        
+        // Obstacle collisions (trenches, towers, depots, etc.)
+        obstacles.forEach(o => { 
+            if (o.type !== 'trench') { 
+                let col = circleRectCollision(b, o); 
+                if (col.hit) { 
+                    b.isStatic = false; 
+                    b.vx *= 0.8; 
+                    b.vy *= 0.8; 
+                    b.x += col.nx * col.overlap; 
+                    b.y += col.ny * col.overlap; 
+                } 
+            } 
+        });
+        
+        // Robot intakes - balls being collected
+        for (let bot of activeBotsList) {
+            let alliance = (bot === botP1 || bot === botP2) ? 'red' : (sameTeamMode ? 'red' : 'blue');
+            let intakeX, intakeY;
+            
+            if (bot.name === 'Blitz') { 
+                let intakeAngleOffset = bot.intakeSide === 'right' ? Math.PI/2 : -Math.PI/2; 
+                intakeX = (bot.x + bot.model.w/2) + Math.cos(bot.angle + intakeAngleOffset) * (bot.model.w/2 + 5); 
+                intakeY = (bot.y + bot.model.h/2) + Math.sin(bot.angle + intakeAngleOffset) * (bot.model.w/2 + 5); 
+            } else { 
+                intakeX = (bot.x + bot.model.w/2) + Math.cos(bot.angle) * (bot.model.w/2 + 10); 
+                intakeY = (bot.y + bot.model.h/2) + Math.sin(bot.angle) * (bot.model.w/2 + 10); 
+            }
+            
+            // Dozer special: 4-sided intake
+            if (bot.name === 'Dozer') { 
+                const bcx = bot.x + bot.model.w/2, bcy = bot.y + bot.model.h/2; 
+                if (Math.hypot(b.x - bcx, b.y - bcy) < bot.model.w/2 + b.r + 2 && bot.inventory < bot.model.capacity) { 
+                    bot.inventory++; 
+                    return false; 
+                } 
+            }
+            
+            // Standard intake
+            if (Math.hypot(b.x - intakeX, b.y - intakeY) < 9 && bot.inventory < bot.model.capacity) { 
+                bot.inventory++; 
+                return false; 
+            }
+            
+            // Body collision (ball hitting robot body)
+            let bodyCol = circleRectCollision(b, { x: bot.x, y: bot.y, w: bot.model.w, h: bot.model.h });
+            if (bodyCol.hit) { 
+                b.isStatic = false; 
+                b.owner = alliance; 
+                b.x += bodyCol.nx * bodyCol.overlap; 
+                b.y += bodyCol.ny * bodyCol.overlap; 
+                const shieldKick = now < (bot.shieldUntil || 0) ? 2.2 : 1.0; 
+                b.vx += bodyCol.nx * (Math.abs(bot.vx) * 0.5 + 1.0) * shieldKick; 
+                b.vy += bodyCol.ny * (Math.abs(bot.vy) * 0.5 + 1.0) * shieldKick; 
+            }
+        }
+        
+        // Speed limit
+        let speed = Math.hypot(b.vx, b.vy); 
+        if (speed > 25) { 
+            b.vx = (b.vx / speed) * 25; 
+            b.vy = (b.vy / speed) * 25; 
+        }
         return true;
     });
     
+    // Projectiles update (same as before, keeping existing logic)
     projectiles = projectiles.filter(p => {
+        // Howitzer shockwave
         if (p.isHowitzer && p.lobAge >= p.lobDuration) {
             const shockCenter = { x: p.lobTargetX, y: p.lobTargetY };
             const hub = zones.find(z => z.type === 'hub' && z.side === p.owner);
@@ -1729,6 +1826,7 @@ function update() {
             }
         }
         
+        // Lob/Howitzer arc movement
         if (p.isLob || p.isHowitzer) {
             p.lobAge = (p.lobAge || 0) + 1;
             const t = Math.min(1, p.lobAge / p.lobDuration);
@@ -1750,8 +1848,11 @@ function update() {
             return true;
         }
         
-        p.x+=p.vx; p.y+=p.vy; if (p.isPass) { p.vx*=0.975; p.vy*=0.975; }
+        p.x += p.vx; 
+        p.y += p.vy; 
+        if (p.isPass) { p.vx *= 0.975; p.vy *= 0.975; }
         
+        // Boomerang homing
         if (p.isBoomerang) {
             p.boomerangAge++;
             if (p.boomerangAge > 8) {
@@ -1766,6 +1867,7 @@ function update() {
             }
         }
         
+        // Vortex homing
         if (p.isVortex) {
             p.vortexAge++;
             if (p.vortexAge > 6 && !p.isPass) {
@@ -1781,6 +1883,7 @@ function update() {
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
         
+        // Plasma chain
         if (p.isPlasmaChain) {
             p.chainAge = (p.chainAge || 0) + 1;
             if (p.chainRemaining > 0 && p.chainAge > 12) {
@@ -1802,6 +1905,7 @@ function update() {
             }
         }
         
+        // Chained balls scoring +2
         for (let i = 0; i < balls.length; i++) {
             if (balls[i].isChained) {
                 const hub = zones.find(z => z.type === 'hub' && z.side === balls[i].chainOwner);
@@ -1817,13 +1921,25 @@ function update() {
             }
         }
         
-        let hitWall = false; const wallR = p.isRicochet ? 0.944 : 0.4;
+        // Wall collisions for projectiles
+        let hitWall = false; 
+        const wallR = p.isRicochet ? 0.944 : 0.4;
         if (p.x < p.r) { if (p.isSniper) return false; p.x = p.r; p.vx = Math.abs(p.vx)*wallR; hitWall = true; }
         else if (p.x > FIELD_W-p.r) { if (p.isSniper) return false; p.x = FIELD_W-p.r; p.vx = -Math.abs(p.vx)*wallR; hitWall = true; }
         if (p.y < p.r) { if (p.isSniper) return false; p.y = p.r; p.vy = Math.abs(p.vy)*wallR; hitWall = true; }
         else if (p.y > FIELD_H-p.r) { if (p.isSniper) return false; p.y = FIELD_H-p.r; p.vy = -Math.abs(p.vy)*wallR; hitWall = true; }
-        if (hitWall) { p.wallHits = (p.wallHits || 0) + 1; const maxHits = p.isRicochet ? 4 : 3; const minSpd = p.isRicochet ? 0.5 : 1.2; if (p.wallHits >= maxHits || Math.hypot(p.vx, p.vy) < minSpd) { if (!p.isPhantom) balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner }); return false; } }
         
+        if (hitWall) { 
+            p.wallHits = (p.wallHits || 0) + 1; 
+            const maxHits = p.isRicochet ? 4 : 3; 
+            const minSpd = p.isRicochet ? 0.5 : 1.2; 
+            if (p.wallHits >= maxHits || Math.hypot(p.vx, p.vy) < minSpd) { 
+                if (!p.isPhantom) balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner }); 
+                return false; 
+            } 
+        }
+        
+        // Phantom passes through everything
         if (p.isPhantom) {
             let scored = false;
             zones.forEach(z => {
@@ -1840,16 +1956,86 @@ function update() {
             return !scored;
         }
         
-        obstacles.forEach(o => { if (o.type==='hub' && !p.isPass && !p.isSniper && !p.isRicochet && o.side!==p.owner) { let col = circleRectCollision(p, o); if(col.hit){p.vx*=-0.2;p.vy*=-0.2;} } });
-        if (p.isRicochet) { obstacles.forEach(o => { if (o.type==='hub' && o.side!==p.owner) { const col = circleRectCollision(p, o); if (col.hit) { const cx = o.x + o.w/2, cy = o.y + o.h/2, dx = p.x - cx, dy = p.y - cy; if (Math.abs(dx)/o.w > Math.abs(dy)/o.h) { p.vx = Math.sign(dx)*Math.abs(p.vx)*0.95; p.x = cx + Math.sign(dx)*(o.w/2 + p.r + 0.5); } else { p.vy = Math.sign(dy)*Math.abs(p.vy)*0.95; p.y = cy + Math.sign(dy)*(o.h/2 + p.r + 0.5); } p.wallHits = (p.wallHits || 0) + 1; } } }); }
-        if (!p.isSniper && !p.isLob && !p.isHowitzer) { obstacles.forEach(o => { if (o.type !== 'hub' || o.side !== p.owner) return; const innerX = o.side === 'red' ? o.x + o.w : o.x; const withinY = p.y > o.y - p.r - 2 && p.y < o.y + o.h + p.r + 2; if (!withinY) return; if (o.side === 'red') { if (p.vx < 0 && p.x - p.r < innerX && p.x > innerX - 4) { p.x = innerX + p.r; p.vx = Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; } } else { if (p.vx > 0 && p.x + p.r > innerX && p.x < innerX + 4) { p.x = innerX - p.r; p.vx = -Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; } } }); }
+        // Hub shield and ricochet bounces
+        obstacles.forEach(o => { 
+            if (o.type === 'hub' && !p.isPass && !p.isSniper && !p.isRicochet && o.side !== p.owner) { 
+                let col = circleRectCollision(p, o); 
+                if (col.hit) { p.vx *= -0.2; p.vy *= -0.2; } 
+            } 
+        });
         
+        if (p.isRicochet) { 
+            obstacles.forEach(o => { 
+                if (o.type === 'hub' && o.side !== p.owner) { 
+                    const col = circleRectCollision(p, o); 
+                    if (col.hit) { 
+                        const cx = o.x + o.w/2, cy = o.y + o.h/2, dx = p.x - cx, dy = p.y - cy; 
+                        if (Math.abs(dx)/o.w > Math.abs(dy)/o.h) { 
+                            p.vx = Math.sign(dx) * Math.abs(p.vx) * 0.95; 
+                            p.x = cx + Math.sign(dx) * (o.w/2 + p.r + 0.5); 
+                        } else { 
+                            p.vy = Math.sign(dy) * Math.abs(p.vy) * 0.95; 
+                            p.y = cy + Math.sign(dy) * (o.h/2 + p.r + 0.5); 
+                        } 
+                        p.wallHits = (p.wallHits || 0) + 1; 
+                    } 
+                } 
+            }); 
+        }
+        
+        // Center-facing hub shield
+        if (!p.isSniper && !p.isLob && !p.isHowitzer && !p.isPhantom) { 
+            obstacles.forEach(o => { 
+                if (o.type !== 'hub' || o.side !== p.owner) return; 
+                const innerX = o.side === 'red' ? o.x + o.w : o.x; 
+                const withinY = p.y > o.y - p.r - 2 && p.y < o.y + o.h + p.r + 2; 
+                if (!withinY) return; 
+                if (o.side === 'red') { 
+                    if (p.vx < 0 && p.x - p.r < innerX && p.x > innerX - 4) { 
+                        p.x = innerX + p.r; 
+                        p.vx = Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); 
+                        if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; 
+                    } 
+                } else { 
+                    if (p.vx > 0 && p.x + p.r > innerX && p.x < innerX + 4) { 
+                        p.x = innerX - p.r; 
+                        p.vx = -Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); 
+                        if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; 
+                    } 
+                } 
+            }); 
+        }
+        
+        // Scoring
         let scored = false;
-        zones.forEach(z => { if (z.type === 'hub' && z.side === p.owner && !p.isPass && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) { if (!p.isPhantom) scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side }); scored = true; let isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive; if (matchRunning && (isHubActive || p.isSniper)) { if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed++; } else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue++; } } } });
-        if (p.isPass && Math.hypot(p.vx, p.vy) < 0.95) { balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx*0.35, vy: p.vy*0.35, isStatic: false, wasOnBump: false, owner: p.owner }); return false; }
+        zones.forEach(z => { 
+            if (z.type === 'hub' && z.side === p.owner && !p.isPass && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) { 
+                if (!p.isPhantom) scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side }); 
+                scored = true; 
+                let isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive; 
+                if (matchRunning && (isHubActive || p.isSniper)) { 
+                    if(p.owner === 'red') { 
+                        scoreRed++; 
+                        document.getElementById('scoreRedDisplay').innerText = scoreRed; 
+                        if (!autoPhaseEnded) autoScoreRed++; 
+                    } else { 
+                        scoreBlue++; 
+                        document.getElementById('scoreBlueDisplay').innerText = scoreBlue; 
+                        if (!autoPhaseEnded) autoScoreBlue++; 
+                    } 
+                } 
+            } 
+        });
+        
+        // Pass projectiles become balls
+        if (p.isPass && Math.hypot(p.vx, p.vy) < 0.95) { 
+            balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx*0.35, vy: p.vy*0.35, isStatic: false, wasOnBump: false, owner: p.owner }); 
+            return false; 
+        }
         return !scored;
     });
     
+    // Reset chained ball flags
     for (let ball of balls) {
         if (ball.isChained) {
             ball.isChained = false;
