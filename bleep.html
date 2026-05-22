@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>FRC 2026 - HUB ARENA</title>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0;
             background: #0a0a0c;
@@ -24,88 +19,47 @@
             overflow: hidden;
             position: relative;
         }
-
         canvas {
             background: #111;
             border: 2px solid #2a2a2e;
             border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
             max-width: 98vw;
-            max-height: 92vh;
+            max-height: 94vh;
             width: auto;
             height: auto;
             display: block;
             margin: 0 auto;
-            cursor: none;
         }
-
-        /* Top HUD */
         .hud {
             position: absolute;
             top: 70px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 40px;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.75);
+            gap: 32px;
+            background: rgba(0,0,0,0.75);
             backdrop-filter: blur(12px);
             padding: 8px 28px;
             border-radius: 48px;
-            border: 1px solid rgba(255,255,255,0.15);
             z-index: 10;
-            font-family: monospace;
-            font-weight: 800;
         }
-        .stat {
-            font-size: 1.1rem;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .stat span {
-            font-size: 1.6rem;
-            font-weight: 900;
-            background: rgba(0,0,0,0.5);
-            padding: 2px 12px;
-            border-radius: 32px;
-            min-width: 60px;
-            text-align: center;
-        }
-
-        /* Timer Panel (Bottom) */
+        .stat { font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .stat span { font-size: 1.6rem; font-weight: 900; background: rgba(0,0,0,0.5); padding: 2px 12px; border-radius: 32px; min-width: 60px; text-align: center; }
         #timer-panel {
             position: absolute;
             bottom: 90px;
             left: 50%;
             transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
-            z-index: 15;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             backdrop-filter: blur(12px);
             padding: 6px 20px;
             border-radius: 40px;
-            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            z-index: 15;
         }
-        #match-clock {
-            font-size: 2rem;
-            font-weight: 900;
-            letter-spacing: 2px;
-            line-height: 1;
-            font-family: monospace;
-        }
-        #match-clock.auto-phase { color: #a78bfa; text-shadow: 0 0 15px rgba(167,139,250,0.5); }
-        #match-clock.delay-phase { color: #ef4444; text-shadow: 0 0 15px rgba(239,68,68,0.5); }
-        #match-clock.endgame-phase { color: #f97316; text-shadow: 0 0 15px rgba(249,115,22,0.5); }
-        #match-clock.stopped { color: #666; text-shadow: none; }
-        #phase-label { font-size: 0.55rem; font-weight: 800; letter-spacing: 2px; color: #aaa; margin-top: 2px; }
-        #phase-timer { font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; margin-top: 2px; }
-
-        /* Shift Panel (Top Center) */
+        #match-clock { font-size: 2rem; font-weight: 900; font-family: monospace; }
+        #match-clock.stopped { color: #666; }
+        #phase-label { font-size: 0.55rem; color: #aaa; margin-top: 2px; }
         #shift-panel {
             position: absolute;
             top: 130px;
@@ -113,29 +67,16 @@
             transform: translateX(-50%);
             display: flex;
             gap: 8px;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0,0,0,0.6);
             backdrop-filter: blur(8px);
             padding: 4px 16px;
             border-radius: 40px;
-            border: 1px solid rgba(255,255,255,0.1);
             z-index: 10;
-            font-size: 0.65rem;
-            font-weight: 700;
         }
-        .hub-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 10px;
-            border-radius: 32px;
-            transition: all 0.2s;
-        }
+        .hub-indicator { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 32px; }
         .hub-indicator.hub-active-red { background: rgba(239,68,68,0.25); color: #ef4444; }
         .hub-indicator.hub-active-blue { background: rgba(59,130,246,0.25); color: #3b82f6; }
         .hub-indicator.hub-inactive { background: rgba(50,50,55,0.5); color: #666; }
-        .hub-status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-
-        /* Side Panels Container */
         .panels-container {
             position: absolute;
             top: 50%;
@@ -148,63 +89,23 @@
             z-index: 20;
             padding: 0 10px;
         }
-        .panel-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            pointer-events: auto;
-        }
+        .panel-group { display: flex; flex-direction: column; gap: 12px; pointer-events: auto; }
         .panel-group.left { align-items: flex-start; }
         .panel-group.right { align-items: flex-end; }
-
-        /* Individual Panel */
         .controls-panel {
-            background: rgba(10, 10, 12, 0.95);
+            background: rgba(10,10,12,0.95);
             backdrop-filter: blur(16px);
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.1);
             padding: 10px;
             width: 190px;
-            transition: all 0.2s ease;
-            overflow: hidden;
+            transition: all 0.2s;
         }
-        .controls-panel.collapsed {
-            opacity: 0;
-            pointer-events: none;
-            transform: scale(0.9);
-            width: 0;
-            padding: 0;
-            margin: 0;
-        }
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-        }
-        .panel-title {
-            font-size: 0.7rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-        }
-        .toggle-panel {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            font-size: 0.8rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            cursor: pointer;
-            color: white;
-        }
-        .panel-content {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        /* Buttons & Dropdowns */
+        .controls-panel.collapsed { opacity: 0; pointer-events: none; width: 0; padding: 0; margin: 0; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .panel-title { font-size: 0.7rem; font-weight: 800; }
+        .toggle-panel { background: rgba(255,255,255,0.1); border: none; font-size: 0.8rem; padding: 2px 8px; border-radius: 20px; cursor: pointer; color: white; }
+        .panel-content { display: flex; flex-direction: column; gap: 6px; }
         button, select {
             padding: 6px 8px;
             border-radius: 10px;
@@ -216,48 +117,28 @@
             color: white;
         }
         button:active { transform: scale(0.96); }
-        .red-team { background: #dc2626; color: white; }
-        .blue-team { background: #2563eb; color: white; }
-        select {
-            background: #1a1a1f;
-            border: 1px solid #333;
-            width: 100%;
-            appearance: menulist;
-            -webkit-appearance: menulist;
-        }
+        .red-team { background: #dc2626; }
+        .blue-team { background: #2563eb; }
         .player-toggle.on { background: #22c55e; color: #000; }
         .player-toggle.off { background: #444; color: #999; }
-
-        /* Start Area */
+        select { background: #1a1a1f; border: 1px solid #333; width: 100%; appearance: menulist; }
         #start-area {
             position: absolute;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 25;
             display: flex;
             gap: 10px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0,0,0,0.8);
             backdrop-filter: blur(12px);
             padding: 8px 16px;
             border-radius: 48px;
-            border: 1px solid rgba(255,255,255,0.15);
+            z-index: 25;
         }
-        #start-btn-main { background: #22c55e; color: #000; padding: 8px 20px; font-size: 0.8rem; font-weight: 800; }
+        #start-btn-main { background: #22c55e; color: #000; padding: 8px 20px; }
         #start-btn-main.running { background: #f97316; color: white; }
-        #reset-btn-center, #team-mode-toggle-center, #game-mode-toggle-center, #toggle-all-panels { font-size: 0.65rem; padding: 6px 12px; }
-        #toggle-all-panels { background: #8b5cf6; color: white; }
-
-        /* Effects */
-        #shift-flash {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 50;
-            opacity: 0;
-            background: radial-gradient(circle, rgba(255,255,255,0.2), transparent);
-            transition: opacity 0.15s;
-        }
+        #toggle-all-panels { background: #8b5cf6; }
+        #shift-flash { position: absolute; inset: 0; pointer-events: none; z-index: 50; opacity: 0; background: radial-gradient(circle, rgba(255,255,255,0.2), transparent); transition: opacity 0.15s; }
         #shift-flash.flash { opacity: 1; }
         #auto-winner {
             position: absolute;
@@ -265,20 +146,14 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 0.7rem;
-            font-weight: 900;
-            letter-spacing: 2px;
-            color: #a78bfa;
             background: rgba(0,0,0,0.6);
             padding: 4px 12px;
             border-radius: 20px;
             opacity: 0;
             transition: opacity 0.5s;
-            pointer-events: none;
             z-index: 20;
         }
-        #auto-winner.visible { opacity: 1; }
-
-        /* Controls Modal */
+        #auto-winner.visible { opacity: 1; color: #a78bfa; }
         #controls-modal {
             position: fixed;
             inset: 0;
@@ -301,25 +176,15 @@
             overflow-y: auto;
         }
         .modal-content h2 { color: #fbbf24; margin: 0 0 16px 0; text-align: center; }
-        .control-section {
-            background: rgba(255,255,255,0.05);
-            padding: 8px 12px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            border-left: 3px solid #666;
-        }
+        .control-section { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid #666; }
         .control-section h3 { margin: 0 0 6px 0; font-size: 0.8rem; }
         .control-section p { margin: 4px 0; font-size: 0.7rem; color: #ccc; }
         #close-controls-btn { margin-top: 12px; width: 100%; background: #333; }
-
-        .help-btn { background: #3b82f6; font-size: 0.55rem; padding: 4px; margin-bottom: 6px; }
-        .help-btn.red { background: #ef4444; }
     </style>
 </head>
 <body>
 
 <div id="shift-flash"></div>
-
 <div id="controls-modal" class="hidden">
     <div class="modal-content">
         <h2>⚡ GAME CONTROLS</h2>
@@ -327,54 +192,46 @@
         <div class="control-section"><h3>🎮 P2 Red Ctrl</h3><p>Left Stick = Move | Right Stick X = Turn | RT = Shoot | LT = Ability</p></div>
         <div class="control-section"><h3>🔵 P3 Blue KB2</h3><p>Arrows = Move | N/M = Turn | RShift = Shoot | RCtrl = Ability</p></div>
         <div class="control-section"><h3>🎮 P4 Blue Ctrl2</h3><p>Left Stick = Move | Right Stick X = Turn | RT = Shoot | LT = Ability</p></div>
-        <div class="control-section"><h3>🤖 SPECIAL ROBOTS</h3><p><b>Plasma:</b> Chain lightning - chains to nearby balls, +2 per chain<br><b>Howitzer:</b> Lobbed shot that pushes balls toward your hub<br><b>Barricade:</b> Place 2 obstacles (X / LT / RCtrl)<br><b>Phantom:</b> Passes through walls<br><b>Drone:</b> Deploys flying shooter</p></div>
-        <div class="control-section"><h3>🎮 GAME MODES</h3><p>Triple Balls, Slippery Field, Rapid React (1.33x speed), Power-ups, Random Shifts</p></div>
+        <div class="control-section"><h3>🤖 SPECIAL</h3><p>Plasma: chains to balls (+2 each) | Howitzer: pushes balls toward your hub | Barricade: place 2 walls | Phantom: noclip | Drone: deploys shooter</p></div>
         <button id="close-controls-btn">CLOSE</button>
     </div>
 </div>
 
-<!-- Top HUD -->
 <div class="hud">
     <div class="stat" style="color:#ef4444;">🔴 <span id="scoreRedDisplay">0</span></div>
     <div class="stat" style="color:#3b82f6;">🔵 <span id="scoreBlueDisplay">0</span></div>
 </div>
 
-<!-- Timer Panel -->
 <div id="timer-panel">
     <div id="match-clock" class="stopped">2:20</div>
     <div id="phase-label">READY</div>
-    <div id="phase-timer"></div>
 </div>
 
-<!-- Auto Winner Badge -->
 <div id="auto-winner">AUTO WON BY RED</div>
 
-<!-- Shift Panel -->
 <div id="shift-panel">
     <div class="hub-indicator hub-inactive" id="hub-red"><span>🔴 RED</span></div>
     <div class="hub-indicator hub-inactive" id="hub-blue"><span>🔵 BLUE</span></div>
 </div>
 
-<!-- Side Panels Container -->
 <div class="panels-container">
     <div class="panel-group left" id="panel-group-left"></div>
     <div class="panel-group right" id="panel-group-right"></div>
 </div>
 
-<!-- Start Area -->
 <div id="start-area">
     <button id="reset-btn-center">🔄 RESET</button>
     <button id="start-btn-main">▶ START</button>
     <button id="team-mode-toggle-center" style="background:#7c3aed;">CO-OP: OFF</button>
     <button id="game-mode-toggle-center" style="background:#06b6d4;">MODE: STD</button>
-    <button id="toggle-all-panels" style="background:#8b5cf6;">📂 TOGGLE</button>
+    <button id="toggle-all-panels">📂 TOGGLE</button>
 </div>
 
 <canvas id="field"></canvas>
 
 <script>
 // ============================================================
-// ROBOT MODELS
+// ROBOT MODELS (with all new robots)
 // ============================================================
 const BOT_MODELS = {
     'Turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
@@ -426,7 +283,7 @@ let matchRunning = false, startCountdown = 0, countdownInterval = null, matchEla
 let autoPhaseEnded = false, autoWinner = 'red', autoScoreRed = 0, autoScoreBlue = 0;
 let hubRedActive = false, hubBlueActive = false, currentPhaseIdx = -1;
 let sameTeamMode = false, gameMode = 'standard';
-let powerups = [], barricades = [];
+let barricades = [];
 let p1Enabled = true, p2Enabled = true, p3Enabled = true, p4Enabled = true;
 let p1Input = 'KEYBOARD 1', p2Input = 'CONTROLLER 0', p3Input = 'KEYBOARD 2', p4Input = 'CONTROLLER 2';
 let p1StartIdx = 0, p2StartIdx = 0, p3StartIdx = 0, p4StartIdx = 0;
@@ -434,7 +291,42 @@ let botP1, botP2, botP3, botP4;
 let balls = [], projectiles = [], scoringBalls = [], obstacles = [], zones = [];
 let scoreRed = 0, scoreBlue = 0;
 let keys = {};
-let drones = [];
+
+// ============================================================
+// START POSITIONS (5 options)
+// ============================================================
+const START_NAMES = ['HUB', 'TOP BUMP', 'BOT BUMP', 'TOP TRENCH', 'BOT TRENCH'];
+
+function getStartPos(playerNum, startIdx, alliance) {
+    let hubX = 156.61 * S;
+    let bumpYTop = FIELD_H/2 - HUB_S/2 - BUMP_L - 10;
+    let bumpYBot = FIELD_H/2 + HUB_S/2 + BUMP_L + 10;
+    let trenchYTop = bumpYTop - TRENCH_L - BAR_L - 15;
+    let trenchYBot = bumpYBot + TRENCH_L + BAR_L + 15;
+
+    if (alliance === 'red') {
+        let xOffset = (playerNum === 1) ? -45 : -45;
+        if (startIdx === 0) return { x: hubX + xOffset, y: FIELD_H/2 - 30, a: 0 };
+        if (startIdx === 1) return { x: hubX - 20, y: bumpYTop, a: 0 };
+        if (startIdx === 2) return { x: hubX - 20, y: bumpYBot, a: 0 };
+        if (startIdx === 3) return { x: hubX - 20, y: trenchYTop, a: 0 };
+        return { x: hubX - 20, y: trenchYBot, a: 0 };
+    } else {
+        if (sameTeamMode) {
+            if (startIdx === 0) return { x: hubX - 45, y: FIELD_H/2 - 30, a: 0 };
+            if (startIdx === 1) return { x: hubX - 20, y: bumpYTop, a: 0 };
+            if (startIdx === 2) return { x: hubX - 20, y: bumpYBot, a: 0 };
+            if (startIdx === 3) return { x: hubX - 20, y: trenchYTop, a: 0 };
+            return { x: hubX - 20, y: trenchYBot, a: 0 };
+        } else {
+            if (startIdx === 0) return { x: FIELD_W - hubX + 10, y: FIELD_H/2 - 30, a: Math.PI };
+            if (startIdx === 1) return { x: FIELD_W - hubX + 15, y: bumpYTop, a: Math.PI };
+            if (startIdx === 2) return { x: FIELD_W - hubX + 15, y: bumpYBot, a: Math.PI };
+            if (startIdx === 3) return { x: FIELD_W - hubX + 15, y: trenchYTop, a: Math.PI };
+            return { x: FIELD_W - hubX + 15, y: trenchYBot, a: Math.PI };
+        }
+    }
+}
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -543,23 +435,13 @@ function spawnBalls() {
 }
 
 // ============================================================
-// MATCH TIMER & SHIFT SYSTEM
+// MATCH TIMER
 // ============================================================
 const MATCH_PHASES = [
     { name: 'AUTO', start: 0, end: 20, redActive: true, blueActive: true },
     { name: 'DELAY', start: 20, end: 23, redActive: false, blueActive: false },
-    { name: 'TRANSITION', start: 23, end: 33, redActive: true, blueActive: true },
-    { name: 'SHIFT 1', start: 33, end: 58, redActive: null, blueActive: null },
-    { name: 'SHIFT 2', start: 58, end: 83, redActive: null, blueActive: null },
-    { name: 'SHIFT 3', start: 83, end: 108, redActive: null, blueActive: null },
-    { name: 'SHIFT 4', start: 108, end: 133, redActive: null, blueActive: null },
-    { name: 'END GAME', start: 133, end: 163, redActive: true, blueActive: true }
+    { name: 'TELEOP', start: 23, end: 163, redActive: true, blueActive: true }
 ];
-const SHIFT_STATES = {
-    red: [{ redActive: false, blueActive: true }, { redActive: true, blueActive: false }, { redActive: false, blueActive: true }, { redActive: true, blueActive: false }],
-    blue: [{ redActive: true, blueActive: false }, { redActive: false, blueActive: true }, { redActive: true, blueActive: false }, { redActive: false, blueActive: true }]
-};
-
 function tickMatch() {
     if (!matchRunning) return;
     matchElapsed += 1/60;
@@ -585,12 +467,40 @@ function tickMatch() {
     }
     if (currentPhaseIdx !== MATCH_PHASES.indexOf(phase)) {
         currentPhaseIdx = MATCH_PHASES.indexOf(phase);
-        let rAct = phase.redActive, bAct = phase.blueActive;
-        if (rAct === null) { rAct = SHIFT_STATES[autoWinner][currentPhaseIdx - 3].redActive; bAct = SHIFT_STATES[autoWinner][currentPhaseIdx - 3].blueActive; }
-        updateHubUI(rAct, bAct);
-        if (currentPhaseIdx === 2 || currentPhaseIdx === 7) triggerShiftFlash();
-        if (currentPhaseIdx >= 3 && currentPhaseIdx <= 6 && gameMode !== 'random shifts') triggerShiftFlash();
+        updateHubUI(phase.redActive, phase.blueActive);
+        if (phase.name === 'TELEOP') triggerShiftFlash();
     }
+}
+
+// ============================================================
+// INPUT HANDLING
+// ============================================================
+function getInputs(type) {
+    let x = 0, y = 0, rot = 0, act = false, ability = false;
+    if (startCountdown > 0) return { x, y, rot, act, ability };
+    if (type === 'KEYBOARD 1') {
+        if (keys['KeyW']) y = -1; if (keys['KeyS']) y = 1;
+        if (keys['KeyA']) x = -1; if (keys['KeyD']) x = 1;
+        if (keys['KeyQ']) rot = -1; if (keys['KeyE']) rot = 1;
+        if (keys['Space']) act = true;
+        if (keys['KeyX']) ability = true;
+    } else if (type === 'KEYBOARD 2') {
+        if (keys['ArrowUp']) y = -1; if (keys['ArrowDown']) y = 1;
+        if (keys['ArrowLeft']) x = -1; if (keys['ArrowRight']) x = 1;
+        if (keys['KeyN']) rot = -1; if (keys['KeyM']) rot = 1;
+        if (keys['ShiftRight']) act = true;
+        if (keys['ControlRight']) ability = true;
+    } else if (type.startsWith('CONTROLLER')) {
+        let gp = navigator.getGamepads ? navigator.getGamepads()[parseInt(type.split(' ')[1])] : null;
+        if (gp && gp.axes.length > 1) {
+            x = Math.abs(gp.axes[0]) > 0.18 ? gp.axes[0] : 0;
+            y = Math.abs(gp.axes[1]) > 0.18 ? gp.axes[1] : 0;
+            rot = gp.axes.length > 2 && Math.abs(gp.axes[2]) > 0.18 ? gp.axes[2] : 0;
+            act = (gp.buttons[7] && gp.buttons[7].value > 0.3) || (gp.buttons[0] && gp.buttons[0].pressed);
+            ability = (gp.buttons[6] && gp.buttons[6].value > 0.5);
+        }
+    }
+    return { x, y, rot, act, ability };
 }
 // ============================================================
 // ROBOT CLASS
@@ -677,19 +587,13 @@ class Robot {
             let launchAngle = (isShootZone || this.name === 'Sniper') ? Math.atan2(z.y+z.h/2 - rcy, z.x+z.w/2 - rcx) : this.angle;
             let speed = this.name === 'Sniper' ? 26 : 14;
 
-            // Plasma chain lightning
             if (this.name === 'Plasma') {
                 projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*speed, vy: Math.sin(launchAngle)*speed, r: 5, owner: alliance, isPlasma: true, chainedBalls: [] });
-            }
-            // Howitzer with push effect
-            else if (this.name === 'Howitzer') {
+            } else if (this.name === 'Howitzer') {
                 projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*9, vy: Math.sin(launchAngle)*9, r: 7, owner: alliance, isHowitzer: true, age: 0 });
-            }
-            // Phantom noclip shot
-            else if (this.name === 'Phantom') {
+            } else if (this.name === 'Phantom') {
                 projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*16, vy: Math.sin(launchAngle)*16, r: 5, owner: alliance, isPhantom: true });
-            }
-            else {
+            } else {
                 projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*speed, vy: Math.sin(launchAngle)*speed, r: 4, owner: alliance });
             }
             this.inventory--;
@@ -726,87 +630,6 @@ class Robot {
         ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText(this.inventory, -5, 5);
         ctx.restore();
     }
-}
-
-// ============================================================
-// POSITIONS (5 options)
-// ============================================================
-const START_NAMES = ['HUB', 'TOP BUMP', 'BOT BUMP', 'TOP TRENCH', 'BOT TRENCH'];
-
-function getStartPos(playerNum, startIdx, alliance) {
-    let hubX = 156.61 * S;
-    let bumpYTop = FIELD_H/2 - HUB_S/2 - BUMP_L - 10;
-    let bumpYBot = FIELD_H/2 + HUB_S/2 + BUMP_L + 10;
-    let trenchYTop = bumpYTop - TRENCH_L - BAR_L - 15;
-    let trenchYBot = bumpYBot + TRENCH_L + BAR_L + 15;
-    let a = (alliance === 'red') ? 0 : Math.PI;
-
-    if (alliance === 'red') {
-        let xOffset = (playerNum === 1) ? -45 : -45;
-        if (startIdx === 0) return { x: hubX + xOffset, y: FIELD_H/2 - 30, a: 0 };
-        if (startIdx === 1) return { x: hubX - 20, y: bumpYTop, a: 0 };
-        if (startIdx === 2) return { x: hubX - 20, y: bumpYBot, a: 0 };
-        if (startIdx === 3) return { x: hubX - 20, y: trenchYTop, a: 0 };
-        return { x: hubX - 20, y: trenchYBot, a: 0 };
-    } else {
-        if (sameTeamMode) {
-            let xOffset = (playerNum === 3) ? -45 : -45;
-            if (startIdx === 0) return { x: hubX + xOffset, y: FIELD_H/2 - 30, a: 0 };
-            if (startIdx === 1) return { x: hubX - 20, y: bumpYTop, a: 0 };
-            if (startIdx === 2) return { x: hubX - 20, y: bumpYBot, a: 0 };
-            if (startIdx === 3) return { x: hubX - 20, y: trenchYTop, a: 0 };
-            return { x: hubX - 20, y: trenchYBot, a: 0 };
-        } else {
-            let xOffset = (playerNum === 3) ? +10 : +10;
-            if (startIdx === 0) return { x: FIELD_W - hubX + xOffset, y: FIELD_H/2 - 30, a: Math.PI };
-            if (startIdx === 1) return { x: FIELD_W - hubX + 15, y: bumpYTop, a: Math.PI };
-            if (startIdx === 2) return { x: FIELD_W - hubX + 15, y: bumpYBot, a: Math.PI };
-            if (startIdx === 3) return { x: FIELD_W - hubX + 15, y: trenchYTop, a: Math.PI };
-            return { x: FIELD_W - hubX + 15, y: trenchYBot, a: Math.PI };
-        }
-    }
-}
-
-function resetBots() {
-    let p1p = getStartPos(1, p1StartIdx, 'red');
-    let p2p = getStartPos(2, p2StartIdx, 'red');
-    let p3p = getStartPos(3, p3StartIdx, 'blue');
-    let p4p = getStartPos(4, p4StartIdx, 'blue');
-    if (botP1) { botP1.x = p1p.x; botP1.y = p1p.y; botP1.vx = botP1.vy = botP1.vAngle = 0; botP1.angle = p1p.a; botP1.drone = null; }
-    if (botP2) { botP2.x = p2p.x; botP2.y = p2p.y; botP2.vx = botP2.vy = botP2.vAngle = 0; botP2.angle = p2p.a; botP2.drone = null; }
-    if (botP3) { botP3.x = p3p.x; botP3.y = p3p.y; botP3.vx = botP3.vy = botP3.vAngle = 0; botP3.angle = p3p.a; botP3.drone = null; }
-    if (botP4) { botP4.x = p4p.x; botP4.y = p4p.y; botP4.vx = botP4.vy = botP4.vAngle = 0; botP4.angle = p4p.a; botP4.drone = null; }
-}
-
-// ============================================================
-// INPUT HANDLING
-// ============================================================
-function getInputs(type) {
-    let x = 0, y = 0, rot = 0, act = false, ability = false;
-    if (startCountdown > 0) return { x, y, rot, act, ability };
-    if (type === 'KEYBOARD 1') {
-        if (keys['KeyW']) y = -1; if (keys['KeyS']) y = 1;
-        if (keys['KeyA']) x = -1; if (keys['KeyD']) x = 1;
-        if (keys['KeyQ']) rot = -1; if (keys['KeyE']) rot = 1;
-        if (keys['Space']) act = true;
-        if (keys['KeyX']) ability = true;
-    } else if (type === 'KEYBOARD 2') {
-        if (keys['ArrowUp']) y = -1; if (keys['ArrowDown']) y = 1;
-        if (keys['ArrowLeft']) x = -1; if (keys['ArrowRight']) x = 1;
-        if (keys['KeyN']) rot = -1; if (keys['KeyM']) rot = 1;
-        if (keys['ShiftRight']) act = true;
-        if (keys['ControlRight']) ability = true;
-    } else if (type.startsWith('CONTROLLER')) {
-        let gp = navigator.getGamepads ? navigator.getGamepads()[parseInt(type.split(' ')[1])] : null;
-        if (gp && gp.axes.length > 1) {
-            x = Math.abs(gp.axes[0]) > 0.18 ? gp.axes[0] : 0;
-            y = Math.abs(gp.axes[1]) > 0.18 ? gp.axes[1] : 0;
-            rot = gp.axes.length > 2 && Math.abs(gp.axes[2]) > 0.18 ? gp.axes[2] : 0;
-            act = (gp.buttons[7] && gp.buttons[7].value > 0.3) || (gp.buttons[0] && gp.buttons[0].pressed);
-            ability = (gp.buttons[6] && gp.buttons[6].value > 0.5);
-        }
-    }
-    return { x, y, rot, act, ability };
 }
 
 // ============================================================
@@ -864,6 +687,17 @@ function resolveCollisionRobots(r1, r2, coll) {
     let mtv = { x: coll.axis.x * coll.overlap, y: coll.axis.y * coll.overlap };
     r1.x -= mtv.x * 0.5; r1.y -= mtv.y * 0.5;
     r2.x += mtv.x * 0.5; r2.y += mtv.y * 0.5;
+}
+
+function resetBots() {
+    let p1p = getStartPos(1, p1StartIdx, 'red');
+    let p2p = getStartPos(2, p2StartIdx, 'red');
+    let p3p = getStartPos(3, p3StartIdx, 'blue');
+    let p4p = getStartPos(4, p4StartIdx, 'blue');
+    if (botP1) { botP1.x = p1p.x; botP1.y = p1p.y; botP1.vx = botP1.vy = botP1.vAngle = 0; botP1.angle = p1p.a; botP1.drone = null; }
+    if (botP2) { botP2.x = p2p.x; botP2.y = p2p.y; botP2.vx = botP2.vy = botP2.vAngle = 0; botP2.angle = p2p.a; botP2.drone = null; }
+    if (botP3) { botP3.x = p3p.x; botP3.y = p3p.y; botP3.vx = botP3.vy = botP3.vAngle = 0; botP3.angle = p3p.a; botP3.drone = null; }
+    if (botP4) { botP4.x = p4p.x; botP4.y = p4p.y; botP4.vx = botP4.vy = botP4.vAngle = 0; botP4.angle = p4p.a; botP4.drone = null; }
 }
 
 // ============================================================
@@ -969,7 +803,19 @@ function update() {
             return true;
         }
 
-        // Wall collision with ricochet fix
+        // Ricochet fix: bounce off hubs without sticking
+        for (let z of zones) {
+            if (z.type === 'hub' && z.side !== p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2 + 5) {
+                let dx = p.x - (z.x+z.w/2), dy = p.y - (z.y+z.h/2);
+                let angle = Math.atan2(dy, dx);
+                p.vx = Math.cos(angle) * Math.abs(p.vx) * 0.8;
+                p.vy = Math.sin(angle) * Math.abs(p.vy) * 0.8;
+                p.x = (z.x+z.w/2) + Math.cos(angle) * (HUB_S/2 + p.r + 2);
+                p.y = (z.y+z.h/2) + Math.sin(angle) * (HUB_S/2 + p.r + 2);
+            }
+        }
+
+        // Wall collision
         if (p.x < p.r) { p.x = p.r; p.vx = -p.vx * 0.4; }
         if (p.x > FIELD_W - p.r) { p.x = FIELD_W - p.r; p.vx = -p.vx * 0.4; }
         if (p.y < p.r) { p.y = p.r; p.vy = -p.vy * 0.4; }
@@ -1130,7 +976,7 @@ document.getElementById('reset-btn-center').onclick = () => {
     document.getElementById('match-clock').innerText = '2:20'; document.getElementById('phase-label').innerText = 'READY';
     document.getElementById('start-btn-main').innerText = '▶ START'; document.getElementById('start-btn-main').classList.remove('running');
     updateHubUI(false, false);
-    powerups = []; barricades = [];
+    barricades = [];
     spawnBalls(); resetBots();
     for (let i=1;i<=4;i++) { let b = eval(`botP${i}`); if(b) b.inventory = 0; b.drone = null; }
 };
@@ -1147,7 +993,7 @@ document.getElementById('start-btn-main').onclick = () => {
         document.getElementById('scoreRedDisplay').innerText = '0'; document.getElementById('scoreBlueDisplay').innerText = '0';
         for (let i=1;i<=4;i++) { let b = eval(`botP${i}`); if(b) b.inventory = 0; b.drone = null; }
         autoPhaseEnded = false; currentPhaseIdx = -1;
-        powerups = []; barricades = [];
+        barricades = [];
         spawnBalls(); resetBots();
         startCountdown = 3;
         document.getElementById('match-clock').innerText = startCountdown;
