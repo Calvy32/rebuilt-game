@@ -1,0 +1,94 @@
+// Populate Input and Start dropdowns
+function populateUIDropdowns() {
+    const inputOptions = `
+        <option value="keyboard">KEYBOARD 1</option>
+        <option value="keyboard2">KEYBOARD 2</option>
+        <option value="controller">CONTROLLER 0</option>
+        <option value="controller">CONTROLLER 1</option>
+        <option value="controller">CONTROLLER 2</option>
+        <option value="controller">CONTROLLER 3</option>
+    `;
+    const startOptions = `
+        <option value="0">START: HUB</option>
+        <option value="1">START: TOP BUMP</option>
+        <option value="2">START: BOT BUMP</option>
+        <option value="3">START: TOP TRENCH</option>
+        <option value="4">START: BOT TRENCH</option>
+    `;
+    
+    const p1InputSel = document.getElementById('p1-input-select');
+    const p2InputSel = document.getElementById('p2-input-select');
+    const p3InputSel = document.getElementById('p3-input-select');
+    const p4InputSel = document.getElementById('p4-input-select');
+    const p1StartSel = document.getElementById('p1-start-select');
+    const p2StartSel = document.getElementById('p2-start-select');
+    const p3StartSel = document.getElementById('p3-start-select');
+    const p4StartSel = document.getElementById('p4-start-select');
+    
+    if (p1InputSel) p1InputSel.innerHTML = inputOptions;
+    if (p2InputSel) p2InputSel.innerHTML = inputOptions;
+    if (p3InputSel) p3InputSel.innerHTML = inputOptions;
+    if (p4InputSel) p4InputSel.innerHTML = inputOptions;
+    
+    if (p1StartSel) p1StartSel.innerHTML = startOptions;
+    if (p2StartSel) p2StartSel.innerHTML = startOptions;
+    if (p3StartSel) p3StartSel.innerHTML = startOptions;
+    if (p4StartSel) p4StartSel.innerHTML = startOptions;
+    
+    if (p1InputSel) p1InputSel.value = p1Input;
+    if (p2InputSel) p2InputSel.value = p2Input;
+    if (p3InputSel) p3InputSel.value = p3Input;
+    if (p4InputSel) p4InputSel.value = p4Input;
+    
+    if (p1StartSel) p1StartSel.value = p1StartIdx;
+    if (p2StartSel) p2StartSel.value = p2StartIdx;
+    if (p3StartSel) p3StartSel.value = p3StartIdx;
+    if (p4StartSel) p4StartSel.value = p4StartIdx;
+}
+
+// Add dropdown event listeners
+function addDropdownListeners() {
+    const p1InputSel = document.getElementById('p1-input-select');
+    const p2InputSel = document.getElementById('p2-input-select');
+    const p3InputSel = document.getElementById('p3-input-select');
+    const p4InputSel = document.getElementById('p4-input-select');
+    const p1StartSel = document.getElementById('p1-start-select');
+    const p2StartSel = document.getElementById('p2-start-select');
+    const p3StartSel = document.getElementById('p3-start-select');
+    const p4StartSel = document.getElementById('p4-start-select');
+    
+    if (p1InputSel) p1InputSel.onchange = () => { p1Input = p1InputSel.value; };
+    if (p2InputSel) p2InputSel.onchange = () => { p2Input = p2InputSel.value; };
+    if (p3InputSel) p3InputSel.onchange = () => { p3Input = p3InputSel.value; };
+    if (p4InputSel) p4InputSel.onchange = () => { p4Input = p4InputSel.value; };
+    
+    if (p1StartSel) p1StartSel.onchange = () => { if (!matchRunning) { p1StartIdx = parseInt(p1StartSel.value); resetBots(); } };
+    if (p2StartSel) p2StartSel.onchange = () => { if (!matchRunning) { p2StartIdx = parseInt(p2StartSel.value); resetBots(); } };
+    if (p3StartSel) p3StartSel.onchange = () => { if (!matchRunning) { p3StartIdx = parseInt(p3StartSel.value); resetBots(); } };
+    if (p4StartSel) p4StartSel.onchange = () => { if (!matchRunning) { p4StartIdx = parseInt(p4StartSel.value); resetBots(); } };
+}
+
+// Player card toggle buttons
+function addPlayerCardToggles() {
+    const toggles = document.querySelectorAll('.toggle-player');
+    toggles.forEach((btn, idx) => {
+        btn.onclick = () => {
+            const card = btn.closest('.player-card');
+            const controls = card.querySelector('.player-controls');
+            if (controls.style.display === 'none') {
+                controls.style.display = 'flex';
+                btn.innerText = '−';
+            } else {
+                controls.style.display = 'none';
+                btn.innerText = '+';
+            }
+        };
+    });
+}
+
+// Call these after populateBotSelects
+setTimeout(() => {
+    populateUIDropdowns();
+    addDropdownListeners();
+    addPlayerCardToggles();
+}, 100);
