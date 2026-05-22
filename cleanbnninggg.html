@@ -1487,129 +1487,210 @@ function initRobots() {
 }
 
 function setupEventListeners() {
-    for (let i = 1; i <= 4; i++) {
-        let toggle = document.getElementById(`p${i}-toggle`);
-        if (toggle) toggle.onclick = () => {
-            let enabledVar = `p${i}Enabled`;
-            window[enabledVar] = !window[enabledVar];
-            toggle.innerText = `P${i}: ${window[enabledVar] ? 'ON' : 'OFF'}`;
-            toggle.className = `player-toggle ${window[enabledVar] ? 'on' : 'off'}`;
-            resetBots();
-        };
-        let botSel = document.getElementById(`bot-p${i}-select`);
-        if (botSel) botSel.onchange = () => { if (!matchRunning) eval(`botP${i}.setModel(botSel.value)`); else botSel.value = eval(`botP${i}.name`); };
-        let inputSel = document.getElementById(`p${i}-input-select`);
-        if (inputSel) inputSel.onchange = () => { window[`p${i}Input`] = inputSel.value; };
-        let startSel = document.getElementById(`p${i}-start-select`);
-        if (startSel) startSel.onchange = () => { if (!matchRunning) { window[`p${i}StartIdx`] = parseInt(startSel.value); resetBots(); } else startSel.value = window[`p${i}StartIdx`]; };
-        let panelBtn = document.getElementById(`toggle-panel-p${i}`);
-        if (panelBtn) panelBtn.onclick = () => {
-            let panel = document.getElementById(`control-panel-p${i}`);
-            panel.classList.toggle('collapsed');
-            panelBtn.innerText = panel.classList.contains('collapsed') ? '+' : '−';
-        };
-    }
-    
-    document.getElementById('toggle-all-panels').onclick = () => {
-        let allCollapsed = document.getElementById('control-panel-p1').classList.contains('collapsed');
+    // Wait a tiny moment for DOM to fully render panels
+    setTimeout(() => {
         for (let i = 1; i <= 4; i++) {
-            let panel = document.getElementById(`control-panel-p${i}`);
-            let btn = document.getElementById(`toggle-panel-p${i}`);
-            if (allCollapsed) { panel.classList.remove('collapsed'); if (btn) btn.innerText = '−'; }
-            else { panel.classList.add('collapsed'); if (btn) btn.innerText = '+'; }
-        }
-        document.getElementById('toggle-all-panels').innerText = allCollapsed ? '📂 HIDE PANELS' : '📂 SHOW PANELS';
-    };
-    
-    document.getElementById('show-controls-btn-red').onclick = () => document.getElementById('controls-modal').classList.remove('hidden');
-    document.getElementById('show-controls-btn-blue').onclick = () => document.getElementById('controls-modal').classList.remove('hidden');
-    document.getElementById('close-controls-btn').onclick = () => document.getElementById('controls-modal').classList.add('hidden');
-    
-    document.getElementById('team-mode-toggle-center').onclick = () => {
-        sameTeamMode = !sameTeamMode;
-        document.getElementById('team-mode-toggle-center').innerText = `CO-OP: ${sameTeamMode ? 'ON' : 'OFF'}`;
-        for (let i = 3; i <= 4; i++) {
-            let bs = document.getElementById(`bot-p${i}-select`); if (bs) bs.className = (sameTeamMode ? 'red-team' : 'blue-team') + ' bot-select';
-            let isel = document.getElementById(`p${i}-input-select`); if (isel) isel.className = sameTeamMode ? 'red-team' : 'blue-team';
-            let ssel = document.getElementById(`p${i}-start-select`); if (ssel) ssel.className = sameTeamMode ? 'red-team' : 'blue-team';
-        }
-        document.getElementById('reset-btn-center').click();
-    };
-    
-    let modes = ['standard', 'triple balls', 'slippery field', 'rapid react', 'power-ups', 'random shifts'];
-    let modeLabels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID REACT', 'POWER-UPS', 'RANDOM SHIFTS'];
-    let modeIdx = 0;
-    document.getElementById('game-mode-toggle-center').onclick = () => {
-        modeIdx = (modeIdx + 1) % modes.length;
-        gameMode = modes[modeIdx];
-        document.getElementById('game-mode-toggle-center').innerText = `MODE: ${modeLabels[modeIdx]}`;
-        document.getElementById('reset-btn-center').click();
-    };
-    
-    document.getElementById('reset-btn-center').onclick = () => {
-        matchRunning = false; startCountdown = 0; endCooldown = 0;
-        scoreRed = 0; scoreBlue = 0; autoScoreRed = 0; autoScoreBlue = 0;
-        matchElapsed = 0; autoPhaseEnded = false; currentPhaseIdx = -1;
-        if (countdownInterval) clearInterval(countdownInterval);
-        document.getElementById('scoreRedDisplay').innerText = '0';
-        document.getElementById('scoreBlueDisplay').innerText = '0';
-        document.getElementById('match-clock').innerText = '2:20';
-        document.getElementById('match-clock').className = 'stopped';
-        document.getElementById('phase-label').innerText = 'READY';
-        document.getElementById('phase-timer').innerText = '';
-        document.getElementById('start-btn-main').innerText = '▶ START MATCH';
-        document.getElementById('start-btn-main').classList.remove('running');
-        updateHubUI(false, false);
-        resetModeState();
-        spawnBalls();
-        resetBots();
-        for (let i = 1; i <= 4; i++) { let bot = eval(`botP${i}`); if (bot) bot.inventory = 0; }
-    };
-    
-    document.getElementById('start-btn-main').onclick = () => {
-        if (matchRunning || startCountdown > 0) {
-            matchRunning = false; startCountdown = 0; endCooldown = 0;
-            if (countdownInterval) clearInterval(countdownInterval);
-            document.getElementById('start-btn-main').innerText = '▶ START MATCH';
-            document.getElementById('start-btn-main').classList.remove('running');
-            document.getElementById('match-clock').className = 'stopped';
-            document.getElementById('match-clock').innerText = '2:20';
-            document.getElementById('phase-label').innerText = 'READY';
-            document.getElementById('phase-timer').innerText = '';
-            updateHubUI(false, false);
-        } else {
-            for (let i = 1; i <= 4; i++) {
-                let panel = document.getElementById(`control-panel-p${i}`);
-                let btn = document.getElementById(`toggle-panel-p${i}`);
-                panel.classList.add('collapsed');
-                if (btn) btn.innerText = '+';
+            let toggle = document.getElementById(`p${i}-toggle`);
+            if (toggle) {
+                toggle.onclick = () => {
+                    let enabledVar = `p${i}Enabled`;
+                    window[enabledVar] = !window[enabledVar];
+                    toggle.innerText = `P${i}: ${window[enabledVar] ? 'ON' : 'OFF'}`;
+                    toggle.className = `player-toggle ${window[enabledVar] ? 'on' : 'off'}`;
+                    resetBots();
+                };
             }
-            scoreRed = 0; scoreBlue = 0; autoScoreRed = 0; autoScoreBlue = 0;
-            document.getElementById('scoreRedDisplay').innerText = '0';
-            document.getElementById('scoreBlueDisplay').innerText = '0';
-            for (let i = 1; i <= 4; i++) { let bot = eval(`botP${i}`); if (bot) bot.inventory = 0; }
-            autoPhaseEnded = false; currentPhaseIdx = -1;
-            resetModeState(); spawnBalls(); resetBots();
-            startCountdown = 3;
-            document.getElementById('match-clock').innerText = startCountdown;
-            document.getElementById('match-clock').className = 'stopped';
-            document.getElementById('phase-label').innerText = 'STARTING...';
-            document.getElementById('phase-timer').innerText = '';
-            document.getElementById('start-btn-main').innerText = '⏹ CANCEL';
-            document.getElementById('start-btn-main').classList.add('running');
-            countdownInterval = setInterval(() => {
-                startCountdown--;
-                if (startCountdown > 0) document.getElementById('match-clock').innerText = startCountdown;
-                else {
-                    clearInterval(countdownInterval); startCountdown = 0; matchElapsed = 0; matchRunning = true;
-                    nextShiftTime = Date.now() + 9000 + Math.random() * 6000;
-                    nextPowerupSpawnTime = Date.now() + 1800;
-                    updateHubUI(true, true);
-                    document.getElementById('start-btn-main').innerText = '⏹ STOP';
-                }
-            }, 1000);
+            
+            let botSel = document.getElementById(`bot-p${i}-select`);
+            if (botSel) {
+                botSel.onchange = () => { 
+                    if (!matchRunning) {
+                        let bot = eval(`botP${i}`);
+                        if (bot) bot.setModel(botSel.value);
+                    } else {
+                        botSel.value = eval(`botP${i}.name`);
+                    }
+                };
+            }
+            
+            let inputSel = document.getElementById(`p${i}-input-select`);
+            if (inputSel) {
+                inputSel.onchange = () => { 
+                    window[`p${i}Input`] = inputSel.value; 
+                };
+            }
+            
+            let startSel = document.getElementById(`p${i}-start-select`);
+            if (startSel) {
+                startSel.onchange = () => { 
+                    if (!matchRunning) { 
+                        window[`p${i}StartIdx`] = parseInt(startSel.value); 
+                        resetBots(); 
+                    } else { 
+                        startSel.value = window[`p${i}StartIdx`]; 
+                    } 
+                };
+            }
+            
+            let panelBtn = document.getElementById(`toggle-panel-p${i}`);
+            if (panelBtn) {
+                panelBtn.onclick = () => {
+                    let panel = document.getElementById(`control-panel-p${i}`);
+                    if (panel) {
+                        panel.classList.toggle('collapsed');
+                        panelBtn.innerText = panel.classList.contains('collapsed') ? '+' : '−';
+                    }
+                };
+            }
         }
-    };
+        
+        let toggleAllBtn = document.getElementById('toggle-all-panels');
+        if (toggleAllBtn) {
+            toggleAllBtn.onclick = () => {
+                let firstPanel = document.getElementById('control-panel-p1');
+                let allCollapsed = firstPanel ? firstPanel.classList.contains('collapsed') : false;
+                for (let i = 1; i <= 4; i++) {
+                    let panel = document.getElementById(`control-panel-p${i}`);
+                    let btn = document.getElementById(`toggle-panel-p${i}`);
+                    if (panel) {
+                        if (allCollapsed) {
+                            panel.classList.remove('collapsed');
+                            if (btn) btn.innerText = '−';
+                        } else {
+                            panel.classList.add('collapsed');
+                            if (btn) btn.innerText = '+';
+                        }
+                    }
+                }
+                toggleAllBtn.innerText = allCollapsed ? '📂 HIDE PANELS' : '📂 SHOW PANELS';
+            };
+        }
+        
+        let showRed = document.getElementById('show-controls-btn-red');
+        let showBlue = document.getElementById('show-controls-btn-blue');
+        let closeBtn = document.getElementById('close-controls-btn');
+        let modal = document.getElementById('controls-modal');
+        if (showRed) showRed.onclick = () => modal.classList.remove('hidden');
+        if (showBlue) showBlue.onclick = () => modal.classList.remove('hidden');
+        if (closeBtn) closeBtn.onclick = () => modal.classList.add('hidden');
+        
+        let teamToggle = document.getElementById('team-mode-toggle-center');
+        if (teamToggle) {
+            teamToggle.onclick = () => {
+                sameTeamMode = !sameTeamMode;
+                teamToggle.innerText = `CO-OP: ${sameTeamMode ? 'ON' : 'OFF'}`;
+                for (let i = 3; i <= 4; i++) {
+                    let bs = document.getElementById(`bot-p${i}-select`);
+                    if (bs) bs.className = (sameTeamMode ? 'red-team' : 'blue-team') + ' bot-select';
+                    let isel = document.getElementById(`p${i}-input-select`);
+                    if (isel) isel.className = sameTeamMode ? 'red-team' : 'blue-team';
+                    let ssel = document.getElementById(`p${i}-start-select`);
+                    if (ssel) ssel.className = sameTeamMode ? 'red-team' : 'blue-team';
+                }
+                let resetBtn = document.getElementById('reset-btn-center');
+                if (resetBtn) resetBtn.click();
+            };
+        }
+        
+        let modeToggle = document.getElementById('game-mode-toggle-center');
+        let modes = ['standard', 'triple balls', 'slippery field', 'rapid react', 'power-ups', 'random shifts'];
+        let modeLabels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID REACT', 'POWER-UPS', 'RANDOM SHIFTS'];
+        let modeIdx = modes.indexOf(gameMode);
+        if (modeIdx === -1) modeIdx = 0;
+        if (modeToggle) {
+            modeToggle.onclick = () => {
+                modeIdx = (modeIdx + 1) % modes.length;
+                gameMode = modes[modeIdx];
+                modeToggle.innerText = `MODE: ${modeLabels[modeIdx]}`;
+                let resetBtn = document.getElementById('reset-btn-center');
+                if (resetBtn) resetBtn.click();
+            };
+        }
+        
+        let resetBtn = document.getElementById('reset-btn-center');
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                matchRunning = false; startCountdown = 0; endCooldown = 0;
+                scoreRed = 0; scoreBlue = 0; autoScoreRed = 0; autoScoreBlue = 0;
+                matchElapsed = 0; autoPhaseEnded = false; currentPhaseIdx = -1;
+                if (countdownInterval) clearInterval(countdownInterval);
+                document.getElementById('scoreRedDisplay').innerText = '0';
+                document.getElementById('scoreBlueDisplay').innerText = '0';
+                document.getElementById('match-clock').innerText = '2:20';
+                document.getElementById('match-clock').className = 'stopped';
+                document.getElementById('phase-label').innerText = 'READY';
+                document.getElementById('phase-timer').innerText = '';
+                let startBtn = document.getElementById('start-btn-main');
+                if (startBtn) {
+                    startBtn.innerText = '▶ START MATCH';
+                    startBtn.classList.remove('running');
+                }
+                updateHubUI(false, false);
+                resetModeState();
+                spawnBalls();
+                resetBots();
+                for (let i = 1; i <= 4; i++) { 
+                    let bot = eval(`botP${i}`); 
+                    if (bot) bot.inventory = 0; 
+                }
+            };
+        }
+        
+        let startBtn = document.getElementById('start-btn-main');
+        if (startBtn) {
+            startBtn.onclick = () => {
+                if (matchRunning || startCountdown > 0) {
+                    matchRunning = false; startCountdown = 0; endCooldown = 0;
+                    if (countdownInterval) clearInterval(countdownInterval);
+                    startBtn.innerText = '▶ START MATCH';
+                    startBtn.classList.remove('running');
+                    document.getElementById('match-clock').className = 'stopped';
+                    document.getElementById('match-clock').innerText = '2:20';
+                    document.getElementById('phase-label').innerText = 'READY';
+                    document.getElementById('phase-timer').innerText = '';
+                    updateHubUI(false, false);
+                } else {
+                    for (let i = 1; i <= 4; i++) {
+                        let panel = document.getElementById(`control-panel-p${i}`);
+                        let btn = document.getElementById(`toggle-panel-p${i}`);
+                        if (panel) panel.classList.add('collapsed');
+                        if (btn) btn.innerText = '+';
+                    }
+                    scoreRed = 0; scoreBlue = 0; autoScoreRed = 0; autoScoreBlue = 0;
+                    document.getElementById('scoreRedDisplay').innerText = '0';
+                    document.getElementById('scoreBlueDisplay').innerText = '0';
+                    for (let i = 1; i <= 4; i++) { 
+                        let bot = eval(`botP${i}`); 
+                        if (bot) bot.inventory = 0; 
+                    }
+                    autoPhaseEnded = false; currentPhaseIdx = -1;
+                    resetModeState(); spawnBalls(); resetBots();
+                    startCountdown = 3;
+                    document.getElementById('match-clock').innerText = startCountdown;
+                    document.getElementById('match-clock').className = 'stopped';
+                    document.getElementById('phase-label').innerText = 'STARTING...';
+                    document.getElementById('phase-timer').innerText = '';
+                    startBtn.innerText = '⏹ CANCEL';
+                    startBtn.classList.add('running');
+                    countdownInterval = setInterval(() => {
+                        startCountdown--;
+                        if (startCountdown > 0) {
+                            document.getElementById('match-clock').innerText = startCountdown;
+                        } else {
+                            clearInterval(countdownInterval); 
+                            startCountdown = 0; 
+                            matchElapsed = 0; 
+                            matchRunning = true;
+                            nextShiftTime = Date.now() + 9000 + Math.random() * 6000;
+                            nextPowerupSpawnTime = Date.now() + 1800;
+                            updateHubUI(true, true);
+                            startBtn.innerText = '⏹ STOP';
+                        }
+                    }, 1000);
+                }
+            };
+        }
+    }, 50); // Small delay to ensure DOM is ready
 }
 
 // ============================================================
@@ -1626,11 +1707,14 @@ document.addEventListener('DOMContentLoaded', () => {
     createPlayerPanel(3, 'blue');
     createPlayerPanel(4, 'blue');
     populateDropdowns();
-    setupEventListeners();
-    resetBots();
-    updateHubUI(false, false);
-    setInterval(update, 1000/60);
-    draw();
+    // Small delay before setting up event listeners to ensure all elements exist
+    setTimeout(() => {
+        setupEventListeners();
+        resetBots();
+        updateHubUI(false, false);
+        setInterval(update, 1000/60);
+        draw();
+    }, 100);
 });
 </script>
 </body>
