@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FRC 2026 - HUB ARENA</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background: #0a0a0c;
+            color: white;
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        canvas {
+            background: #111;
+            border: 2px solid #2a2a2e;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-width: 98vw;
+            max-height: 92vh;
+            width: auto;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            cursor: none;
+        }
+
+        /* Top HUD */
+        .hud {
+            position: absolute;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(12px);
+            padding: 8px 28px;
+            border-radius: 48px;
+            border: 1px solid rgba(255,255,255,0.15);
+            z-index: 10;
+            font-family: monospace;
+            font-weight: 800;
+        }
+        .stat {
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat span {
+            font-size: 1.6rem;
+            font-weight: 900;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 12px;
+            border-radius: 32px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Timer Panel (Bottom) */
+        #timer-panel {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 15;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            padding: 6px 20px;
+            border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #match-clock {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 1;
+            font-family: monospace;
+        }
+        #match-clock.auto-phase { color: #a78bfa; text-shadow: 0 0 15px rgba(167,139,250,0.5); }
+        #match-clock.delay-phase { color: #ef4444; text-shadow: 0 0 15px rgba(239,68,68,0.5); }
+        #match-clock.endgame-phase { color: #f97316; text-shadow: 0 0 15px rgba(249,115,22,0.5); }
+        #match-clock.stopped { color: #666; text-shadow: none; }
+        #phase-label { font-size: 0.55rem; font-weight: 800; letter-spacing: 2px; color: #aaa; margin-top: 2px; }
+        #phase-timer { font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; margin-top: 2px; }
+
+        /* Shift Panel (Top Center) */
+        #shift-panel {
+            position: absolute;
+            top: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            padding: 4px 16px;
+            border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+        .hub-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 32px;
+            transition: all 0.2s;
+        }
+        .hub-indicator.hub-active-red { background: rgba(239,68,68,0.25); color: #ef4444; }
+        .hub-indicator.hub-active-blue { background: rgba(59,130,246,0.25); color: #3b82f6; }
+        .hub-indicator.hub-inactive { background: rgba(50,50,55,0.5); color: #666; }
+        .hub-status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+        /* Side Panels Container */
+        .panels-container {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 20;
+            padding: 0 10px;
+        }
+        .panel-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+        .panel-group.left { align-items: flex-start; }
+        .panel-group.right { align-items: flex-end; }
+
+        /* Individual Panel */
+        .controls-panel {
+            background: rgba(10, 10, 12, 0.95);
+            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px;
+            width: 190px;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .controls-panel.collapsed {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+            width: 0;
+            padding: 0;
+            margin: 0;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .panel-title {
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+        .toggle-panel {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            cursor: pointer;
+            color: white;
+        }
+        .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* Buttons & Dropdowns */
+        button, select {
+            padding: 6px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.6rem;
+            cursor: pointer;
+            border: none;
+            background: #1f1f24;
+            color: white;
+        }
+        button:active { transform: scale(0.96); }
+        .red-team { background: #dc2626; color: white; }
+        .blue-team { background: #2563eb; color: white; }
+        select {
+            background: #1a1a1f;
+            border: 1px solid #333;
+            width: 100%;
+            appearance: menulist;
+            -webkit-appearance: menulist;
+        }
+        .player-toggle.on { background: #22c55e; color: #000; }
+        .player-toggle.off { background: #444; color: #999; }
+
+        /* Start Area */
+        #start-area {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 8px 16px;
+            border-radius: 48px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        #start-btn-main { background: #22c55e; color: #000; padding: 8px 20px; font-size: 0.8rem; font-weight: 800; }
+        #start-btn-main.running { background: #f97316; color: white; }
+        #reset-btn-center, #team-mode-toggle-center, #game-mode-toggle-center, #toggle-all-panels { font-size: 0.65rem; padding: 6px 12px; }
+        #toggle-all-panels { background: #8b5cf6; color: white; }
+
+        /* Effects */
+        #shift-flash {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.2), transparent);
+            transition: opacity 0.15s;
+        }
+        #shift-flash.flash { opacity: 1; }
+        #auto-winner {
+            position: absolute;
+            top: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #a78bfa;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 12px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 20;
+        }
+        #auto-winner.visible { opacity: 1; }
+
+        /* Controls Modal */
+        #controls-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #controls-modal.hidden { display: none; }
+        .modal-content {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 24px;
+            padding: 20px;
+            max-width: 380px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 { color: #fbbf24; margin: 0 0 16px 0; text-align: center; }
+        .control-section {
+            background: rgba(255,255,255,0.05);
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #666;
+        }
+        .control-section h3 { margin: 0 0 6px 0; font-size: 0.8rem; }
+        .control-section p { margin: 4px 0; font-size: 0.7rem; color: #ccc; }
+        #close-controls-btn { margin-top: 12px; width: 100%; background: #333; }
+
+        .help-btn { background: #3b82f6; font-size: 0.55rem; padding: 4px; margin-bottom: 6px; }
+        .help-btn.red { background: #ef4444; }
+    </style>
+</head>
+<body>
+
+<div id="shift-flash"></div>
+
+<div id="controls-modal" class="hidden">
+    <div class="modal-content">
+        <h2>⚡ GAME CONTROLS</h2>
+        <div class="control-section"><h3>🔴 P1 Red KB</h3><p>WASD = Move | Q/E = Turn | SPACE = Shoot | X = Ability</p></div>
+        <div class="control-section"><h3>🎮 P2 Red Ctrl</h3><p>Left Stick = Move | Right Stick X = Turn | RT = Shoot | LT = Ability</p></div>
+        <div class="control-section"><h3>🔵 P3 Blue KB2</h3><p>Arrows = Move | N/M = Turn | RShift = Shoot | RCtrl = Ability</p></div>
+        <div class="control-section"><h3>🎮 P4 Blue Ctrl2</h3><p>Left Stick = Move | Right Stick X = Turn | RT = Shoot | LT = Ability</p></div>
+        <div class="control-section"><h3>🤖 SPECIAL ROBOTS</h3><p><b>Plasma:</b> Chain lightning - chains to nearby balls, +2 per chain<br><b>Howitzer:</b> Lobbed shot that pushes balls toward your hub<br><b>Barricade:</b> Place 2 obstacles (X / LT / RCtrl)<br><b>Phantom:</b> Passes through walls<br><b>Drone:</b> Deploys flying shooter</p></div>
+        <div class="control-section"><h3>🎮 GAME MODES</h3><p>Triple Balls, Slippery Field, Rapid React (1.33x speed), Power-ups, Random Shifts</p></div>
+        <button id="close-controls-btn">CLOSE</button>
+    </div>
+</div>
+
+<!-- Top HUD -->
+<div class="hud">
+    <div class="stat" style="color:#ef4444;">🔴 <span id="scoreRedDisplay">0</span></div>
+    <div class="stat" style="color:#3b82f6;">🔵 <span id="scoreBlueDisplay">0</span></div>
+</div>
+
+<!-- Timer Panel -->
+<div id="timer-panel">
+    <div id="match-clock" class="stopped">2:20</div>
+    <div id="phase-label">READY</div>
+    <div id="phase-timer"></div>
+</div>
+
+<!-- Auto Winner Badge -->
+<div id="auto-winner">AUTO WON BY RED</div>
+
+<!-- Shift Panel -->
+<div id="shift-panel">
+    <div class="hub-indicator hub-inactive" id="hub-red"><span>🔴 RED</span></div>
+    <div class="hub-indicator hub-inactive" id="hub-blue"><span>🔵 BLUE</span></div>
+</div>
+
+<!-- Side Panels Container -->
+<div class="panels-container">
+    <div class="panel-group left" id="panel-group-left"></div>
+    <div class="panel-group right" id="panel-group-right"></div>
+</div>
+
+<!-- Start Area -->
+<div id="start-area">
+    <button id="reset-btn-center">🔄 RESET</button>
+    <button id="start-btn-main">▶ START</button>
+    <button id="team-mode-toggle-center" style="background:#7c3aed;">CO-OP: OFF</button>
+    <button id="game-mode-toggle-center" style="background:#06b6d4;">MODE: STD</button>
+    <button id="toggle-all-panels" style="background:#8b5cf6;">📂 TOGGLE</button>
+</div>
+
+<canvas id="field"></canvas>
+
+<script>
+// ============================================================
+// ROBOT MODELS
+// ============================================================
+const BOT_MODELS = {
+    'Turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
+    'Blitz': { accel: 0.38, rotSpeed: 0.036, capacity: 15, fireRate: 0, w: 41, h: 41 },
+    'Boomerang': { accel: 0.52, rotSpeed: 0.055, capacity: 40, fireRate: 95, w: 41, h: 41 },
+    'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 600, w: 39, h: 39 },
+    'Scattershot': { accel: 0.40, rotSpeed: 0.042, capacity: 90, fireRate: 272, w: 43, h: 43 },
+    'Dozer': { accel: 0.26, rotSpeed: 0.028, capacity: 225, fireRate: 70, w: 54, h: 54 },
+    'Magnet': { accel: 0.36, rotSpeed: 0.042, capacity: 70, fireRate: 90, w: 42, h: 42 },
+    'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
+    'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 40, fireRate: 850, w: 46, h: 46 },
+    'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
+    'Plasma': { accel: 0.42, rotSpeed: 0.045, capacity: 50, fireRate: 600, w: 42, h: 42 },
+    'Phantom': { accel: 0.50, rotSpeed: 0.052, capacity: 20, fireRate: 450, w: 40, h: 40 },
+    'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 },
+    'Drone': { accel: 0.40, rotSpeed: 0.042, capacity: 25, fireRate: 180, w: 38, h: 38 }
+};
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const S = 1.6;
+const FIELD_W = 651.22 * S;
+const FIELD_H = 317.69 * S;
+const WALL_VISUAL = 20;
+const BALL_R = (5.91 * S) / 2;
+const HUB_S = 47 * S;
+const BUMP_W = 44.4 * S;
+const BUMP_L = 73 * S;
+const BAR_L = 12 * S;
+const TRENCH_L = 49.86 * S;
+const RED_SHOOT_LIMIT = (156.61 * S) + (BUMP_W / 2);
+const BLUE_SHOOT_LIMIT = FIELD_W - (156.61 * S) - (BUMP_W / 2);
+const TOWER_OFFSET = 144 * S;
+const TOWER_DIM = 45 * S;
+const TOWER_WALL_DEPTH = 6 * S;
+const DEPOT_W = 24 * S;
+const DEPOT_H = 42 * S;
+
+const canvas = document.getElementById('field');
+const ctx = canvas.getContext('2d');
+canvas.width = FIELD_W + (WALL_VISUAL * 2);
+canvas.height = FIELD_H + (WALL_VISUAL * 2);
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let matchRunning = false, startCountdown = 0, countdownInterval = null, matchElapsed = 0;
+let autoPhaseEnded = false, autoWinner = 'red', autoScoreRed = 0, autoScoreBlue = 0;
+let hubRedActive = false, hubBlueActive = false, currentPhaseIdx = -1;
+let sameTeamMode = false, gameMode = 'standard';
+let powerups = [], barricades = [];
+let p1Enabled = true, p2Enabled = true, p3Enabled = true, p4Enabled = true;
+let p1Input = 'KEYBOARD 1', p2Input = 'CONTROLLER 0', p3Input = 'KEYBOARD 2', p4Input = 'CONTROLLER 2';
+let p1StartIdx = 0, p2StartIdx = 0, p3StartIdx = 0, p4StartIdx = 0;
+let botP1, botP2, botP3, botP4;
+let balls = [], projectiles = [], scoringBalls = [], obstacles = [], zones = [];
+let scoreRed = 0, scoreBlue = 0;
+let keys = {};
+let drones = [];
+
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+function formatTime(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s/60) + ":" + (s%60 < 10 ? "0" : "") + (s%60); }
+function getDisplayTime(e) { if (e <= 20) return formatTime(20 - e); if (e <= 23) return formatTime(23 - e); if (e <= 163) return formatTime(163 - e); return "0:00"; }
+function triggerShiftFlash() { let el = document.getElementById('shift-flash'); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 200); }
+function updateHubUI(red, blue) {
+    hubRedActive = red; hubBlueActive = blue;
+    document.getElementById('hub-red').className = `hub-indicator ${red ? 'hub-active-red' : 'hub-inactive'}`;
+    document.getElementById('hub-blue').className = `hub-indicator ${blue ? 'hub-active-blue' : 'hub-inactive'}`;
+}
+
+// ============================================================
+// PHYSICS
+// ============================================================
+function circleRectCollision(circle, rect) {
+    let cx = Math.max(rect.x, Math.min(circle.x, rect.x + rect.w));
+    let cy = Math.max(rect.y, Math.min(circle.y, rect.y + rect.h));
+    let dx = circle.x - cx, dy = circle.y - cy, d2 = dx*dx + dy*dy;
+    if (d2 < circle.r * circle.r) {
+        let d = Math.sqrt(d2);
+        if (d === 0) return { hit: true, nx: 1, ny: 0, overlap: circle.r };
+        return { hit: true, nx: dx/d, ny: dy/d, overlap: circle.r - d };
+    }
+    return { hit: false };
+}
+
+function circleCircleCollision(c1, c2) {
+    let dx = c2.x - c1.x, dy = c2.y - c1.y, d = Math.hypot(dx, dy), minD = c1.r + c2.r;
+    if (d < minD) {
+        if (d === 0) return { hit: true, nx: 1, ny: 0, overlap: minD };
+        return { hit: true, nx: dx/d, ny: dy/d, overlap: minD - d };
+    }
+    return { hit: false };
+}
+
+function resolveBallCollision(b1, b2) {
+    let col = circleCircleCollision(b1, b2);
+    if (!col.hit) return;
+    b1.x -= col.nx * col.overlap * 0.5;
+    b1.y -= col.ny * col.overlap * 0.5;
+    b2.x += col.nx * col.overlap * 0.5;
+    b2.y += col.ny * col.overlap * 0.5;
+    let vrelx = b2.vx - b1.vx, vrely = b2.vy - b1.vy;
+    let dot = vrelx * col.nx + vrely * col.ny;
+    if (dot < 0) {
+        let imp = (1 + 0.7) * dot;
+        b1.vx += imp * col.nx; b1.vy += imp * col.ny;
+        b2.vx -= imp * col.nx; b2.vy -= imp * col.ny;
+    }
+    b1.isStatic = false; b2.isStatic = false;
+}
+
+// ============================================================
+// MAP BUILDING
+// ============================================================
+function addElement(x, y, w, h, type, side) { let el = { x, y, w, h, type, side }; if (['hub','barrier','trench','towerWall'].includes(type)) obstacles.push(el); zones.push(el); }
+function buildLane(x, hubY, side, isTop) {
+    let bumpY = isTop ? hubY - BUMP_L : hubY + HUB_S;
+    addElement(x, bumpY, BUMP_W, BUMP_L, 'bump', side);
+    let barY = isTop ? bumpY - BAR_L : bumpY + BUMP_L;
+    addElement(x, barY, BUMP_W, BAR_L, 'barrier', side);
+    addElement(x + BUMP_W/2 - 15*S, isTop ? barY - TRENCH_L : barY + BAR_L, 30*S, TRENCH_L, 'trench', side);
+}
+function initField() {
+    obstacles = []; zones = [];
+    addElement(156.61*S, FIELD_H/2 - HUB_S/2, HUB_S, HUB_S, 'hub', 'red');
+    buildLane(156.61*S, FIELD_H/2 - HUB_S/2, 'red', true);
+    buildLane(156.61*S, FIELD_H/2 - HUB_S/2, 'red', false);
+    addElement(0, TOWER_OFFSET, TOWER_DIM, TOWER_DIM, 'tower', 'red');
+    addElement(TOWER_DIM - TOWER_WALL_DEPTH, TOWER_OFFSET, TOWER_WALL_DEPTH, TOWER_DIM, 'towerWall', 'red');
+    addElement(FIELD_W - 156.61*S - HUB_S, FIELD_H/2 - HUB_S/2, HUB_S, HUB_S, 'hub', 'blue');
+    buildLane(FIELD_W - 156.61*S - BUMP_W, FIELD_H/2 - HUB_S/2, 'blue', true);
+    buildLane(FIELD_W - 156.61*S - BUMP_W, FIELD_H/2 - HUB_S/2, 'blue', false);
+    addElement(FIELD_W - TOWER_DIM, FIELD_H - TOWER_OFFSET - TOWER_DIM, TOWER_DIM, TOWER_DIM, 'tower', 'blue');
+    addElement(FIELD_W - TOWER_DIM, FIELD_H - TOWER_OFFSET - TOWER_DIM, TOWER_WALL_DEPTH, TOWER_DIM, 'towerWall', 'blue');
+    let redDepotY = 82.32*S - DEPOT_H/2, blueDepotY = FIELD_H - 82.32*S - DEPOT_H/2;
+    addElement(0, redDepotY, DEPOT_W, DEPOT_H, 'depot', 'red');
+    addElement(FIELD_W - DEPOT_W, blueDepotY, DEPOT_W, DEPOT_H, 'depot', 'blue');
+}
+
+function spawnBalls() {
+    balls = [];
+    let rows = 30, cols = 12;
+    if (gameMode === 'triple balls') { rows = 45; cols = 24; }
+    let sx = FIELD_W/2 - cols*BALL_R*2/2 + BALL_R;
+    let sy = FIELD_H/2 - rows*BALL_R*2/2 + BALL_R;
+    for (let r = 0; r < rows; r++) {
+        if (gameMode !== 'triple balls' && r >= 14 && r <= 15) continue;
+        for (let c = 0; c < cols; c++) {
+            let bx = sx + c*BALL_R*2, by = sy + r*BALL_R*2;
+            let inHub = false;
+            obstacles.forEach(o => { if (o.type === 'hub' && bx > o.x-10 && bx < o.x+o.w+10 && by > o.y-10 && by < o.y+o.h+10) inHub = true; });
+            if (!inHub) balls.push({ x: bx, y: by, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false });
+        }
+    }
+    let redDepotY = 82.32*S - DEPOT_H/2, blueDepotY = FIELD_H - 82.32*S - DEPOT_H/2, blueDepotX = FIELD_W - DEPOT_W;
+    let xStep = DEPOT_W/4, yStep = DEPOT_H/6;
+    for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 4; c++) {
+            balls.push({ x: c*xStep + xStep/2, y: redDepotY + r*yStep + yStep/2, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false });
+            balls.push({ x: blueDepotX + c*xStep + xStep/2, y: blueDepotY + r*yStep + yStep/2, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false });
+        }
+    }
+}
+
+// ============================================================
+// MATCH TIMER & SHIFT SYSTEM
+// ============================================================
+const MATCH_PHASES = [
+    { name: 'AUTO', start: 0, end: 20, redActive: true, blueActive: true },
+    { name: 'DELAY', start: 20, end: 23, redActive: false, blueActive: false },
+    { name: 'TRANSITION', start: 23, end: 33, redActive: true, blueActive: true },
+    { name: 'SHIFT 1', start: 33, end: 58, redActive: null, blueActive: null },
+    { name: 'SHIFT 2', start: 58, end: 83, redActive: null, blueActive: null },
+    { name: 'SHIFT 3', start: 83, end: 108, redActive: null, blueActive: null },
+    { name: 'SHIFT 4', start: 108, end: 133, redActive: null, blueActive: null },
+    { name: 'END GAME', start: 133, end: 163, redActive: true, blueActive: true }
+];
+const SHIFT_STATES = {
+    red: [{ redActive: false, blueActive: true }, { redActive: true, blueActive: false }, { redActive: false, blueActive: true }, { redActive: true, blueActive: false }],
+    blue: [{ redActive: true, blueActive: false }, { redActive: false, blueActive: true }, { redActive: true, blueActive: false }, { redActive: false, blueActive: true }]
+};
+
+function tickMatch() {
+    if (!matchRunning) return;
+    matchElapsed += 1/60;
+    if (matchElapsed >= 163) {
+        matchRunning = false;
+        document.getElementById('match-clock').innerText = "0:00";
+        document.getElementById('phase-label').innerText = "OVER";
+        document.getElementById('start-btn-main').innerText = "▶ START";
+        document.getElementById('start-btn-main').classList.remove('running');
+        updateHubUI(false, false);
+        return;
+    }
+    let phase = MATCH_PHASES.find(p => matchElapsed >= p.start && matchElapsed < p.end) || MATCH_PHASES[2];
+    document.getElementById('match-clock').innerText = getDisplayTime(matchElapsed);
+    document.getElementById('phase-label').innerText = phase.name;
+    if (!autoPhaseEnded && matchElapsed >= 20) {
+        autoPhaseEnded = true;
+        autoWinner = autoScoreBlue > autoScoreRed ? 'blue' : 'red';
+        let badge = document.getElementById('auto-winner');
+        badge.innerText = 'AUTO WON BY ' + autoWinner.toUpperCase();
+        badge.classList.add('visible');
+        setTimeout(() => badge.classList.remove('visible'), 3000);
+    }
+    if (currentPhaseIdx !== MATCH_PHASES.indexOf(phase)) {
+        currentPhaseIdx = MATCH_PHASES.indexOf(phase);
+        let rAct = phase.redActive, bAct = phase.blueActive;
+        if (rAct === null) { rAct = SHIFT_STATES[autoWinner][currentPhaseIdx - 3].redActive; bAct = SHIFT_STATES[autoWinner][currentPhaseIdx - 3].blueActive; }
+        updateHubUI(rAct, bAct);
+        if (currentPhaseIdx === 2 || currentPhaseIdx === 7) triggerShiftFlash();
+        if (currentPhaseIdx >= 3 && currentPhaseIdx <= 6 && gameMode !== 'random shifts') triggerShiftFlash();
+    }
+}
+// ============================================================
+// ROBOT CLASS
+// ============================================================
+class Robot {
+    constructor(x, y, modelKey, angle, id) {
+        this.x = x; this.y = y; this.vx = 0; this.vy = 0; this.angle = angle; this.vAngle = 0;
+        this.inventory = 0; this.lastShot = 0; this.setModel(modelKey);
+        this.id = id; this.intakeSide = 'right';
+        this.prevAbility = false; this.barricadeCount = 0; this.lastBarricadeTime = 0;
+        this.drone = null;
+    }
+    setModel(key) { this.model = BOT_MODELS[key]; this.name = key; }
+
+    update(mx, my, rot, act, ability, alliance) {
+        if (!matchRunning) return;
+        if (currentPhaseIdx === 1) { this.vx *= 0.5; this.vy *= 0.5; this.vAngle *= 0.5; this.x += this.vx; this.y += this.vy; this.angle += this.vAngle; return; }
+
+        let now = Date.now();
+        let rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
+        let isShootZone = alliance === 'red' ? rcx < RED_SHOOT_LIMIT : rcx > BLUE_SHOOT_LIMIT;
+        let rapidMult = (gameMode === 'rapid react') ? 1.33 : 1.0;
+
+        // Movement
+        if (mx !== 0 || my !== 0) { let m = Math.hypot(mx, my); if (m > 0.8) { mx /= m; my /= m; } }
+        this.vx += mx * this.model.accel * rapidMult;
+        this.vy += my * this.model.accel * rapidMult;
+        this.vAngle += rot * this.model.rotSpeed * rapidMult;
+        this.vx *= 0.91; this.vy *= 0.91; this.vAngle *= 0.78;
+        this.x += this.vx; this.y += this.vy;
+        this.x = Math.max(0, Math.min(FIELD_W - this.model.w, this.x));
+        this.y = Math.max(0, Math.min(FIELD_H - this.model.h, this.y));
+        this.angle += this.vAngle;
+
+        // Phantom noclip: push out of obstacles
+        if (this.name === 'Phantom') {
+            for (let o of obstacles) {
+                if (o.type === 'hub' || o.type === 'barrier' || o.type === 'tower' || o.type === 'towerWall') {
+                    let myOBB = getOBB(this);
+                    let col = collideOBB_AABB(myOBB, o);
+                    if (col.colliding) {
+                        this.x += col.axis.x * col.overlap;
+                        this.y += col.axis.y * col.overlap;
+                    }
+                }
+            }
+        }
+
+        // Barricade placement
+        if (this.name === 'Barricade' && ability && !this.prevAbility && matchRunning && currentPhaseIdx !== 1) {
+            if (now - this.lastBarricadeTime > 3000) {
+                let newBarrier = { x: rcx - 15, y: rcy - 15, w: 30, h: 30, owner: alliance, life: 300 };
+                if (barricades.filter(b => b.owner === alliance).length >= 2) {
+                    let oldest = barricades.find(b => b.owner === alliance);
+                    if (oldest) barricades = barricades.filter(b => b !== oldest);
+                }
+                barricades.push(newBarrier);
+                this.lastBarricadeTime = now;
+            }
+        }
+        this.prevAbility = ability;
+
+        // Drone deployment
+        if (this.name === 'Drone' && !this.drone && matchRunning) {
+            this.drone = { x: this.x, y: this.y, angle: this.angle, lastShot: 0 };
+        }
+        if (this.drone && matchRunning) {
+            this.drone.x = this.x + Math.cos(this.angle) * 25;
+            this.drone.y = this.y + Math.sin(this.angle) * 25;
+            if (now - this.drone.lastShot > 180 * rapidMult && this.inventory > 0) {
+                let hub = zones.find(z => z.type === 'hub' && z.side === alliance);
+                if (hub) {
+                    let angleToHub = Math.atan2(hub.y+hub.h/2 - this.drone.y, hub.x+hub.w/2 - this.drone.x);
+                    projectiles.push({ x: this.drone.x, y: this.drone.y, vx: Math.cos(angleToHub)*12, vy: Math.sin(angleToHub)*12, r: 3, owner: alliance, isDroneShot: true });
+                    this.inventory--;
+                    this.drone.lastShot = now;
+                }
+            }
+        }
+
+        // Shooting
+        if (act && this.inventory > 0 && now - this.lastShot > this.model.fireRate / rapidMult) {
+            let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+            let launchAngle = (isShootZone || this.name === 'Sniper') ? Math.atan2(z.y+z.h/2 - rcy, z.x+z.w/2 - rcx) : this.angle;
+            let speed = this.name === 'Sniper' ? 26 : 14;
+
+            // Plasma chain lightning
+            if (this.name === 'Plasma') {
+                projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*speed, vy: Math.sin(launchAngle)*speed, r: 5, owner: alliance, isPlasma: true, chainedBalls: [] });
+            }
+            // Howitzer with push effect
+            else if (this.name === 'Howitzer') {
+                projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*9, vy: Math.sin(launchAngle)*9, r: 7, owner: alliance, isHowitzer: true, age: 0 });
+            }
+            // Phantom noclip shot
+            else if (this.name === 'Phantom') {
+                projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*16, vy: Math.sin(launchAngle)*16, r: 5, owner: alliance, isPhantom: true });
+            }
+            else {
+                projectiles.push({ x: rcx, y: rcy, vx: Math.cos(launchAngle)*speed, vy: Math.sin(launchAngle)*speed, r: 4, owner: alliance });
+            }
+            this.inventory--;
+            this.lastShot = now;
+        }
+    }
+
+    draw(ctx, alliance) {
+        ctx.save(); ctx.translate(this.x + this.model.w/2, this.y + this.model.h/2); ctx.rotate(this.angle);
+        if (this.name === 'Phantom') {
+            ctx.fillStyle = alliance === 'red' ? 'rgba(239,68,68,0.4)' : 'rgba(59,130,246,0.4)';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.strokeStyle = "rgba(255,255,255,0.6)";
+            ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText("👻", -8, 5);
+        } else if (this.name === 'Barricade') {
+            ctx.fillStyle = '#facc15'; ctx.fillRect(-this.model.w/2+4, -this.model.h/2+4, this.model.w-8, this.model.h-8);
+            ctx.fillStyle = '#000'; ctx.font = "bold 12px monospace"; ctx.fillText("⛔", -5, 5);
+        } else if (this.name === 'Drone') {
+            ctx.fillStyle = alliance === 'red' ? '#ef4444' : '#3b82f6';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace"; ctx.fillText("✈", -4, 3);
+            if (this.drone) {
+                ctx.beginPath(); ctx.arc(this.drone.x - (this.x+this.model.w/2), this.drone.y - (this.y+this.model.h/2), 6, 0, Math.PI*2);
+                ctx.fillStyle = '#fbbf24'; ctx.fill();
+                ctx.fillStyle = '#000'; ctx.fillText("⚡", -3, 2);
+            }
+        } else {
+            ctx.fillStyle = alliance === 'red' ? '#ef4444' : '#3b82f6';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.strokeStyle = "white"; ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+        }
+        ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText(this.inventory, -5, 5);
+        ctx.restore();
+    }
+}
+
+// ============================================================
+// POSITIONS (5 options)
+// ============================================================
+const START_NAMES = ['HUB', 'TOP BUMP', 'BOT BUMP', 'TOP TRENCH', 'BOT TRENCH'];
+
+function getStartPos(playerNum, startIdx, alliance) {
+    let hubX = 156.61 * S;
+    let bumpYTop = FIELD_H/2 - HUB_S/2 - BUMP_L - 10;
+    let bumpYBot = FIELD_H/2 + HUB_S/2 + BUMP_L + 10;
+    let trenchYTop = bumpYTop - TRENCH_L - BAR_L - 15;
+    let trenchYBot = bumpYBot + TRENCH_L + BAR_L + 15;
+    let a = (alliance === 'red') ? 0 : Math.PI;
+
+    if (alliance === 'red') {
+        let xOffset = (playerNum === 1) ? -45 : -45;
+        if (startIdx === 0) return { x: hubX + xOffset, y: FIELD_H/2 - 30, a: 0 };
+        if (startIdx === 1) return { x: hubX - 20, y: bumpYTop, a: 0 };
+        if (startIdx === 2) return { x: hubX - 20, y: bumpYBot, a: 0 };
+        if (startIdx === 3) return { x: hubX - 20, y: trenchYTop, a: 0 };
+        return { x: hubX - 20, y: trenchYBot, a: 0 };
+    } else {
+        if (sameTeamMode) {
+            let xOffset = (playerNum === 3) ? -45 : -45;
+            if (startIdx === 0) return { x: hubX + xOffset, y: FIELD_H/2 - 30, a: 0 };
+            if (startIdx === 1) return { x: hubX - 20, y: bumpYTop, a: 0 };
+            if (startIdx === 2) return { x: hubX - 20, y: bumpYBot, a: 0 };
+            if (startIdx === 3) return { x: hubX - 20, y: trenchYTop, a: 0 };
+            return { x: hubX - 20, y: trenchYBot, a: 0 };
+        } else {
+            let xOffset = (playerNum === 3) ? +10 : +10;
+            if (startIdx === 0) return { x: FIELD_W - hubX + xOffset, y: FIELD_H/2 - 30, a: Math.PI };
+            if (startIdx === 1) return { x: FIELD_W - hubX + 15, y: bumpYTop, a: Math.PI };
+            if (startIdx === 2) return { x: FIELD_W - hubX + 15, y: bumpYBot, a: Math.PI };
+            if (startIdx === 3) return { x: FIELD_W - hubX + 15, y: trenchYTop, a: Math.PI };
+            return { x: FIELD_W - hubX + 15, y: trenchYBot, a: Math.PI };
+        }
+    }
+}
+
+function resetBots() {
+    let p1p = getStartPos(1, p1StartIdx, 'red');
+    let p2p = getStartPos(2, p2StartIdx, 'red');
+    let p3p = getStartPos(3, p3StartIdx, 'blue');
+    let p4p = getStartPos(4, p4StartIdx, 'blue');
+    if (botP1) { botP1.x = p1p.x; botP1.y = p1p.y; botP1.vx = botP1.vy = botP1.vAngle = 0; botP1.angle = p1p.a; botP1.drone = null; }
+    if (botP2) { botP2.x = p2p.x; botP2.y = p2p.y; botP2.vx = botP2.vy = botP2.vAngle = 0; botP2.angle = p2p.a; botP2.drone = null; }
+    if (botP3) { botP3.x = p3p.x; botP3.y = p3p.y; botP3.vx = botP3.vy = botP3.vAngle = 0; botP3.angle = p3p.a; botP3.drone = null; }
+    if (botP4) { botP4.x = p4p.x; botP4.y = p4p.y; botP4.vx = botP4.vy = botP4.vAngle = 0; botP4.angle = p4p.a; botP4.drone = null; }
+}
+
+// ============================================================
+// INPUT HANDLING
+// ============================================================
+function getInputs(type) {
+    let x = 0, y = 0, rot = 0, act = false, ability = false;
+    if (startCountdown > 0) return { x, y, rot, act, ability };
+    if (type === 'KEYBOARD 1') {
+        if (keys['KeyW']) y = -1; if (keys['KeyS']) y = 1;
+        if (keys['KeyA']) x = -1; if (keys['KeyD']) x = 1;
+        if (keys['KeyQ']) rot = -1; if (keys['KeyE']) rot = 1;
+        if (keys['Space']) act = true;
+        if (keys['KeyX']) ability = true;
+    } else if (type === 'KEYBOARD 2') {
+        if (keys['ArrowUp']) y = -1; if (keys['ArrowDown']) y = 1;
+        if (keys['ArrowLeft']) x = -1; if (keys['ArrowRight']) x = 1;
+        if (keys['KeyN']) rot = -1; if (keys['KeyM']) rot = 1;
+        if (keys['ShiftRight']) act = true;
+        if (keys['ControlRight']) ability = true;
+    } else if (type.startsWith('CONTROLLER')) {
+        let gp = navigator.getGamepads ? navigator.getGamepads()[parseInt(type.split(' ')[1])] : null;
+        if (gp && gp.axes.length > 1) {
+            x = Math.abs(gp.axes[0]) > 0.18 ? gp.axes[0] : 0;
+            y = Math.abs(gp.axes[1]) > 0.18 ? gp.axes[1] : 0;
+            rot = gp.axes.length > 2 && Math.abs(gp.axes[2]) > 0.18 ? gp.axes[2] : 0;
+            act = (gp.buttons[7] && gp.buttons[7].value > 0.3) || (gp.buttons[0] && gp.buttons[0].pressed);
+            ability = (gp.buttons[6] && gp.buttons[6].value > 0.5);
+        }
+    }
+    return { x, y, rot, act, ability };
+}
+
+// ============================================================
+// COLLISION HELPERS
+// ============================================================
+function getOBB(robot) {
+    let center = { x: robot.x + robot.model.w/2, y: robot.y + robot.model.h/2 };
+    let halfW = robot.model.w/2, halfH = robot.model.h/2;
+    let cos = Math.cos(robot.angle), sin = Math.sin(robot.angle);
+    return { center, halfW, halfH, axes: [{ x: cos, y: sin }, { x: -sin, y: cos }] };
+}
+function projectOBB(obb, axis) {
+    let cx = obb.center.x, cy = obb.center.y;
+    let hw = obb.halfW, hh = obb.halfH;
+    let cos = Math.cos(obb.angle), sin = Math.sin(obb.angle);
+    let rx = hw * Math.abs(axis.x * cos + axis.y * sin);
+    let ry = hh * Math.abs(axis.x * -sin + axis.y * cos);
+    let proj = cx * axis.x + cy * axis.y;
+    return { min: proj - (rx + ry), max: proj + (rx + ry) };
+}
+function projectAABB(rect, axis) {
+    let cx = rect.x + rect.w/2, cy = rect.y + rect.h/2;
+    let proj = cx * axis.x + cy * axis.y;
+    let extent = (rect.w/2) * Math.abs(axis.x) + (rect.h/2) * Math.abs(axis.y);
+    return { min: proj - extent, max: proj + extent };
+}
+function collideOBB_OBB(obb1, obb2) {
+    let axes = [...obb1.axes, ...obb2.axes];
+    let overlap = Infinity, mtvAxis = null;
+    for (let axis of axes) {
+        let p1 = projectOBB(obb1, axis), p2 = projectOBB(obb2, axis);
+        let d = Math.min(p1.max, p2.max) - Math.max(p1.min, p2.min);
+        if (d <= 0) return { colliding: false };
+        if (d < overlap) { overlap = d; mtvAxis = axis; }
+    }
+    let dir = (obb2.center.x - obb1.center.x) * mtvAxis.x + (obb2.center.y - obb1.center.y) * mtvAxis.y;
+    if (dir < 0) mtvAxis = { x: -mtvAxis.x, y: -mtvAxis.y };
+    return { colliding: true, overlap, axis: mtvAxis };
+}
+function collideOBB_AABB(obb, rect) {
+    let axes = [...obb.axes, { x: 1, y: 0 }, { x: 0, y: 1 }];
+    let overlap = Infinity, mtvAxis = null;
+    for (let axis of axes) {
+        let p1 = projectOBB(obb, axis), p2 = projectAABB(rect, axis);
+        let d = Math.min(p1.max, p2.max) - Math.max(p1.min, p2.min);
+        if (d <= 0) return { colliding: false };
+        if (d < overlap) { overlap = d; mtvAxis = axis; }
+    }
+    let dir = (rect.x + rect.w/2 - obb.center.x) * mtvAxis.x + (rect.y + rect.h/2 - obb.center.y) * mtvAxis.y;
+    if (dir < 0) mtvAxis = { x: -mtvAxis.x, y: -mtvAxis.y };
+    return { colliding: true, overlap, axis: mtvAxis };
+}
+function resolveCollisionRobots(r1, r2, coll) {
+    if (!coll.colliding) return;
+    let mtv = { x: coll.axis.x * coll.overlap, y: coll.axis.y * coll.overlap };
+    r1.x -= mtv.x * 0.5; r1.y -= mtv.y * 0.5;
+    r2.x += mtv.x * 0.5; r2.y += mtv.y * 0.5;
+}
+
+// ============================================================
+// MAIN UPDATE LOOP
+// ============================================================
+function update() {
+    tickMatch(); let now = Date.now();
+    let p1 = getInputs(p1Input), p2 = getInputs(p2Input), p3 = getInputs(p3Input), p4 = getInputs(p4Input);
+    if (p1Enabled && botP1) botP1.update(p1.x, p1.y, p1.rot, p1.act, p1.ability, 'red');
+    if (p2Enabled && botP2) botP2.update(p2.x, p2.y, p2.rot, p2.act, p2.ability, 'red');
+    if (p3Enabled && botP3) botP3.update(p3.x, p3.y, p3.rot, p3.act, p3.ability, sameTeamMode ? 'red' : 'blue');
+    if (p4Enabled && botP4) botP4.update(p4.x, p4.y, p4.rot, p4.act, p4.ability, sameTeamMode ? 'red' : 'blue');
+
+    barricades = barricades.filter(b => { b.life--; return b.life > 0; });
+
+    scoringBalls = scoringBalls.filter(sb => {
+        if (now >= sb.exitTime) {
+            let dir = sb.side === 'red' ? 1 : -1;
+            balls.push({ x: sb.side==='red' ? sb.hubX+HUB_S+BALL_R+2 : sb.hubX-BALL_R-2, y: sb.hubY+HUB_S/2, r: BALL_R, vx: Math.cos((Math.random()-0.5)*0.8)*dir*(4+Math.random()*0.9), vy: Math.sin((Math.random()-0.5)*0.8)*(4+Math.random()*0.9), isStatic: false, wasOnBump: false });
+            return false;
+        }
+        return true;
+    });
+
+    for (let i = 0; i < balls.length; i++)
+        for (let j = i+1; j < balls.length; j++)
+            resolveBallCollision(balls[i], balls[j]);
+
+    balls = balls.filter(b => {
+        let onBump = false;
+        for (let z of zones) if (z.type === 'bump' && b.x > z.x && b.x < z.x+z.w && b.y > z.y && b.y < z.y+z.h) { onBump = true; b.isStatic = false; b.vx += (b.x < z.x+z.w/2) ? -0.12 : 0.12; }
+        if (!onBump && b.wasOnBump) { b.vx *= 0.15; b.vy *= 0.15; }
+        b.wasOnBump = onBump;
+        if (!b.isStatic) { b.x += b.vx; b.y += b.vy; let f = onBump ? 0.96 : 0.91; b.vx *= f; b.vy *= f; if (Math.hypot(b.vx, b.vy) < 0.15) { b.vx=b.vy=0; b.isStatic=true; } }
+        if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx)*0.5; b.isStatic=false; }
+        if (b.x > FIELD_W - b.r) { b.x = FIELD_W - b.r; b.vx = -Math.abs(b.vx)*0.5; b.isStatic=false; }
+        if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy)*0.5; b.isStatic=false; }
+        if (b.y > FIELD_H - b.r) { b.y = FIELD_H - b.r; b.vy = -Math.abs(b.vy)*0.5; b.isStatic=false; }
+        for (let o of obstacles) if (o.type !== 'trench') { let col = circleRectCollision(b, o); if (col.hit) { b.isStatic=false; b.vx*=0.8; b.vy*=0.8; b.x += col.nx*col.overlap; b.y += col.ny*col.overlap; } }
+        for (let bar of barricades) { let col = circleRectCollision(b, bar); if (col.hit) { b.isStatic=false; b.vx*=0.7; b.vy*=0.7; b.x += col.nx*col.overlap; b.y += col.ny*col.overlap; } }
+        for (let bot of [botP1, botP2, botP3, botP4]) if (bot) {
+            let intakeX = bot.x + bot.model.w/2 + Math.cos(bot.angle)*(bot.model.w/2+10);
+            let intakeY = bot.y + bot.model.h/2 + Math.sin(bot.angle)*(bot.model.w/2+10);
+            if (Math.hypot(b.x - intakeX, b.y - intakeY) < 9 && bot.inventory < bot.model.capacity) { bot.inventory++; return false; }
+            let body = circleRectCollision(b, { x: bot.x, y: bot.y, w: bot.model.w, h: bot.model.h });
+            if (body.hit) { b.isStatic = false; b.x += body.nx*body.overlap; b.y += body.ny*body.overlap; b.vx += body.nx*(Math.abs(bot.vx)*0.5+1); b.vy += body.ny*(Math.abs(bot.vy)*0.5+1); }
+        }
+        return true;
+    });
+
+    projectiles = projectiles.filter(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
+
+        // Howitzer push effect (pushes balls toward owner's hub)
+        if (p.isHowitzer) {
+            p.age = (p.age || 0) + 1;
+            let hub = zones.find(z => z.type === 'hub' && z.side === p.owner);
+            if (hub) {
+                let hubCenter = { x: hub.x + hub.w/2, y: hub.y + hub.h/2 };
+                for (let ball of balls) {
+                    let dx = ball.x - p.x, dy = ball.y - p.y, dist = Math.hypot(dx, dy);
+                    if (dist < 60 && dist > 5) {
+                        let angleToHub = Math.atan2(hubCenter.y - ball.y, hubCenter.x - ball.x);
+                        let strength = (1 - dist/60) * 3.5;
+                        ball.vx += Math.cos(angleToHub) * strength;
+                        ball.vy += Math.sin(angleToHub) * strength;
+                        ball.isStatic = false;
+                    }
+                }
+            }
+            if (p.age > 90) return false;
+        }
+
+        // Plasma chain lightning
+        if (p.isPlasma) {
+            let chained = [p];
+            for (let ball of balls) {
+                if (chained.length >= 6) break;
+                let closest = null, closestDist = 20;
+                for (let ball2 of balls) {
+                    if (chained.includes(ball2)) continue;
+                    let last = chained[chained.length-1];
+                    let dist = Math.hypot(last.x - ball2.x, last.y - ball2.y);
+                    if (dist < closestDist && dist > 5) { closestDist = dist; closest = ball2; }
+                }
+                if (closest) chained.push(closest);
+            }
+            p.chainedBalls = chained.slice(1);
+        }
+
+        // Phantom shot - no wall collision
+        if (p.isPhantom) {
+            for (let z of zones) if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
+                let points = 1 + (p.chainedBalls ? p.chainedBalls.length * 2 : 0);
+                scoringBalls.push({ exitTime: now+300, hubX: z.x, hubY: z.y, side: z.side });
+                if (matchRunning && ((p.owner === 'red' && hubRedActive) || (p.owner === 'blue' && hubBlueActive))) {
+                    if (p.owner === 'red') { scoreRed += points; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed += points; }
+                    else { scoreBlue += points; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue += points; }
+                }
+                return false;
+            }
+            return true;
+        }
+
+        // Wall collision with ricochet fix
+        if (p.x < p.r) { p.x = p.r; p.vx = -p.vx * 0.4; }
+        if (p.x > FIELD_W - p.r) { p.x = FIELD_W - p.r; p.vx = -p.vx * 0.4; }
+        if (p.y < p.r) { p.y = p.r; p.vy = -p.vy * 0.4; }
+        if (p.y > FIELD_H - p.r) { p.y = FIELD_H - p.r; p.vy = -p.vy * 0.4; }
+
+        // Hub scoring
+        for (let z of zones) if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
+            let points = 1 + (p.chainedBalls ? p.chainedBalls.length * 2 : 0);
+            scoringBalls.push({ exitTime: now+300, hubX: z.x, hubY: z.y, side: z.side });
+            if (matchRunning && ((p.owner === 'red' && hubRedActive) || (p.owner === 'blue' && hubBlueActive))) {
+                if (p.owner === 'red') { scoreRed += points; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed += points; }
+                else { scoreBlue += points; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue += points; }
+            }
+            return false;
+        }
+        return true;
+    });
+}
+
+// ============================================================
+// DRAW
+// ============================================================
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#111"; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(0,0,canvas.width,WALL_VISUAL);
+    ctx.fillRect(0,canvas.height-WALL_VISUAL,canvas.width,WALL_VISUAL);
+    ctx.fillRect(0,0,WALL_VISUAL,canvas.height);
+    ctx.fillRect(canvas.width-WALL_VISUAL,0,WALL_VISUAL,canvas.height);
+    ctx.save(); ctx.translate(WALL_VISUAL,WALL_VISUAL);
+
+    for (let z of zones) {
+        let c = z.side === 'red' ? '#ef4444' : '#3b82f6';
+        if (z.type === 'hub') {
+            let act = matchRunning ? (z.side === 'red' ? hubRedActive : hubBlueActive) : true;
+            ctx.globalAlpha = act ? 1.0 : 0.4;
+            ctx.strokeStyle = c; ctx.lineWidth = 4; ctx.strokeRect(z.x,z.y,z.w,z.h);
+            ctx.beginPath(); ctx.fillStyle = "white";
+            for (let i=0; i<6; i++) { let a = (Math.PI/3)*i; let px = z.x+z.w/2 + (z.w/2)*Math.cos(a), py = z.y+z.h/2 + (z.w/2)*Math.sin(a); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); }
+            ctx.fill(); ctx.globalAlpha = 1.0;
+            if (matchRunning && !act) {
+                ctx.font = 'bold 18px monospace'; ctx.textAlign = 'center';
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.fillRect(z.x+z.w/2-45, z.y+z.h/2-12, 90, 24);
+                ctx.fillStyle = c; ctx.fillText('OFF', z.x+z.w/2, z.y+z.h/2+4);
+            }
+        } else if (z.type === 'barrier' || z.type === 'towerWall') { ctx.fillStyle = c; ctx.fillRect(z.x,z.y,z.w,z.h); }
+        else if (z.type === 'trench') { ctx.fillStyle = `rgba(${z.side==='red'?'239,68,68':'59,130,246'},0.2)`; ctx.fillRect(z.x,z.y,z.w,z.h); ctx.strokeStyle = `rgba(${z.side==='red'?'239,68,68':'59,130,246'},0.5)`; ctx.strokeRect(z.x,z.y,z.w,z.h); }
+        else if (z.type === 'tower') { ctx.fillStyle = "#222"; ctx.fillRect(z.x,z.y,z.w,z.h); ctx.strokeStyle = "#444"; ctx.strokeRect(z.x,z.y,z.w,z.h); }
+        else if (z.type === 'depot') { ctx.fillStyle = `rgba(${z.side==='red'?'239,68,68':'59,130,246'},0.15)`; ctx.fillRect(z.x,z.y,z.w,z.h); ctx.strokeStyle = `rgba(${z.side==='red'?'239,68,68':'59,130,246'},0.8)`; ctx.setLineDash([5,5]); ctx.strokeRect(z.x,z.y,z.w,z.h); ctx.setLineDash([]); }
+    }
+
+    for (let b of barricades) { ctx.fillStyle = 'rgba(250,204,21,0.7)'; ctx.fillRect(b.x,b.y,30,30); ctx.strokeStyle = '#facc15'; ctx.strokeRect(b.x,b.y,30,30); ctx.fillStyle = '#000'; ctx.fillText('⛔', b.x+10, b.y+20); }
+
+    if (p1Enabled && botP1) botP1.draw(ctx, 'red');
+    if (p2Enabled && botP2) botP2.draw(ctx, 'red');
+    if (p3Enabled && botP3) botP3.draw(ctx, sameTeamMode ? 'red' : 'blue');
+    if (p4Enabled && botP4) botP4.draw(ctx, sameTeamMode ? 'red' : 'blue');
+
+    for (let b of balls) { ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); }
+    for (let p of projectiles) {
+        if (p.isHowitzer) { ctx.fillStyle = '#f97316'; ctx.shadowBlur = 8; ctx.shadowColor = '#f97316'; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.arc(p.x-2,p.y-1,2,0,Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
+        else if (p.isPlasma) { ctx.fillStyle = '#ec4899'; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill(); for (let ball of (p.chainedBalls || [])) { ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(ball.x,ball.y); ctx.strokeStyle = '#f0abfc'; ctx.lineWidth = 2; ctx.stroke(); } }
+        else if (p.isPhantom) { ctx.fillStyle = '#d946ef'; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill(); }
+        else { ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill(); }
+    }
+    ctx.restore();
+    requestAnimationFrame(draw);
+}
+
+// ============================================================
+// UI BUILDING
+// ============================================================
+function createPlayerPanel(num, alliance) {
+    let group = document.getElementById(alliance === 'red' ? 'panel-group-left' : 'panel-group-right');
+    let div = document.createElement('div');
+    div.className = 'controls-panel';
+    div.innerHTML = `
+        <div class="panel-header">
+            <span class="panel-title" style="color:${alliance === 'red' ? '#ef4444' : '#3b82f6'};">${alliance.toUpperCase()} P${num}</span>
+            <button class="toggle-panel" data-panel="p${num}">−</button>
+        </div>
+        <div class="panel-content">
+            <button class="player-toggle on" data-player="${num}">P${num}: ON</button>
+            <select class="bot-select ${alliance === 'red' ? 'red-team' : 'blue-team'}" data-bot="${num}"></select>
+            <select class="input-select ${alliance === 'red' ? 'red-team' : 'blue-team'}" data-input="${num}"></select>
+            <select class="start-select ${alliance === 'red' ? 'red-team' : 'blue-team'}" data-start="${num}"></select>
+        </div>
+    `;
+    group.appendChild(div);
+
+    let botOpts = Object.keys(BOT_MODELS).map(k => `<option value="${k}">${k}</option>`).join('');
+    let inputOpts = `<option value="KEYBOARD 1">KEYBOARD 1</option><option value="KEYBOARD 2">KEYBOARD 2</option><option value="CONTROLLER 0">CONTROLLER 0</option><option value="CONTROLLER 1">CONTROLLER 1</option><option value="CONTROLLER 2">CONTROLLER 2</option><option value="CONTROLLER 3">CONTROLLER 3</option>`;
+    let startOpts = START_NAMES.map((n,i) => `<option value="${i}">START: ${n}</option>`).join('');
+    div.querySelector(`[data-bot="${num}"]`).innerHTML = botOpts;
+    div.querySelector(`[data-input="${num}"]`).innerHTML = inputOpts;
+    div.querySelector(`[data-start="${num}"]`).innerHTML = startOpts;
+
+    let bot = eval(`botP${num}`);
+    if (bot) div.querySelector(`[data-bot="${num}"]`).value = bot.name;
+    div.querySelector(`[data-input="${num}"]`).value = eval(`p${num}Input`);
+    div.querySelector(`[data-start="${num}"]`).value = eval(`p${num}StartIdx`);
+
+    div.querySelector(`.toggle-panel`).onclick = (e) => { let p = e.target.closest('.controls-panel'); p.classList.toggle('collapsed'); e.target.innerText = p.classList.contains('collapsed') ? '+' : '−'; };
+    div.querySelector(`[data-player="${num}"]`).onclick = (e) => {
+        let enabled = !eval(`p${num}Enabled`);
+        window[`p${num}Enabled`] = enabled;
+        e.target.innerText = `P${num}: ${enabled ? 'ON' : 'OFF'}`;
+        e.target.className = `player-toggle ${enabled ? 'on' : 'off'}`;
+        resetBots();
+    };
+    div.querySelector(`[data-bot="${num}"]`).onchange = (e) => { if (!matchRunning) eval(`botP${num}.setModel(e.target.value)`); else e.target.value = eval(`botP${num}.name`); };
+    div.querySelector(`[data-input="${num}"]`).onchange = (e) => { window[`p${num}Input`] = e.target.value; };
+    div.querySelector(`[data-start="${num}"]`).onchange = (e) => { if (!matchRunning) { window[`p${num}StartIdx`] = parseInt(e.target.value); resetBots(); } else e.target.value = window[`p${num}StartIdx`]; };
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+window.addEventListener('keydown', e => { keys[e.code] = true; if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftRight','ControlRight'].includes(e.code)) e.preventDefault(); });
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+initField();
+let p1p = getStartPos(1, 0, 'red'), p2p = getStartPos(2, 0, 'red'), p3p = getStartPos(3, 0, 'blue'), p4p = getStartPos(4, 0, 'blue');
+botP1 = new Robot(p1p.x, p1p.y, 'Turret', p1p.a, 1);
+botP2 = new Robot(p2p.x, p2p.y, 'Turret', p2p.a, 2);
+botP3 = new Robot(p3p.x, p3p.y, 'Double Turret', p3p.a, 3);
+botP4 = new Robot(p4p.x, p4p.y, 'Double Turret', p4p.a, 4);
+spawnBalls();
+
+createPlayerPanel(1, 'red');
+createPlayerPanel(2, 'red');
+createPlayerPanel(3, 'blue');
+createPlayerPanel(4, 'blue');
+
+// Global button events
+document.getElementById('toggle-all-panels').onclick = () => {
+    let panels = document.querySelectorAll('.controls-panel');
+    let anyExpanded = Array.from(panels).some(p => !p.classList.contains('collapsed'));
+    panels.forEach(p => { if (anyExpanded) p.classList.add('collapsed'); else p.classList.remove('collapsed'); });
+    document.querySelectorAll('.toggle-panel').forEach(btn => btn.innerText = anyExpanded ? '+' : '−');
+};
+document.getElementById('close-controls-btn').onclick = () => document.getElementById('controls-modal').classList.add('hidden');
+document.getElementById('show-controls-btn-red')?.addEventListener('click', () => document.getElementById('controls-modal').classList.remove('hidden'));
+document.getElementById('show-controls-btn-blue')?.addEventListener('click', () => document.getElementById('controls-modal').classList.remove('hidden'));
+document.getElementById('team-mode-toggle-center').onclick = () => {
+    sameTeamMode = !sameTeamMode;
+    document.getElementById('team-mode-toggle-center').innerText = `CO-OP: ${sameTeamMode ? 'ON' : 'OFF'}`;
+    document.getElementById('reset-btn-center').click();
+};
+let modeIdx = 0, modes = ['standard', 'triple balls', 'slippery field', 'rapid react', 'power-ups', 'random shifts'], modeLabels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID REACT', 'POWER-UPS', 'RANDOM SHIFTS'];
+document.getElementById('game-mode-toggle-center').onclick = () => { modeIdx = (modeIdx+1)%modes.length; gameMode = modes[modeIdx]; document.getElementById('game-mode-toggle-center').innerText = `MODE: ${modeLabels[modeIdx]}`; document.getElementById('reset-btn-center').click(); };
+document.getElementById('reset-btn-center').onclick = () => {
+    matchRunning = false; startCountdown = 0; if(countdownInterval) clearInterval(countdownInterval);
+    scoreRed = 0; scoreBlue = 0; autoScoreRed = 0; autoScoreBlue = 0; matchElapsed = 0; autoPhaseEnded = false;
+    document.getElementById('scoreRedDisplay').innerText = '0'; document.getElementById('scoreBlueDisplay').innerText = '0';
+    document.getElementById('match-clock').innerText = '2:20'; document.getElementById('phase-label').innerText = 'READY';
+    document.getElementById('start-btn-main').innerText = '▶ START'; document.getElementById('start-btn-main').classList.remove('running');
+    updateHubUI(false, false);
+    powerups = []; barricades = [];
+    spawnBalls(); resetBots();
+    for (let i=1;i<=4;i++) { let b = eval(`botP${i}`); if(b) b.inventory = 0; b.drone = null; }
+};
+document.getElementById('start-btn-main').onclick = () => {
+    if (matchRunning || startCountdown > 0) {
+        matchRunning = false; startCountdown = 0; if(countdownInterval) clearInterval(countdownInterval);
+        document.getElementById('start-btn-main').innerText = '▶ START'; document.getElementById('start-btn-main').classList.remove('running');
+        document.getElementById('match-clock').innerText = '2:20'; document.getElementById('phase-label').innerText = 'READY';
+        updateHubUI(false, false);
+    } else {
+        document.querySelectorAll('.controls-panel').forEach(p => p.classList.add('collapsed'));
+        document.querySelectorAll('.toggle-panel').forEach(btn => btn.innerText = '+');
+        scoreRed = 0; scoreBlue = 0; autoScoreRed = 0; autoScoreBlue = 0;
+        document.getElementById('scoreRedDisplay').innerText = '0'; document.getElementById('scoreBlueDisplay').innerText = '0';
+        for (let i=1;i<=4;i++) { let b = eval(`botP${i}`); if(b) b.inventory = 0; b.drone = null; }
+        autoPhaseEnded = false; currentPhaseIdx = -1;
+        powerups = []; barricades = [];
+        spawnBalls(); resetBots();
+        startCountdown = 3;
+        document.getElementById('match-clock').innerText = startCountdown;
+        document.getElementById('match-clock').className = 'stopped';
+        document.getElementById('phase-label').innerText = 'STARTING...';
+        document.getElementById('start-btn-main').innerText = '⏹ CANCEL';
+        document.getElementById('start-btn-main').classList.add('running');
+        countdownInterval = setInterval(() => {
+            startCountdown--;
+            if (startCountdown > 0) document.getElementById('match-clock').innerText = startCountdown;
+            else {
+                clearInterval(countdownInterval); startCountdown = 0; matchElapsed = 0; matchRunning = true;
+                updateHubUI(true, true);
+                document.getElementById('start-btn-main').innerText = '⏹ STOP';
+            }
+        }, 1000);
+    }
+};
+
+resetBots();
+updateHubUI(false, false);
+setInterval(update, 1000/60);
+draw();
+</script>
+</body>
+</html>
