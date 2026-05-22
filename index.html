@@ -215,6 +215,40 @@
         .control-section.highlight h3 { color: #ef4444; }
         #close-controls-btn { margin-top: 15px; padding: 10px 30px; font-size: 0.9rem; width: 100%; background: #444; border-color: #666; color: white;}
         #close-controls-btn:hover { background: #555; }
+        /* Player toggle button */
+.player-toggle {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 900;
+    font-size: 0.7rem;
+    cursor: pointer;
+    border: 2px solid #fff;
+    transition: transform 0.1s;
+    background: #fbbf24;
+    color: #000;
+}
+.player-toggle.on { background: #22c55e; border-color: #22c55e; color: #000; }
+.player-toggle.off { background: #444; border-color: #666; color: #999; }
+
+/* Dropdowns */
+.input-select, .start-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 2px solid #fff;
+    font-weight: 900;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: 100%;
+    min-width: 160px;
+    appearance: menulist;
+    -webkit-appearance: menulist;
+    background: #1a1a1a;
+    color: white;
+    cursor: pointer;
+}
+.input-select.red-team, .start-select.red-team { background-color: #ef4444; border-color: #ef4444; }
+.input-select.blue-team, .start-select.blue-team { background-color: #3b82f6; border-color: #3b82f6; }
     </style>
 </head>
 <body>
@@ -320,61 +354,68 @@
     </div>
 </div>
 
-<!-- BLUE SIDE PANEL (LEFT) -->
+<!-- BLUE SIDE PANEL (LEFT) - PLAYERS 3 & 4 -->
 <div class="controls-wrapper-blue">
-    <button id="toggle-controls-btn-blue">☰ BLUE TEAM</button>
-    <div class="controls-blue" id="control-panel-blue">
-        <button id="show-controls-btn-blue">🎮 VIEW CONTROLS</button>
-
-        <div class="hp-station blue">
-            <div class="hp-title">★ HUMAN PLAYER STATION ★</div>
-            <div>BLUE ALLIANCE</div>
-            <div class="hp-keys">P3: ↑↓←→ + RShift | P4: Controller 2</div>
+    <!-- PLAYER 3 (Blue) -->
+    <div class="controls-panel" id="control-panel-p3">
+        <div class="panel-header">
+            <span class="panel-title" style="color:#3b82f6;">🔵 P3</span>
+            <button class="toggle-panel" id="toggle-panel-p3">−</button>
         </div>
-
-        <button id="p3-toggle" class="purple-team">PLAYER 3: ON</button>
-        <select id="bot-blue-select" class="blue-team bot-select"></select>
-        <button id="p3-input-toggle" class="blue-team">P3: KEYBOARD2</button>
-        <button id="p3-start-toggle" class="blue-team">P3 START: HUB</button>
-        <button id="p3-respawn" class="blue-team btn-respawn disabled">P3 RESPAWN (1)</button>
-
-        <div style="height: 5px;"></div>
-
-        <button id="p4-toggle" class="purple-team">PLAYER 4: ON</button>
-        <select id="bot-blue2-select" class="blue-team bot-select"></select>
-        <button id="p4-input-toggle" class="blue-team">P4: CONTROLLER2</button>
-        <button id="p4-start-toggle" class="blue-team">P4 START: HUB</button>
-        <button id="p4-respawn" class="blue-team btn-respawn disabled">P4 RESPAWN (1)</button>
+        <div class="panel-content">
+            <button id="p3-toggle" class="player-toggle on">P3: ON</button>
+            <select id="bot-blue-select" class="blue-team bot-select"></select>
+            <select id="p3-input-select" class="blue-team input-select"></select>
+            <select id="p3-start-select" class="blue-team start-select"></select>
+        </div>
+    </div>
+    
+    <!-- PLAYER 4 (Blue) -->
+    <div class="controls-panel" id="control-panel-p4">
+        <div class="panel-header">
+            <span class="panel-title" style="color:#3b82f6;">🔵 P4</span>
+            <button class="toggle-panel" id="toggle-panel-p4">−</button>
+        </div>
+        <div class="panel-content">
+            <button id="p4-toggle" class="player-toggle on">P4: ON</button>
+            <select id="bot-blue2-select" class="blue-team bot-select"></select>
+            <select id="p4-input-select" class="blue-team input-select"></select>
+            <select id="p4-start-select" class="blue-team start-select"></select>
+        </div>
     </div>
 </div>
 
-<!-- RED SIDE PANEL (RIGHT) -->
+<!-- RED SIDE PANEL (RIGHT) - PLAYERS 1 & 2 -->
 <div class="controls-wrapper-red">
-    <button id="toggle-controls-btn-red">☰ RED TEAM</button>
-    <div class="controls-red" id="control-panel-red">
-        <button id="show-controls-btn-red">🎮 VIEW CONTROLS</button>
-
-        <div class="hp-station red">
-            <div class="hp-title">★ HUMAN PLAYER STATION ★</div>
-            <div>RED ALLIANCE</div>
-            <div class="hp-keys">P1: WASD + Space | P2: Controller 1</div>
+    <!-- PLAYER 1 (Red) -->
+    <div class="controls-panel" id="control-panel-p1">
+        <div class="panel-header">
+            <span class="panel-title" style="color:#ef4444;">🔴 P1</span>
+            <button class="toggle-panel" id="toggle-panel-p1">−</button>
         </div>
-
-        <button id="p2-toggle" class="purple-team">PLAYER 2: ON</button>
-        <select id="bot-red-select" class="red-team bot-select"></select>
-        <button id="p1-input-toggle" class="red-team">P1: KEYBOARD</button>
-        <button id="p1-start-toggle" class="red-team">P1 START: HUB</button>
-        <button id="p1-respawn" class="red-team btn-respawn disabled">P1 RESPAWN (1)</button>
-
-        <div style="height: 5px;"></div>
-
-        <select id="bot-red2-select" class="red-team bot-select"></select>
-        <button id="p2-input-toggle" class="red-team">P2: CONTROLLER1</button>
-        <button id="p2-start-toggle" class="red-team">P2 START: HUB</button>
-        <button id="p2-respawn" class="red-team btn-respawn disabled">P2 RESPAWN (1)</button>
+        <div class="panel-content">
+            <button id="p1-toggle" class="player-toggle on">P1: ON</button>
+            <select id="bot-red-select" class="red-team bot-select"></select>
+            <select id="p1-input-select" class="red-team input-select"></select>
+            <select id="p1-start-select" class="red-team start-select"></select>
+        </div>
+    </div>
+    
+    <!-- PLAYER 2 (Red) -->
+    <div class="controls-panel" id="control-panel-p2">
+        <div class="panel-header">
+            <span class="panel-title" style="color:#ef4444;">🔴 P2</span>
+            <button class="toggle-panel" id="toggle-panel-p2">−</button>
+        </div>
+        <div class="panel-content">
+            <button id="p2-toggle" class="player-toggle on">P2: ON</button>
+            <select id="bot-red2-select" class="red-team bot-select"></select>
+            <select id="p2-input-select" class="red-team input-select"></select>
+            <select id="p2-start-select" class="red-team start-select"></select>
+        </div>
     </div>
 </div>
-
+    
 <div id="start-area">
     <button id="reset-btn-center">RESET FIELD</button>
     <button id="start-btn-main">▶ START MATCH</button>
