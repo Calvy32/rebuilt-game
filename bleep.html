@@ -5,25 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FRC 2026 - Local Multiplayer</title>
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
         body {
             margin: 0;
             background: #0a0a0c;
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             overflow: hidden;
+            position: relative;
         }
 
         canvas {
             background: #111;
-            border: 2px solid #333;
-            border-radius: 4px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 2px solid #2a2a2e;
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
             max-width: 98vw;
             max-height: 92vh;
             width: auto;
@@ -32,189 +37,317 @@
             margin: 0 auto;
         }
 
-        .hud { 
-            position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 20px; align-items: center;
-            background: rgba(10,10,12,0.95); padding: 8px 24px; 
-            border-radius: 8px; border: 1px solid #444; 
-            border-bottom: 4px solid #fbbf24; 
-            transition: border-bottom-color 0.1s;
+        /* Top Score HUD */
+        .score-hud {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 48px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(16px);
+            padding: 10px 32px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 10;
+            font-family: monospace;
+            font-weight: 800;
+        }
+        .score-item {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+        .score-item .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .score-item .value {
+            font-size: 2rem;
+            font-weight: 900;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 12px;
+            border-radius: 32px;
+            min-width: 70px;
+            text-align: center;
+        }
+        .score-item.red .label { color: #ef4444; }
+        .score-item.red .value { color: #ef4444; }
+        .score-item.blue .label { color: #3b82f6; }
+        .score-item.blue .value { color: #3b82f6; }
+
+        /* Fuel indicators (small, below scores) */
+        .fuel-hud {
+            position: absolute;
+            top: 85px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 48px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            padding: 4px 32px;
+            border-radius: 40px;
+            font-size: 0.65rem;
+            font-weight: bold;
             z-index: 10;
         }
-        .stat { font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
-        .stat span { font-size: 1.2rem; margin-left: 6px; }
-        .warning { color: #fff !important; font-weight: 900; background: #ef4444; padding: 0 4px; border-radius: 4px; }
+        .fuel-item { display: flex; gap: 8px; }
+        .fuel-item.red { color: #ef4444; }
+        .fuel-item.blue { color: #3b82f6; }
 
+        /* Timer Panel (Bottom) */
         #timer-panel {
-            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; align-items: center;
-            pointer-events: none; z-index: 15;
-            background: rgba(10,10,12,0.85); padding: 10px 30px; border-radius: 8px; border: 1px solid #333;
+            position: absolute;
+            bottom: 95px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 15;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            padding: 8px 28px;
+            border-radius: 48px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         #match-clock {
-            font-size: 2.8rem; font-weight: 900; letter-spacing: 3px;
-            color: #fff; text-shadow: 0 0 20px rgba(251,191,36,0.5);
-            line-height: 1;
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            font-family: monospace;
         }
-        #match-clock.auto-phase  { color: #a78bfa; text-shadow: 0 0 20px rgba(167,139,250,0.6); }
-        #match-clock.delay-phase { color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.6); }
-        #match-clock.endgame-phase { color: #f97316; text-shadow: 0 0 20px rgba(249,115,22,0.7); }
-        #match-clock.stopped { color: #555; text-shadow: none; }
-        
-        #phase-label {
-            font-size: 0.7rem; font-weight: 900; letter-spacing: 4px;
-            color: #888; margin-top: 4px; text-transform: uppercase;
-        }
-        
-        #phase-timer {
-            font-size: 1.4rem; font-weight: 900; letter-spacing: 2px;
-            margin-top: 2px; transition: color 0.2s, text-shadow 0.2s;
-        }
+        #match-clock.auto-phase { color: #a78bfa; text-shadow: 0 0 15px rgba(167,139,250,0.5); }
+        #match-clock.delay-phase { color: #ef4444; text-shadow: 0 0 15px rgba(239,68,68,0.5); }
+        #match-clock.endgame-phase { color: #f97316; text-shadow: 0 0 15px rgba(249,115,22,0.5); }
+        #match-clock.stopped { color: #888; text-shadow: none; }
+        #phase-label { font-size: 0.55rem; font-weight: 800; letter-spacing: 2px; color: #aaa; margin-top: 2px; }
+        #phase-timer { font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; margin-top: 2px; }
 
+        /* Shift Panel */
         #shift-panel {
-            position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 6px; align-items: center;
-            background: rgba(10,10,12,0.95); padding: 7px 16px;
-            border-radius: 8px; border: 1px solid #333; z-index: 10;
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            padding: 5px 20px;
+            border-radius: 40px;
+            z-index: 10;
+            font-size: 0.65rem;
+            font-weight: 700;
         }
         .hub-indicator {
-            display: flex; flex-direction: column; align-items: center; gap: 2px;
-            padding: 4px 10px; border-radius: 6px; border: 1px solid #333;
-            font-size: 0.65rem; font-weight: 900; text-transform: uppercase;
-            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 12px;
+            border-radius: 32px;
+            transition: all 0.2s;
         }
-        .hub-indicator .hub-name { font-size: 0.55rem; color: #555; letter-spacing: 1px; }
-        .hub-indicator.hub-active-red   { background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444; }
-        .hub-indicator.hub-active-blue  { background: rgba(59,130,246,0.2); border-color: #3b82f6; color: #3b82f6; }
-        .hub-indicator.hub-inactive     { background: rgba(30,30,30,0.6); border-color: #333; color: #444; }
-        .hub-status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .shift-divider { color: #444; font-size: 0.8rem; padding: 0 4px; }
-        #shift-label {
-            font-size: 0.7rem; font-weight: 900; color: #666; letter-spacing: 2px;
-            text-transform: uppercase; margin-right: 4px;
+        .hub-indicator.hub-active-red { background: rgba(239,68,68,0.25); color: #ef4444; }
+        .hub-indicator.hub-active-blue { background: rgba(59,130,246,0.25); color: #3b82f6; }
+        .hub-indicator.hub-inactive { background: rgba(50,50,55,0.5); color: #666; }
+
+        /* Side Panels Container */
+        .panels-container {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 20;
+            padding: 0 12px;
+        }
+        .panel-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+        .panel-group.left { align-items: flex-start; }
+        .panel-group.right { align-items: flex-end; }
+
+        /* Individual Player Panel */
+        .player-panel {
+            background: rgba(10, 10, 12, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            width: 210px;
+            transition: all 0.2s ease;
+        }
+        .player-panel.collapsed {
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            padding: 0;
+            margin: 0;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .panel-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+        .toggle-panel {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            font-size: 0.8rem;
+            padding: 2px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            color: white;
+        }
+        .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .panel-content select, .panel-content button {
+            width: 100%;
         }
 
-        .controls-wrapper-blue {
-            position: absolute; top: 12px; left: 10px; z-index: 20;
-            display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-            max-height: 95vh; overflow-y: auto; padding-left: 5px;
+        /* Controls Styling */
+        .player-toggle {
+            padding: 8px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.7rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.1s ease;
+            background: #2a2a2e;
+            color: #ccc;
         }
-        .controls-wrapper-red {
-            position: absolute; top: 12px; right: 10px; z-index: 20;
-            display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
-            max-height: 95vh; overflow-y: auto; padding-right: 5px;
-        }
-        .controls-wrapper-blue::-webkit-scrollbar, .controls-wrapper-red::-webkit-scrollbar { width: 6px; }
-        .controls-wrapper-blue::-webkit-scrollbar-thumb, .controls-wrapper-red::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        .player-toggle.on { background: #22c55e; color: #000; }
+        .player-toggle.off { background: #3a3a3e; color: #888; }
 
-        #toggle-controls-btn-blue, #toggle-controls-btn-red {
-            background: #333; color: white; border: 1px solid #555;
-            width: auto; padding: 6px 12px; font-size: 0.7rem; margin-bottom: 4px;
+        select {
+            padding: 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.65rem;
+            cursor: pointer;
+            border: none;
+            background: #1a1a1f;
+            color: white;
+            appearance: menulist;
+            -webkit-appearance: menulist;
         }
-        #toggle-controls-btn-blue { border-color: #3b82f6; }
-        #toggle-controls-btn-red  { border-color: #ef4444; }
-        #toggle-controls-btn-blue:hover { background: #1e3a8a; }
-        #toggle-controls-btn-red:hover  { background: #7f1d1d; }
+        .red-select { background: #dc2626; border: 1px solid #ef4444; }
+        .blue-select { background: #2563eb; border: 1px solid #3b82f6; }
 
-        .controls-blue, .controls-red {
-            display: flex; flex-direction: column; gap: 5px; width: 190px;
-            transition: opacity 0.2s, transform 0.2s;
-        }
-        .controls-blue { transform-origin: top left; }
-        .controls-red  { transform-origin: top right; }
-        .controls-blue.collapsed, .controls-red.collapsed {
-            opacity: 0; pointer-events: none; transform: scale(0.95); height: 0; overflow: hidden;
-        }
-
+        /* Start Area */
         #start-area {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            z-index: 20; display: flex; flex-direction: row; align-items: center; gap: 12px;
-            background: rgba(10,10,12,0.85); padding: 12px 20px; border-radius: 12px; border: 1px solid #333;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            display: flex;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(16px);
+            padding: 10px 24px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        #start-btn-main {
-            padding: 10px 32px; font-size: 0.9rem; font-weight: 900;
-            background: #22c55e; color: #000; border: 2px solid #22c55e;
-            border-radius: 8px; cursor: pointer; letter-spacing: 1px;
-            transition: background 0.15s, transform 0.1s;
+        .start-btn {
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            transition: all 0.1s;
         }
-        #start-btn-main:hover { background: #16a34a; }
-        #start-btn-main:active { transform: scale(0.96); }
-        #start-btn-main.running { background: #f97316; border-color: #f97316; color: #000; }
-        #reset-btn-center {
-            background: #333; color: #fff; border: 2px solid #555;
-            padding: 8px 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 900;
-            cursor: pointer; letter-spacing: 1px;
-        }
-        #reset-btn-center:hover { background: #444; }
-        #team-mode-toggle-center {
-            background: #8b5cf6; color: white; border: 2px solid #8b5cf6;
-            padding: 8px 14px; border-radius: 6px; font-size: 0.7rem; font-weight: 900;
-            cursor: pointer; letter-spacing: 1px;
-        }
+        #start-btn-main { background: #22c55e; color: #000; }
+        #start-btn-main.running { background: #f97316; color: white; }
+        #reset-btn-center { background: #3a3a3e; color: white; }
+        #team-mode-toggle-center { background: #7c3aed; color: white; }
+        #game-mode-toggle-center { background: #06b6d4; color: white; }
+        #toggle-all-panels { background: #8b5cf6; color: white; }
 
-        .hp-station {
-            background: rgba(10,10,12,0.92); border-radius: 6px;
-            padding: 6px 10px; font-size: 0.62rem; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 1px; text-align: center;
-        }
-        .hp-station.blue { border: 1px solid #3b82f6; color: #3b82f6; }
-        .hp-station.red  { border: 1px solid #ef4444; color: #ef4444; }
-        .hp-station .hp-title { font-size: 0.5rem; color: #888; margin-bottom: 3px; letter-spacing: 2px; }
-        .hp-station .hp-keys  { font-size: 0.58rem; color: #ccc; margin-top: 2px; line-height: 1.5; }
-        
-        button { padding: 6px 10px; border-radius: 6px; border: 2px solid #fff; cursor: pointer; font-weight: 900; background: #fbbf24; color: #000; transition: transform 0.1s; font-size: 0.7rem; }
-        .bot-select { padding: 6px 10px; border-radius: 6px; border: 2px solid #fff; cursor: pointer; font-weight: 900; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; width: auto; min-width: 160px; appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%); background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 24px; }
-        .bot-select.red-team { background-color: #ef4444; color: white; border-color: #ef4444; }
-        .bot-select.blue-team { background-color: #3b82f6; color: white; border-color: #3b82f6; }
-        .bot-select option { background: #1a1a1a; color: white; }
-        button:active { transform: scale(0.95); }
-        .red-team { background: #ef4444; color: white; border-color: #ef4444; }
-        .blue-team { background: #3b82f6; color: white; border-color: #3b82f6; }
-        .purple-team { background: #8b5cf6; color: white; border-color: #8b5cf6; }
-        #p2-toggle.disabled { background: #4b5563; border-color: #4b5563; color: #ccc;}
-        #p3-toggle.disabled { background: #4b5563; border-color: #4b5563; color: #ccc;}
-        #p4-toggle.disabled { background: #4b5563; border-color: #4b5563; color: #ccc;}
-        #show-controls-btn-blue { background: #3b82f6; border-color: #93c5fd; color: white; margin-bottom: 4px; }
-        #show-controls-btn-red  { background: #ef4444; border-color: #fca5a5; color: white; margin-bottom: 4px; }
-
-        .btn-unstick { background: #991b1b !important; border-color: #fca5a5 !important; }
-        .btn-unstick.blue-team { background: #1e3a8a !important; border-color: #93c5fd !important; }
-        .btn-unstick.disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; }
-
+        /* Effects */
         #shift-flash {
-            position: absolute; inset: 0; pointer-events: none; z-index: 50;
-            opacity: 0; background: rgba(255,255,255,0.08);
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.15), transparent);
             transition: opacity 0.15s;
         }
         #shift-flash.flash { opacity: 1; }
 
         #auto-winner {
-            position: absolute; top: 175px; left: 50%; transform: translateX(-50%);
-            font-size: 0.7rem; font-weight: 900; letter-spacing: 2px; color: #a78bfa;
-            opacity: 0; transition: opacity 0.5s; pointer-events: none; z-index: 20;
+            position: absolute;
+            top: 145px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            font-weight: 900;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 16px;
+            border-radius: 40px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 20;
+            color: #a78bfa;
         }
         #auto-winner.visible { opacity: 1; }
 
+        /* Controls Modal */
         #controls-modal {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100;
-            display: flex; justify-content: center; align-items: center;
-            opacity: 1; transition: opacity 0.2s;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        #controls-modal.hidden { opacity: 0; pointer-events: none; }
+        #controls-modal.hidden { display: none; }
         .modal-content {
-            background: #111; border: 2px solid #444; border-radius: 8px;
-            padding: 25px 40px; text-align: center; box-shadow: 0 0 40px rgba(0,0,0,1);
-            max-width: 400px; width: 90%;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
-        .modal-content h2 { color: #fbbf24; margin-top: 0; font-weight: 900; letter-spacing: 2px; margin-bottom: 20px;}
-        .control-section { text-align: left; margin-bottom: 15px; background: rgba(255,255,255,0.05); padding: 12px 16px; border-radius: 6px; border-left: 3px solid #666;}
-        .control-section h3 { margin: 0 0 8px 0; color: #a78bfa; font-size: 0.95rem; letter-spacing: 1px; text-transform: uppercase; }
-        .control-section p { margin: 6px 0; font-size: 0.9rem; color: #ccc; }
-        .control-section b { color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
-        .control-section.highlight { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.08); }
-        .control-section.highlight h3 { color: #ef4444; }
-        #close-controls-btn { margin-top: 15px; padding: 10px 30px; font-size: 0.9rem; width: 100%; background: #444; border-color: #666; color: white;}
-        #close-controls-btn:hover { background: #555; }
+        .modal-content h2 { color: #fbbf24; margin: 0 0 16px; text-align: center; }
+        .control-section { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid #666; }
+        .control-section h3 { margin: 0 0 6px; font-size: 0.8rem; }
+        .control-section p { margin: 0; font-size: 0.7rem; color: #ccc; }
+        #close-controls-btn { margin-top: 12px; width: 100%; background: #333; padding: 10px; border-radius: 40px; }
+
+        .help-btn { background: #3b82f6; font-size: 0.6rem; padding: 6px; border-radius: 40px; margin-bottom: 4px; color: white; }
+        .help-btn.red { background: #ef4444; }
     </style>
 </head>
 <body>
@@ -223,170 +356,75 @@
 
 <div id="controls-modal" class="hidden">
     <div class="modal-content">
-        <h2>GAME CONTROLS</h2>
-        
-        <div class="control-section" style="border-left-color:#ef4444;background:rgba(239,68,68,0.08);">
-            <h3 style="color:#ef4444;">P1 — Red Keyboard 1</h3>
-            <p><b>W</b><b>A</b><b>S</b><b>D</b> = Move &nbsp; <b>Q</b>/<b>E</b> = Turn</p>
-            <p><b>Space</b> = Shoot/Pass &nbsp; <b>X</b> = Ability</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#ef4444;background:rgba(239,68,68,0.05);">
-            <h3 style="color:#ef4444;">P2 — Red Controller 1</h3>
-            <p><b>Left Stick</b> = Move &nbsp; <b>Right Stick X</b> = Turn</p>
-            <p><b>Right Trigger</b> = Shoot/Pass &nbsp; <b>Left Trigger</b> = Ability</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#3b82f6;background:rgba(59,130,246,0.08);">
-            <h3 style="color:#3b82f6;">P3 — Blue Keyboard 2</h3>
-            <p><b>↑</b><b>↓</b><b>←</b><b>→</b> = Move &nbsp; <b>N</b>/<b>M</b> = Turn</p>
-            <p><b>RShift</b> = Shoot/Pass &nbsp; <b>RCtrl</b> = Ability</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#3b82f6;background:rgba(59,130,246,0.05);">
-            <h3 style="color:#3b82f6;">P4 — Blue Controller 2</h3>
-            <p><b>Left Stick</b> = Move &nbsp; <b>Right Stick X</b> = Turn</p>
-            <p><b>Right Trigger</b> = Shoot/Pass &nbsp; <b>Left Trigger</b> = Ability</p>
-        </div>
-
-        <div class="control-section highlight">
-            <h3>Ability Button Uses</h3>
-            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2) | <b>Drone:</b> Deploys flying shooter</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#ec4899;background:rgba(236,72,153,0.08);">
-            <h3 style="color:#ec4899;">Plasma Robot</h3>
-            <p>Fires a <b>chain lightning</b> projectile that arcs to nearby balls. Each chained ball <b>adds +2 points</b> to the scored ball (max 5 chains = +10).</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#f97316;background:rgba(249,115,22,0.08);">
-            <h3 style="color:#f97316;">Howitzer Robot</h3>
-            <p>Fires a lobbed mortar that <b>pushes nearby balls toward your hub</b> as it travels. Slow fire rate but great for ball control.</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#d946ef;background:rgba(217,70,239,0.08);">
-            <h3 style="color:#d946ef;">Phantom Robot</h3>
-            <p><b>Passes through walls and obstacles</b> — only the field border stops it. Ghostly appearance.</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#facc15;background:rgba(250,204,21,0.08);">
-            <h3 style="color:#facc15;">Barricade Robot</h3>
-            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a barrier. <b>Max 2 barriers</b>, 3-second cooldown. Placing a 3rd removes the oldest.</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#22c55e;background:rgba(34,197,94,0.08);">
-            <h3 style="color:#22c55e;">Drone Robot</h3>
-            <p>Press <b>Ability</b> to deploy a flying drone that <b>follows you and shoots independently</b> at the enemy hub.</p>
-        </div>
-
-        <div class="control-section" style="border-left-color:#06b6d4;background:rgba(6,182,212,0.08);">
-            <h3 style="color:#06b6d4;">Game Modes</h3>
-            <p><b>Triple Balls</b>, <b>Slippery Field</b>, <b>Rapid React (1.33x speed)</b>, <b>Power-ups</b>, <b>Random Shifts</b></p>
-            <p>Corner <b>Outpost Human Player Stations</b> collect balls and automatically pass them back into play.</p>
-        </div>
-
+        <h2>⚡ GAME CONTROLS</h2>
+        <div class="control-section"><h3>🔴 P1 Red KB</h3><p>WASD = Move | Q/E = Turn | SPACE = Shoot | X = Ability</p></div>
+        <div class="control-section"><h3>🎮 P2 Red Ctrl</h3><p>Left Stick = Move | Right Stick X = Turn | RT = Shoot | LT = Ability</p></div>
+        <div class="control-section"><h3>🔵 P3 Blue KB2</h3><p>Arrows = Move | N/M = Turn | RShift = Shoot | RCtrl = Ability</p></div>
+        <div class="control-section"><h3>🎮 P4 Blue Ctrl2</h3><p>Left Stick = Move | Right Stick X = Turn | RT = Shoot | LT = Ability</p></div>
+        <div class="control-section"><h3>🤖 SPECIALS</h3><p>Plasma: Chain +2 | Howitzer: Push toward hub | Barricade: Place walls | Phantom: Noclip | Drone: Deploys shooter</p></div>
         <button id="close-controls-btn">CLOSE</button>
     </div>
 </div>
 
-<div class="hud" id="main-hud">
-    <div class="stat" style="color: #ef4444;">RED: <span id="scoreRedDisplay">0</span></div>
-    <div class="stat" style="color: #ef4444;">FUEL: <span id="heldRed">0</span></div>
-    <div class="shift-divider" style="color: #666;">|</div>
-    <div class="stat" style="color: #3b82f6;">BLUE: <span id="scoreBlueDisplay">0</span></div>
-    <div class="stat" style="color: #3b82f6;">FUEL: <span id="heldBlue">0</span></div>
+<!-- Score HUD -->
+<div class="score-hud">
+    <div class="score-item red">
+        <span class="label">RED</span>
+        <span class="value" id="scoreRedDisplay">0</span>
+    </div>
+    <div class="score-item blue">
+        <span class="label">BLUE</span>
+        <span class="value" id="scoreBlueDisplay">0</span>
+    </div>
 </div>
 
+<!-- Fuel HUD -->
+<div class="fuel-hud">
+    <div class="fuel-item red">🎯 FUEL: <span id="heldRed">0</span></div>
+    <div class="fuel-item blue">🎯 FUEL: <span id="heldBlue">0</span></div>
+</div>
+
+<!-- Timer Panel (Bottom) -->
 <div id="timer-panel">
     <div id="match-clock" class="stopped">2:20</div>
-    <div id="phase-label">MATCH NOT STARTED</div>
+    <div id="phase-label">READY</div>
     <div id="phase-timer"></div>
 </div>
 
+<!-- Auto Winner Badge -->
 <div id="auto-winner">AUTO WON BY RED</div>
 
+<!-- Shift Panel -->
 <div id="shift-panel">
-    <span id="shift-label">HUB STATUS</span>
-    <div class="hub-indicator hub-inactive" id="hub-red">
-        <div class="hub-name">RED HUB</div>
-        <div class="hub-status-dot"></div>
-        <div id="hub-red-txt">INACTIVE</div>
-    </div>
-    <div class="shift-divider">|</div>
-    <div class="hub-indicator hub-inactive" id="hub-blue">
-        <div class="hub-name">BLUE HUB</div>
-        <div class="hub-status-dot"></div>
-        <div id="hub-blue-txt">INACTIVE</div>
-    </div>
+    <div class="hub-indicator hub-inactive" id="hub-red"><span>🔴 RED HUB</span></div>
+    <div class="hub-indicator hub-inactive" id="hub-blue"><span>🔵 BLUE HUB</span></div>
 </div>
 
-<!-- BLUE SIDE PANEL (LEFT) -->
-<div class="controls-wrapper-blue">
-    <button id="toggle-controls-btn-blue">☰ BLUE TEAM</button>
-    <div class="controls-blue" id="control-panel-blue">
-        <button id="show-controls-btn-blue">🎮 VIEW CONTROLS</button>
-
-        <div class="hp-station blue">
-            <div class="hp-title">★ HUMAN PLAYER STATION ★</div>
-            <div>BLUE ALLIANCE</div>
-            <div class="hp-keys">P3: ↑↓←→ + RShift | P4: Controller 2</div>
-        </div>
-
-        <button id="p3-toggle" class="purple-team">PLAYER 3: ON</button>
-        <select id="bot-blue-select" class="blue-team bot-select"></select>
-        <button id="p3-input-toggle" class="blue-team">P3: KEYBOARD2</button>
-        <button id="p3-start-toggle" class="blue-team">P3 START: HUB</button>
-        <button id="p3-unstick" class="blue-team btn-unstick disabled">P3 UNSTICK (1)</button>
-
-        <div style="height: 5px;"></div>
-
-        <button id="p4-toggle" class="purple-team">PLAYER 4: ON</button>
-        <select id="bot-blue2-select" class="blue-team bot-select"></select>
-        <button id="p4-input-toggle" class="blue-team">P4: CONTROLLER2</button>
-        <button id="p4-start-toggle" class="blue-team">P4 START: HUB</button>
-        <button id="p4-unstick" class="blue-team btn-unstick disabled">P4 UNSTICK (1)</button>
-    </div>
+<!-- Side Panels Container -->
+<div class="panels-container">
+    <!-- LEFT GROUP: Players 3 & 4 (BLUE) -->
+    <div class="panel-group left" id="panel-group-left"></div>
+    <!-- RIGHT GROUP: Players 1 & 2 (RED) -->
+    <div class="panel-group right" id="panel-group-right"></div>
 </div>
 
-<!-- RED SIDE PANEL (RIGHT) -->
-<div class="controls-wrapper-red">
-    <button id="toggle-controls-btn-red">☰ RED TEAM</button>
-    <div class="controls-red" id="control-panel-red">
-        <button id="show-controls-btn-red">🎮 VIEW CONTROLS</button>
-
-        <div class="hp-station red">
-            <div class="hp-title">★ HUMAN PLAYER STATION ★</div>
-            <div>RED ALLIANCE</div>
-            <div class="hp-keys">P1: WASD + Space | P2: Controller 1</div>
-        </div>
-
-        <button id="p2-toggle" class="purple-team">PLAYER 2: ON</button>
-        <select id="bot-red-select" class="red-team bot-select"></select>
-        <button id="p1-input-toggle" class="red-team">P1: KEYBOARD</button>
-        <button id="p1-start-toggle" class="red-team">P1 START: HUB</button>
-        <button id="p1-unstick" class="red-team btn-unstick disabled">P1 UNSTICK (1)</button>
-
-        <div style="height: 5px;"></div>
-
-        <select id="bot-red2-select" class="red-team bot-select"></select>
-        <button id="p2-input-toggle" class="red-team">P2: CONTROLLER1</button>
-        <button id="p2-start-toggle" class="red-team">P2 START: HUB</button>
-        <button id="p2-unstick" class="red-team btn-unstick disabled">P2 UNSTICK (1)</button>
-    </div>
-</div>
-
+<!-- Start Area -->
 <div id="start-area">
-    <button id="reset-btn-center">RESET FIELD</button>
-    <button id="start-btn-main">▶ START MATCH</button>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-        <button id="team-mode-toggle-center">TEAM: STARTERED</button>
-        <button id="game-mode-toggle-center" style="background:#06b6d4; border-color:#06b6d4; color:white;">MODE: STANDARD</button>
-    </div>
+    <button id="reset-btn-center" class="start-btn">🔄 RESET</button>
+    <button id="start-btn-main" class="start-btn">▶ START</button>
+    <button id="team-mode-toggle-center" class="start-btn">CO-OP: OFF</button>
+    <button id="game-mode-toggle-center" class="start-btn">MODE: STD</button>
+    <button id="toggle-all-panels" class="start-btn">📂 TOGGLE</button>
 </div>
 
 <canvas id="field"></canvas>
 
 <script>
+// ============================================================
+// YOUR EXISTING JAVASCRIPT GOES HERE (UNCHANGED)
+// Copy all JavaScript from your working file starting from:
+// const SFX = {}; ... all the way to the end
+// ============================================================
 // ── AUDIO SYSTEM ── (placeholders)
 const SFX = {};
 function playSound(key) {}
