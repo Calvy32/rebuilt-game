@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom + Duplicator Rework + New Robot)</title>
+    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom Rework + Duplicator + Echo)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -338,15 +338,15 @@
         </div>
         <div class="control-section highlight">
             <h3>Ability Button Uses</h3>
-            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 8 sec life)</p>
+            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 10 sec life)</p>
         </div>
         <div class="control-section" style="border-left-color:#a78bfa;background:rgba(167,139,250,0.08);">
             <h3 style="color:#a78bfa;">Phantom Robot</h3>
-            <p><b>Weaker turret</b> that can <b>shoot through walls and obstacles</b>. Passes through objects. Slowed inside hubs.</p>
+            <p><b>Moderately weaker turret</b> that can <b>shoot through walls and obstacles</b>. Passes through objects. Slightly slowed inside hubs.</p>
         </div>
         <div class="control-section" style="border-left-color:#facc15;background:rgba(250,204,21,0.08);">
             <h3 style="color:#facc15;">Barricade Robot</h3>
-            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a <b>small barrier</b> with a timer circle. Max 2 barriers, 8 second lifespan.</p>
+            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a <b>small barrier</b> with a timer circle. Max 2 barriers, 10 second lifespan.</p>
         </div>
         <div class="control-section" style="border-left-color:#ec4899;background:rgba(236,72,153,0.08);">
             <h3 style="color:#ec4899;">Plasma Robot</h3>
@@ -354,11 +354,11 @@
         </div>
         <div class="control-section" style="border-left-color:#d946ef;background:rgba(217,70,239,0.08);">
             <h3 style="color:#d946ef;">Duplicator Robot</h3>
-            <p><b>Shoots 3 balls for every 1 ball</b> in inventory. Permanent ball multiplication — use with caution!</p>
+            <p><b>Shoots 3 balls for every 1 ball</b> in inventory. Slower fire rate, permanent ball multiplication!</p>
         </div>
         <div class="control-section" style="border-left-color:#f59e0b;background:rgba(245,158,11,0.08);">
-            <h3 style="color:#f59e0b;">Echo Robot (NEW)</h3>
-            <p>Fires a <b>sonic wave</b> that <b>pushes and damages balls</b>. Passing shots create a <b>lingering echo field</b> that pushes balls away. High utility, low damage.</p>
+            <h3 style="color:#f59e0b;">Echo Robot</h3>
+            <p>Fires a <b>sonic wave</b> that <b>pushes balls away</b>. Passing shots create a lingering echo field.</p>
         </div>
         <div class="control-section" style="border-left-color:#06b6d4;background:rgba(6,182,212,0.08);">
             <h3 style="color:#06b6d4;">Game Modes</h3>
@@ -406,11 +406,11 @@
                     <option value="controller3">P3: CONTROLLER 3</option>
                 </select>
                 <select id="p3-start-select" class="start-select blue-team" data-player="p3">
-                    <option value="0" selected>START: HUB</option>
                     <option value="1">START: TOP TRENCH</option>
-                    <option value="2">START: BOTTOM TRENCH</option>
                     <option value="3">START: TOP BUMP</option>
+                    <option value="0" selected>START: HUB</option>
                     <option value="4">START: BOTTOM BUMP</option>
+                    <option value="2">START: BOTTOM TRENCH</option>
                 </select>
             </div>
         </div>
@@ -431,11 +431,11 @@
                     <option value="controller3">P4: CONTROLLER 3</option>
                 </select>
                 <select id="p4-start-select" class="start-select blue-team" data-player="p4">
-                    <option value="0" selected>START: HUB</option>
                     <option value="1">START: TOP TRENCH</option>
-                    <option value="2">START: BOTTOM TRENCH</option>
                     <option value="3">START: TOP BUMP</option>
+                    <option value="0" selected>START: HUB</option>
                     <option value="4">START: BOTTOM BUMP</option>
+                    <option value="2">START: BOTTOM TRENCH</option>
                 </select>
             </div>
         </div>
@@ -452,7 +452,7 @@
                 <button class="player-card-collapse" data-target="card-p1">−</button>
             </div>
             <div class="player-card-body">
-                <button id="p1-placeholder-toggle" class="pc-btn on-btn" disabled style="opacity:0.85;">P1: ALWAYS ON</button>
+                <button id="p1-toggle" class="pc-btn on-btn">P1: ON</button>
                 <select id="bot-red-select" class="bot-select red-team"></select>
                 <select id="p1-input-select" class="input-select red-team" data-player="p1">
                     <option value="keyboard" selected>P1: KEYBOARD 1</option>
@@ -463,11 +463,11 @@
                     <option value="controller3">P1: CONTROLLER 3</option>
                 </select>
                 <select id="p1-start-select" class="start-select red-team" data-player="p1">
-                    <option value="0" selected>START: HUB</option>
                     <option value="1">START: TOP TRENCH</option>
-                    <option value="2">START: BOTTOM TRENCH</option>
                     <option value="3">START: TOP BUMP</option>
+                    <option value="0" selected>START: HUB</option>
                     <option value="4">START: BOTTOM BUMP</option>
+                    <option value="2">START: BOTTOM TRENCH</option>
                 </select>
             </div>
         </div>
@@ -488,11 +488,11 @@
                     <option value="controller3">P2: CONTROLLER 3</option>
                 </select>
                 <select id="p2-start-select" class="start-select red-team" data-player="p2">
-                    <option value="0" selected>START: HUB</option>
                     <option value="1">START: TOP TRENCH</option>
-                    <option value="2">START: BOTTOM TRENCH</option>
                     <option value="3">START: TOP BUMP</option>
+                    <option value="0" selected>START: HUB</option>
                     <option value="4">START: BOTTOM BUMP</option>
+                    <option value="2">START: BOTTOM TRENCH</option>
                 </select>
             </div>
         </div>
@@ -519,31 +519,31 @@ const SFX = {};
 function playSound(key) {}
 // ===================================================================
 
+// ROBOT MODELS - ALPHABETICAL ORDER
 const BOT_MODELS = {
-    'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
-    'Miss Daisy': { accel: 0.38, rotSpeed: 0.036, capacity: 8, fireRate: 85, w: 41, h: 41 },
-    'double turret':  { accel: 0.38, rotSpeed: 0.036, capacity: 60, fireRate: 60, w: 41, h: 41 },
-    'dumper':  { accel: 0.38, rotSpeed: 0.036, capacity: 110, fireRate: 0, w: 41, h: 41 },
-    'Blitz':  { accel: 0.38, rotSpeed: 0.036, capacity: 15, fireRate: 0, w: 41, h: 41 },
-    '2910':  { accel: 0.38, rotSpeed: 0.036, capacity: 62, fireRate: -0, w: 41, h: 41 },
+    '2910': { accel: 0.38, rotSpeed: 0.036, capacity: 62, fireRate: -0, w: 41, h: 41 },
     '3636': { accel: 0.38, rotSpeed: 0.036, capacity: 50, fireRate: 180, w: 41, h: 41 },
-    '3636 main season': { accel: 0.36, rotSpeed: 0.036, capacity: 20, fireRate: 500, w: 41, h: 41 },
-    '3636 real': { accel: 0.45, rotSpeed: 0.036, capacity: 150, fireRate: -75, w: 45, h: 45 },
+    '3636 real': { accel: 0.5, rotSpeed: 0.04, capacity: 300, fireRate: -500, w: 47.5, h: 47.5 },
+    'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 },
+    'Blitz': { accel: 0.38, rotSpeed: 0.036, capacity: 15, fireRate: 0, w: 41, h: 41 },
     'Boomerang': { accel: 0.52, rotSpeed: 0.055, capacity: 40, fireRate: 95, w: 41, h: 41 },
+    'Dozer': { accel: 0.26, rotSpeed: 0.028, capacity: 225, fireRate: 70, w: 54, h: 54 },
+    'double turret': { accel: 0.38, rotSpeed: 0.036, capacity: 60, fireRate: 60, w: 41, h: 41 },
+    'dumper': { accel: 0.38, rotSpeed: 0.036, capacity: 110, fireRate: 0, w: 41, h: 41 },
+    'Duplicator': { accel: 0.20, rotSpeed: 0.028, capacity: 15, fireRate: 420, w: 44, h: 44 },
+    'Echo': { accel: 0.36, rotSpeed: 0.038, capacity: 45, fireRate: 280, w: 43, h: 43 },
+    'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 30, fireRate: 850, w: 46, h: 46 },
+    'Magnet': { accel: 0.36, rotSpeed: 0.042, capacity: 70, fireRate: 90, w: 42, h: 42 },
+    'Minigun': { accel: 0.42, rotSpeed: 0.050, capacity: 130, fireRate: 75, w: 42, h: 42 },
+    'Miss Daisy': { accel: 0.38, rotSpeed: 0.036, capacity: 8, fireRate: 85, w: 41, h: 41 },
+    'Phantom': { accel: 0.34, rotSpeed: 0.032, capacity: 20, fireRate: 380, w: 40, h: 40 },
+    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 375, w: 42, h: 42 },
+    'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
     'Scattershot': { accel: 0.40, rotSpeed: 0.042, capacity: 90, fireRate: 272, w: 43, h: 43 },
     'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 600, w: 39, h: 39 },
-    'Minigun': { accel: 0.42, rotSpeed: 0.050, capacity: 130, fireRate: 75, w: 42, h: 42 },
-    'Duplicator': { accel: 0.20, rotSpeed: 0.028, capacity: 15, fireRate: 350, w: 44, h: 44 },
-    'Dozer': { accel: 0.26, rotSpeed: 0.028, capacity: 225, fireRate: 70, w: 54, h: 54 },
-    'Magnet': { accel: 0.36, rotSpeed: 0.042, capacity: 70, fireRate: 90, w: 42, h: 42 },
-    'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
-    'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 30, fireRate: 850, w: 46, h: 46 },
-    'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
-    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 375, w: 42, h: 42 },
-    'Phantom': { accel: 0.30, rotSpeed: 0.028, capacity: 15, fireRate: 480, w: 40, h: 40 },
-    'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 },
-    'Echo': { accel: 0.36, rotSpeed: 0.038, capacity: 45, fireRate: 280, w: 43, h: 43 }
     'Spedo': { accel: 0.8, rotSpeed: 0.06, capacity: 30, fireRate: 100, w: 28, h: 28 }
+    'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
+    'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 }
 };
 
 const S = 1.6; 
@@ -591,26 +591,23 @@ let hubRedActive = true, hubBlueActive = true, currentPhaseIdx = -1;
 
 let sameTeamMode = false; 
 let gameMode = 'standard';
-let p2Enabled = true;
+let p1Enabled = true, p2Enabled = false, p3Enabled = false, p4Enabled = false;
 let powerups = [];
 let nextPowerupSpawnTime = 0;
 let nextShiftTime = 0;
 let barricades = [];
-let p3Enabled = true;
-let p4Enabled = true;
 let p1Input = 'keyboard';
 let p2Input = 'controller';
 let p3Input = 'keyboard2';
 let p4Input = 'controller';
 let p1StartIdx = 0, p2StartIdx = 0, p3StartIdx = 0, p4StartIdx = 0;
-let p1UnstickUsed = false, p2UnstickUsed = false, p3UnstickUsed = false, p4UnstickUsed = false;
 let p1FreezeUntil = 0, p2FreezeUntil = 0, p3FreezeUntil = 0, p4FreezeUntil = 0;
 let gamepads = [null, null, null, null];
 let p1GamepadIndex = 0;
 let p2GamepadIndex = 0;
 let p3GamepadIndex = 1;
 let p4GamepadIndex = 1;
-const START_LABELS = ['HUB', 'TOP TRENCH', 'BOTTOM TRENCH', 'TOP BUMP', 'BOTTOM BUMP'];
+const START_LABELS = ['TOP TRENCH', 'TOP BUMP', 'HUB', 'BOTTOM BUMP', 'BOTTOM TRENCH'];
 function handleGamepadConnected(e) { gamepads[e.gamepad.index] = e.gamepad; updateGamepadStatusUI(); }
 function handleGamepadDisconnected(e) { gamepads[e.gamepad.index] = null; updateGamepadStatusUI(); }
 function updateGamepadStatusUI() {
@@ -641,7 +638,7 @@ function setupInputDropdowns() {
     });
     updateGamepadStatusUI();
 }
-function formatTime(s) { s = Math.max(0, Math.ceil(s)); let m = Math.floor(s / 60), sec = s % 60; return m + ":" + (sec < 10 ? "0" : "") + sec; }
+  function formatTime(s) { s = Math.max(0, Math.ceil(s)); let m = Math.floor(s / 60), sec = s % 60; return m + ":" + (sec < 10 ? "0" : "") + sec; }
 function getDisplayTime(elapsed) {
     if (elapsed <= 20) return formatTime(20 - elapsed);
     if (elapsed <= 23) return formatTime(23 - elapsed);
@@ -848,7 +845,6 @@ class Robot {
         
         const speed = 11 + Math.random() * 2;
         
-        // Fire 3 balls for every 1 in inventory
         for (let i = 0; i < 3 && this.inventory > 0; i++) {
             const spreadAngle = launchAngle + (i - 1) * 0.12 + (Math.random() - 0.5) * 0.08;
             projectiles.push({
@@ -1094,8 +1090,9 @@ class Robot {
         if (moveX !== 0 || moveY !== 0) { const mag = Math.sqrt(moveX*moveX + moveY*moveY); if (mag > 0.8) { moveX /= mag; moveY /= mag; } }
 
         let speedMod = (inDepot ? 0.65 : 1.0) * (now < (this.speedBoostUntil || 0) ? 1.45 : 1.0);
+        // Phantom penalty inside hub (reduced to bump-like speed)
         if (this.name === 'Phantom' && inHub) {
-            speedMod *= 0.2;
+            speedMod *= 0.45;
         }
         let passSpeedDampen = this.name === 'Blitz' ? 0.60 : (this.name === 'dumper' ? 0.25 : (this.name === '2910' ? 0.25 : (this.name === '3636' ? 0.8 : (this.name === '3636 main season' ? 1.0 : (this.name === 'Boomerang' ? 0.70 : 0.50)))));
 
@@ -1221,15 +1218,15 @@ class Robot {
             }
         }
 
-        // Barricade placement
+        // Barricade placement - 10 second lifespan
         if (this.name === 'Barricade' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
             if (now - this.barricadeCooldown >= 0) {
                 const rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
                 const barricadeSize = 27;
                 const newBarrier = {
                     x: rcx - barricadeSize/2, y: rcy - barricadeSize/2, w: barricadeSize, h: barricadeSize,
-                    cx: rcx, cy: rcy, w: barricadeSize, h: barricadeSize,
-                    owner: alliance, life: 8000, maxLife: 8000, born: now,
+                    cx: rcx, cy: rcy,
+                    owner: alliance, life: 10000, maxLife: 10000, born: now,
                     angle: this.angle
                 };
                 if (barricades.filter(b => b.owner === alliance).length >= 2) {
@@ -1311,7 +1308,6 @@ class Robot {
             ctx.strokeStyle = '#fef08a';
             ctx.lineWidth = 2;
             ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
-            // Sonic rings
             let t = Date.now() / 120;
             ctx.beginPath();
             ctx.arc(0, 0, this.model.w/2 + 3 + Math.sin(t)*2, 0, Math.PI * 2);
@@ -1638,19 +1634,19 @@ function update() {
     if (now < p2FreezeUntil) p2State = {x:0,y:0,rot:0,act:false,toggleIn:false};
     if (now < p3FreezeUntil) p3State = {x:0,y:0,rot:0,act:false,toggleIn:false};
     if (now < p4FreezeUntil) p4State = {x:0,y:0,rot:0,act:false,toggleIn:false};
-    const activeBotsList = [botRed];
+    const activeBotsList = [];
+    if (p1Enabled) activeBotsList.push(botRed);
     if (p2Enabled) activeBotsList.push(botRed2);
     if (p3Enabled) activeBotsList.push(botBlue);
     if (p4Enabled) activeBotsList.push(botBlue2);
     if (gameMode === 'slippery') activeBotsList.forEach(bot => { bot.vx *= 1.05; bot.vy *= 1.05; });
-    botRed.update(p1State.x, p1State.y, p1State.rot, p1State.act, p1State.toggleIn, 'red', obstacles, zones, null);
+    if (p1Enabled) botRed.update(p1State.x, p1State.y, p1State.rot, p1State.act, p1State.toggleIn, 'red', obstacles, zones, null);
     if (p2Enabled) botRed2.update(p2State.x, p2State.y, p2State.rot, p2State.act, p2State.toggleIn, 'red', obstacles, zones, null);
     if (p3Enabled) botBlue.update(p3State.x, p3State.y, p3State.rot, p3State.act, p3State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
     if (p4Enabled) botBlue2.update(p4State.x, p4State.y, p4State.rot, p4State.act, p4State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
     
-    // Update barricade lifetimes
     for (let b of barricades) {
-        b.life = Math.max(0, 8000 - (now - b.born));
+        b.life = Math.max(0, 10000 - (now - b.born));
     }
     barricades = barricades.filter(b => b.life > 0);
     
@@ -1730,10 +1726,8 @@ function update() {
         return true;
     });
     projectiles = projectiles.filter(p => {
-        // Echo wave - pushes balls
         if (p.isEcho) {
             p.x += p.vx; p.y += p.vy;
-            // Push nearby balls away
             for (let ball of balls) {
                 let dx = ball.x - p.x, dy = ball.y - p.y, dist = Math.hypot(dx, dy);
                 if (dist < p.pushRadius && dist > 5) {
@@ -1744,7 +1738,6 @@ function update() {
                     ball.isStatic = false;
                 }
             }
-            // Scoring
             let scored = false;
             zones.forEach(z => {
                 if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x - (z.x + z.w/2), p.y - (z.y + z.h/2)) < HUB_S/2) {
@@ -1759,12 +1752,8 @@ function update() {
             });
             if (scored) return false;
             if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
-            // Echo field lingering effect for passing shots
-            if (p.echoField && p.age === undefined) {
-                p.age = 0;
-            }
             if (p.echoField) {
-                p.age++;
+                p.age = (p.age || 0) + 1;
                 if (p.age > 90) return false;
             }
             return true;
@@ -1817,11 +1806,9 @@ function update() {
             return true;
         }
         
-        // PLASMA BALL HANDLING
         if (p.isPlasmaBall) {
             p.x += p.vx; p.y += p.vy;
             p.vx *= 0.99; p.vy *= 0.99;
-            
             const zapRadius = 18;
             for (let bi = 0; bi < balls.length; bi++) {
                 const bl = balls[bi];
@@ -1836,7 +1823,6 @@ function update() {
             }
             for (let l of p.lightningFlashes) l.age++;
             p.lightningFlashes = p.lightningFlashes.filter(l => l.age < 6);
-            
             let scored = false;
             zones.forEach(z => {
                 if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x - (z.x + z.w/2), p.y - (z.y + z.h/2)) < HUB_S/2) {
@@ -1901,7 +1887,6 @@ function update() {
             }
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
-        // PHANTOM SHOT FIX - passes through walls, drops balls on pass
         if (p.isPhantom) {
             if (!p.isPass) {
                 let scored = false;
@@ -2053,8 +2038,8 @@ function draw() {
         });
     }
     const t = Date.now();
-    if (t < p1FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
-    botRed.draw(ctx, 'red');
+    if (p1Enabled && t < p1FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
+    if (p1Enabled) botRed.draw(ctx, 'red');
     ctx.globalAlpha = 1.0;
     if (p2Enabled) {
         if (t < p2FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
@@ -2138,7 +2123,11 @@ function draw() {
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
         }
     });
-    const robots = [botRed, ...(p2Enabled?[botRed2]:[]), ...(p3Enabled?[botBlue]:[]), ...(p4Enabled?[botBlue2]:[])];
+    const robots = [];
+    if (p1Enabled) robots.push(botRed);
+    if (p2Enabled) robots.push(botRed2);
+    if (p3Enabled) robots.push(botBlue);
+    if (p4Enabled) robots.push(botBlue2);
     for (let bot of robots) {
         if (bot.inventory >= 85) {
             ctx.save();
@@ -2169,10 +2158,11 @@ function getRedStartPos(idx) {
     const robotHalf = 20.5;
     const robotSize = 41;
     const bumpGap = 4;
-    if (idx === 1) { x = 156.61 * S - 20; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) - 17.5; }
-    else if (idx === 2) { x = 156.61 * S - 20; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) - 17.5; }
-    else if (idx === 3) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
-    else if (idx === 4) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    if (idx === 0) { x = 156.61 * S - 20; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) - 17.5; }
+    else if (idx === 1) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
+    else if (idx === 2) { x = 156.61 * S - 45; y = FIELD_H/2 - 30; }
+    else if (idx === 3) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    else if (idx === 4) { x = 156.61 * S - 20; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) - 17.5; }
     return {x, y, a: 0};
 }
 function getRed2StartPos(idx) {
@@ -2181,10 +2171,11 @@ function getRed2StartPos(idx) {
     const robotHalf = 20.5;
     const robotSize = 41;
     const bumpGap = 4;
-    if (idx === 1) { x = 156.61 * S - 20; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) + 20; }
-    else if (idx === 2) { x = 156.61 * S - 20; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) + 20; }
-    else if (idx === 3) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
-    else if (idx === 4) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    if (idx === 0) { x = 156.61 * S - 20; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) + 20; }
+    else if (idx === 1) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
+    else if (idx === 2) { x = 156.61 * S - 45; y = FIELD_H/2 + 10; }
+    else if (idx === 3) { x = bumpX - robotSize - bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    else if (idx === 4) { x = 156.61 * S - 20; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) + 20; }
     return {x, y, a: 0};
 }
 function getBlueStartPos(idx) {
@@ -2194,10 +2185,11 @@ function getBlueStartPos(idx) {
     const robotHalf = 20.5;
     const robotSize = 41;
     const bumpGap = 4;
-    if (idx === 1) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) - 17.5; }
-    else if (idx === 2) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) - 17.5; }
-    else if (idx === 3) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
-    else if (idx === 4) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    if (idx === 0) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) - 17.5; }
+    else if (idx === 1) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
+    else if (idx === 2) { x = FIELD_W - (156.61 * S) + 10; y = FIELD_H/2 - 30; }
+    else if (idx === 3) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    else if (idx === 4) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) - 17.5; }
     return {x, y, a: Math.PI};
 }
 function getBlue2StartPos(idx) {
@@ -2207,13 +2199,20 @@ function getBlue2StartPos(idx) {
     const robotHalf = 20.5;
     const robotSize = 41;
     const bumpGap = 4;
-    if (idx === 1) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) + 20; }
-    else if (idx === 2) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) + 20; }
-    else if (idx === 3) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
-    else if (idx === 4) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    if (idx === 0) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 - HUB_S/2 - BUMP_L - BAR_L) - (TRENCH_L/2) + 20; }
+    else if (idx === 1) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 - HUB_S/2 - BUMP_L/2) - robotHalf; }
+    else if (idx === 2) { x = FIELD_W - (156.61 * S) + 10; y = FIELD_H/2 + 10; }
+    else if (idx === 3) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
+    else if (idx === 4) { x = FIELD_W - (156.61 * S) - 15; y = (FIELD_H/2 + HUB_S/2 + BUMP_L + BAR_L) + (TRENCH_L/2) + 20; }
     return {x, y, a: Math.PI};
 }
-function resetBots() { const r1 = getRedStartPos(p1StartIdx); botRed.x = r1.x; botRed.y = r1.y; botRed.vx=0; botRed.vy=0; botRed.vAngle=0; botRed.angle=r1.a; botRed.prevIntakeInput = false; botRed.prevAbilityInput = false; if (p2Enabled) { const r2 = getRed2StartPos(p2StartIdx); botRed2.x = r2.x; botRed2.y = r2.y; botRed2.angle = r2.a; botRed2.vx=0; botRed2.vy=0; botRed2.vAngle=0; botRed2.prevIntakeInput = false; botRed2.prevAbilityInput = false; } else { botRed2.x = -1000; botRed2.y = -1000; } if (p3Enabled) { const b1 = getBlueStartPos(p3StartIdx); botBlue.x = b1.x; botBlue.y = b1.y; botBlue.angle = b1.a; botBlue.vx=0; botBlue.vy=0; botBlue.vAngle=0; botBlue.prevIntakeInput = false; botBlue.prevAbilityInput = false; } else { botBlue.x = -1000; botBlue.y = -1000; } if (p4Enabled) { const b2 = getBlue2StartPos(p4StartIdx); botBlue2.x = b2.x; botBlue2.y = b2.y; botBlue2.angle = b2.a; botBlue2.vx=0; botBlue2.vy=0; botBlue2.vAngle=0; botBlue2.prevIntakeInput = false; botBlue2.prevAbilityInput = false; } else { botBlue2.x = -1000; botBlue2.y = -1000; } p1UnstickUsed = false; p2UnstickUsed = false; p3UnstickUsed = false; p4UnstickUsed = false; p1FreezeUntil = 0; p2FreezeUntil = 0; p3FreezeUntil = 0; p4FreezeUntil = 0; }
+function resetBots() { 
+    const r1 = getRedStartPos(p1StartIdx); if (p1Enabled) { botRed.x = r1.x; botRed.y = r1.y; botRed.vx=0; botRed.vy=0; botRed.vAngle=0; botRed.angle=r1.a; botRed.prevIntakeInput = false; botRed.prevAbilityInput = false; }
+    if (p2Enabled) { const r2 = getRed2StartPos(p2StartIdx); botRed2.x = r2.x; botRed2.y = r2.y; botRed2.angle = r2.a; botRed2.vx=0; botRed2.vy=0; botRed2.vAngle=0; botRed2.prevIntakeInput = false; botRed2.prevAbilityInput = false; } else { botRed2.x = -1000; botRed2.y = -1000; }
+    if (p3Enabled) { const b1 = getBlueStartPos(p3StartIdx); botBlue.x = b1.x; botBlue.y = b1.y; botBlue.angle = b1.a; botBlue.vx=0; botBlue.vy=0; botBlue.vAngle=0; botBlue.prevIntakeInput = false; botBlue.prevAbilityInput = false; } else { botBlue.x = -1000; botBlue.y = -1000; }
+    if (p4Enabled) { const b2 = getBlue2StartPos(p4StartIdx); botBlue2.x = b2.x; botBlue2.y = b2.y; botBlue2.angle = b2.a; botBlue2.vx=0; botBlue2.vy=0; botBlue2.vAngle=0; botBlue2.prevIntakeInput = false; botBlue2.prevAbilityInput = false; } else { botBlue2.x = -1000; botBlue2.y = -1000; }
+    p1FreezeUntil = 0; p2FreezeUntil = 0; p3FreezeUntil = 0; p4FreezeUntil = 0;
+}
 
 function setupStartDropdowns() {
     ['p1','p2','p3','p4'].forEach(player => {
@@ -2250,6 +2249,7 @@ document.getElementById('show-controls-btn-red').onclick = function() { document
 document.getElementById('close-controls-btn').onclick = function() { document.getElementById('controls-modal').classList.add('hidden'); };
 document.getElementById('team-mode-toggle-center').onclick = function() { sameTeamMode = !sameTeamMode; this.innerText = 'TEAM: ' + (sameTeamMode ? 'CO-OP (RED)' : 'STARTERED'); ['bot-blue-select','bot-blue2-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = (sameTeamMode ? 'red-team' : 'blue-team') + ' bot-select'; }); ['p3-input-select','p4-input-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'input-select ' + (sameTeamMode ? 'red-team' : 'blue-team'); }); ['p3-start-select','p4-start-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'start-select ' + (sameTeamMode ? 'red-team' : 'blue-team'); }); document.getElementById('reset-btn-center').click(); };
 document.getElementById('game-mode-toggle-center').onclick = function() { const modes = ['standard', 'triple', 'slippery', 'rapid', 'powerups', 'random']; const labels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID FIRE', 'POWER-UPS', 'RANDOM SHIFTS']; let idx = (modes.indexOf(gameMode) + 1) % modes.length; gameMode = modes[idx]; this.innerText = 'MODE: ' + labels[idx]; document.getElementById('reset-btn-center').click(); };
+document.getElementById('p1-toggle').onclick = () => { p1Enabled = !p1Enabled; const btn = document.getElementById('p1-toggle'); btn.innerText = 'P1: ' + (p1Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p1Enabled); resetBots(); };
 document.getElementById('p2-toggle').onclick = () => { p2Enabled = !p2Enabled; const btn = document.getElementById('p2-toggle'); btn.innerText = 'P2: ' + (p2Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p2Enabled); resetBots(); };
 document.getElementById('p3-toggle').onclick = () => { p3Enabled = !p3Enabled; const btn = document.getElementById('p3-toggle'); btn.innerText = 'P3: ' + (p3Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p3Enabled); resetBots(); };
 document.getElementById('p4-toggle').onclick = () => { p4Enabled = !p4Enabled; const btn = document.getElementById('p4-toggle'); btn.innerText = 'P4: ' + (p4Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p4Enabled); resetBots(); };
@@ -2257,7 +2257,6 @@ document.getElementById('start-btn-main').onclick = () => {
     if (matchRunning || startCountdown > 0) {
         matchRunning = false; startCountdown = 0; endCooldown = 0;
         if (countdownInterval) clearInterval(countdownInterval);
-        // CLEAR ALL PROJECTILES when match is stopped/cancelled
         projectiles = [];
         scoringBalls = [];
         document.getElementById('start-btn-main').innerText = '▶ START MATCH';
@@ -2275,10 +2274,12 @@ document.getElementById('start-btn-main').onclick = () => {
         scoreRed = 0; scoreBlue = 0;
         document.getElementById('scoreRedDisplay').innerText = 0;
         document.getElementById('scoreBlueDisplay').innerText = 0;
-        botRed.inventory = 0; botRed2.inventory = 0; botBlue.inventory = 0; botBlue2.inventory = 0;
+        if (p1Enabled) botRed.inventory = 0;
+        if (p2Enabled) botRed2.inventory = 0;
+        if (p3Enabled) botBlue.inventory = 0;
+        if (p4Enabled) botBlue2.inventory = 0;
         document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0;
         autoScoreRed = 0; autoScoreBlue = 0; autoPhaseEnded = false; currentPhaseIdx = -1;
-        // CLEAR ALL PROJECTILES on new match start
         projectiles = [];
         scoringBalls = [];
         resetModeState(); spawnBalls(); resetBots();
@@ -2305,11 +2306,11 @@ document.getElementById('start-btn-main').onclick = () => {
 };
 
 (function populateBotSelects() { const mk = Object.keys(BOT_MODELS); const selMap = [{ id: 'bot-red-select', bot: botRed }, { id: 'bot-red2-select', bot: botRed2 }, { id: 'bot-blue-select', bot: botBlue }, { id: 'bot-blue2-select', bot: botBlue2 }]; selMap.forEach(({ id, bot }) => { const sel = document.getElementById(id); if (!sel) return; sel.innerHTML = ''; mk.forEach(name => { const opt = document.createElement('option'); opt.value = name; opt.textContent = name; sel.appendChild(opt); }); sel.value = bot.name; }); })();
-document.getElementById('bot-red-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed.name; return; } botRed.setModel(this.value); };
-document.getElementById('bot-red2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed2.name; return; } botRed2.setModel(this.value); };
-document.getElementById('bot-blue-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue.name; return; } botBlue.setModel(this.value); };
-document.getElementById('bot-blue2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue2.name; return; } botBlue2.setModel(this.value); };
-document.getElementById('reset-btn-center').onclick = () => { matchRunning = false; scoreRed = 0; scoreBlue = 0; startCountdown = 0; endCooldown = 0; if (countdownInterval) clearInterval(countdownInterval); document.getElementById('scoreRedDisplay').innerText = 0; document.getElementById('scoreBlueDisplay').innerText = 0; botRed.inventory = 0; botRed2.inventory = 0; botBlue.inventory = 0; botBlue2.inventory = 0; document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0; matchElapsed = 0; resetModeState(); projectiles = []; scoringBalls = []; document.getElementById('match-clock').innerText = '2:20'; document.getElementById('match-clock').className = 'stopped'; document.getElementById('phase-label').innerText = 'MATCH NOT STARTED'; document.getElementById('phase-timer').innerText = ''; document.getElementById('start-btn-main').innerText = '▶ START MATCH'; document.getElementById('start-btn-main').classList.remove('running');  updateHubUI(false, false); spawnBalls(); resetBots(); };
+document.getElementById('bot-red-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed.name; return; } if (p1Enabled) botRed.setModel(this.value); };
+document.getElementById('bot-red2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed2.name; return; } if (p2Enabled) botRed2.setModel(this.value); };
+document.getElementById('bot-blue-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue.name; return; } if (p3Enabled) botBlue.setModel(this.value); };
+document.getElementById('bot-blue2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue2.name; return; } if (p4Enabled) botBlue2.setModel(this.value); };
+document.getElementById('reset-btn-center').onclick = () => { matchRunning = false; scoreRed = 0; scoreBlue = 0; startCountdown = 0; endCooldown = 0; if (countdownInterval) clearInterval(countdownInterval); document.getElementById('scoreRedDisplay').innerText = 0; document.getElementById('scoreBlueDisplay').innerText = 0; if (p1Enabled) botRed.inventory = 0; if (p2Enabled) botRed2.inventory = 0; if (p3Enabled) botBlue.inventory = 0; if (p4Enabled) botBlue2.inventory = 0; document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0; matchElapsed = 0; resetModeState(); projectiles = []; scoringBalls = []; document.getElementById('match-clock').innerText = '2:20'; document.getElementById('match-clock').className = 'stopped'; document.getElementById('phase-label').innerText = 'MATCH NOT STARTED'; document.getElementById('phase-timer').innerText = ''; document.getElementById('start-btn-main').innerText = '▶ START MATCH'; document.getElementById('start-btn-main').classList.remove('running'); updateHubUI(false, false); spawnBalls(); resetBots(); };
 
 document.getElementById('control-panel-blue').classList.add('collapsed');
 document.getElementById('control-panel-red').classList.add('collapsed');
