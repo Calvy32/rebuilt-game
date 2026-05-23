@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC 2026 - Local Multiplayer (Plasma Rework + Transition Fix)</title>
+    <title>FRC 2026 - Local Multiplayer (Plasma Rework + Phantom Noclip + Barricade V2)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -338,15 +338,15 @@
         </div>
         <div class="control-section highlight">
             <h3>Ability Button Uses</h3>
-            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2) | <b>Other robots:</b> No effect</p>
+            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 8 sec life) | <b>Drone:</b> Deploys flying shooter</p>
         </div>
         <div class="control-section" style="border-left-color:#a78bfa;background:rgba(167,139,250,0.08);">
             <h3 style="color:#a78bfa;">Phantom Robot</h3>
-            <p>Shots <b>pass through walls and obstacles</b> — only the enemy hub can stop them. Ghostly appearance.</p>
+            <p><b>Passes through walls and obstacles</b> — only the field border stops it. Slowed inside hubs. Ghostly appearance.</p>
         </div>
         <div class="control-section" style="border-left-color:#facc15;background:rgba(250,204,21,0.08);">
             <h3 style="color:#facc15;">Barricade Robot</h3>
-            <p>Press <b>Ability (X / RCtrl / LT)</b> to place a <b>small barrier</b> that <b>only enemies collide with</b>. Max 2 barriers at a time.</p>
+            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a <b>small barrier</b> with a timer circle. Max 2 barriers, 8 second lifespan.</p>
         </div>
         <div class="control-section" style="border-left-color:#ec4899;background:rgba(236,72,153,0.08);">
             <h3 style="color:#ec4899;">Plasma Robot</h3>
@@ -531,7 +531,7 @@ const BOT_MODELS = {
     'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
     'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 30, fireRate: 850, w: 46, h: 46 },
     'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
-    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 240, w: 42, h: 42 },
+    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 375, w: 42, h: 42 },
     'Phantom': { accel: 0.50, rotSpeed: 0.052, capacity: 20, fireRate: 450, w: 40, h: 40 },
     'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 }
 };
@@ -562,7 +562,7 @@ canvas.height = FIELD_H + (WALL_VISUAL * 2);
 const MATCH_PHASES = [
     { name: 'AUTO',             start: 0,   end: 20,  redActive: true,  blueActive: true,  canMove: true },
     { name: 'DELAY',            start: 20,  end: 23,  redActive: false, blueActive: false, canMove: false },
-    { name: 'TRANSITION SHIFT', start: 23,  end: 33,  redActive: true,  blueActive: true,  canMove: false },
+    { name: 'TRANSITION SHIFT', start: 23,  end: 33,  redActive: true,  blueActive: true,  canMove: true },
     { name: 'SHIFT 1',          start: 33,  end: 58,  redActive: null,  blueActive: null,  canMove: true },
     { name: 'SHIFT 2',          start: 58,  end: 83,  redActive: null,  blueActive: null,  canMove: true },
     { name: 'SHIFT 3',          start: 83,  end: 108, redActive: null,  blueActive: null,  canMove: true },
@@ -766,6 +766,7 @@ class Robot {
         this.prevAbilityInput = false;
         this.barricadeCount = 0;
         this.placedBarricades = [];
+        this.barricadeCooldown = 0;
     }
     setModel(key) {
         this.model = BOT_MODELS[key];
@@ -958,7 +959,7 @@ class Robot {
         const canMove = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
         
         if (!canMove && matchRunning && currentPhaseIdx !== 1) {
-            // During transition shift (canMove = false), robots cannot move but can still shoot
+            // During delay phase, robots cannot move but can still shoot
             this.vx *= 0.5; this.vy *= 0.5; this.vAngle *= 0.5;
             this.x += this.vx; this.y += this.vy; this.angle += this.vAngle;
             // Still allow shooting
@@ -983,7 +984,21 @@ class Robot {
 
         const now = Date.now();
         let onBump = false, inTower = false, inDepot = false;
+        let inHub = false;
         const myOBB = getOBB(this);
+        
+        // Check if inside hub for Phantom penalty
+        if (this.name === 'Phantom') {
+            for (let z of zones) {
+                if (z.type === 'hub') {
+                    if (collideOBB_AABB(myOBB, { x: z.x, y: z.y, w: z.w, h: z.h }).colliding) {
+                        inHub = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
         zones.forEach(z => {
             if (z.type === 'bump' && collideOBB_AABB(myOBB, z).colliding) onBump = true;
             if (z.type === 'tower' && collideOBB_AABB(myOBB, z).colliding) inTower = true;
@@ -1000,6 +1015,10 @@ class Robot {
         if (moveX !== 0 || moveY !== 0) { const mag = Math.sqrt(moveX*moveX + moveY*moveY); if (mag > 0.8) { moveX /= mag; moveY /= mag; } }
 
         let speedMod = (inDepot ? 0.65 : 1.0) * (now < (this.speedBoostUntil || 0) ? 1.45 : 1.0);
+        // Phantom penalty inside hub
+        if (this.name === 'Phantom' && inHub) {
+            speedMod *= 0.2;
+        }
         let passSpeedDampen = this.name === 'Blitz' ? 0.60 : (this.name === 'dumper' ? 0.25 : (this.name === '2910' ? 0.25 : (this.name === '3636' ? 0.8 : (this.name === '3636 main season' ? 1.0 : (this.name === 'Boomerang' ? 0.70 : 0.50)))));
 
         if (this.name === 'Ricochet') {
@@ -1063,6 +1082,15 @@ class Robot {
         const tryMove = (x, y) => {
             let testBot = { ...this, x, y };
             let testOBB = getOBB(testBot);
+            
+            // PHANTOM NOCLIP: Skip obstacle collisions
+            if (this.name === 'Phantom') {
+                // Only enforce field boundaries
+                x = Math.max(0, Math.min(FIELD_W - this.model.w, x));
+                y = Math.max(0, Math.min(FIELD_H - this.model.h, y));
+                return { x, y };
+            }
+            
             for (let o of obstacles) {
                 if (o.type === 'trench' && this.inventory < 85) continue;
                 const collision = collideOBB_AABB(testOBB, o);
@@ -1115,6 +1143,35 @@ class Robot {
                     bl.vy += (dy/d) * pull;
                 }
             }
+        }
+
+        // Barricade placement
+        if (this.name === 'Barricade' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
+            if (now - this.barricadeCooldown >= 0) {
+                const rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
+                const barricadeSize = 27;
+                const newBarrier = {
+                    x: rcx - barricadeSize/2, y: rcy - barricadeSize/2, w: barricadeSize, h: barricadeSize,
+                    cx: rcx, cy: rcy, w: barricadeSize, h: barricadeSize,
+                    owner: alliance, life: 8000, maxLife: 8000, born: now,
+                    angle: this.angle
+                };
+                if (barricades.filter(b => b.owner === alliance).length >= 2) {
+                    let oldest = barricades.filter(b => b.owner === alliance).sort((a,b) => a.born - b.born)[0];
+                    barricades = barricades.filter(b => b !== oldest);
+                }
+                barricades.push(newBarrier);
+                this.barricadeCooldown = now + 500;
+                playSound('pickup');
+            }
+        }
+        this.prevAbilityInput = isAbilityActive;
+
+        if (this.name === 'Blitz') {
+            if (isAbilityActive && !this.prevIntakeInput) {
+                this.intakeSide = this.intakeSide === 'right' ? 'left' : 'right';
+            }
+            this.prevIntakeInput = isAbilityActive;
         }
 
         if (isActionActive && this.inventory > 0 && !inTower) {
@@ -1490,14 +1547,13 @@ function update() {
     if (p2Enabled) botRed2.update(p2State.x, p2State.y, p2State.rot, p2State.act, p2State.toggleIn, 'red', obstacles, zones, null);
     if (p3Enabled) botBlue.update(p3State.x, p3State.y, p3State.rot, p3State.act, p3State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
     if (p4Enabled) botBlue2.update(p4State.x, p4State.y, p4State.rot, p4State.act, p4State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
-    barricades.forEach(b => { b.life--; });
-    barricades = barricades.filter(b => b.life > 0);
-    for (const bot of [botRed, botRed2, botBlue, botBlue2]) {
-        if (bot.name === 'Barricade') {
-            bot.placedBarricades = bot.placedBarricades.filter(b => barricades.includes(b));
-            bot.barricadeCount = bot.placedBarricades.length;
-        }
+    
+    // Update barricade lifetimes
+    for (let b of barricades) {
+        b.life = Math.max(0, 8000 - (now - b.born));
     }
+    barricades = barricades.filter(b => b.life > 0);
+    
     if (gameMode === 'powerups') {
         if (matchRunning && now >= nextPowerupSpawnTime && powerups.length < 6) { spawnPowerup(now); nextPowerupSpawnTime = now + 2200 + Math.random() * 2600; }
         powerups = powerups.filter(p => now < p.expires);
@@ -1635,16 +1691,13 @@ function update() {
                 if (dist < zapRadius && !p.zappedBalls.includes(bi)) {
                     p.zappedBalls.push(bi);
                     p.zapCount = (p.zapCount || 0) + 1;
-                    // Each zap adds 1/3 point (0.3333) to the final score
                     bl.bonusValue = (bl.bonusValue || 0) + 1/3;
                     p.lightningFlashes.push({ x: bl.x, y: bl.y, age: 0 });
                 }
             }
-            // Update lightning flash visuals
             for (let l of p.lightningFlashes) l.age++;
             p.lightningFlashes = p.lightningFlashes.filter(l => l.age < 6);
             
-            // Check scoring
             let scored = false;
             zones.forEach(z => {
                 if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x - (z.x + z.w/2), p.y - (z.y + z.h/2)) < HUB_S/2) {
@@ -1794,23 +1847,27 @@ function draw() {
             ctx.strokeStyle = `rgba(${c}, 0.8)`; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); ctx.setLineDash([]);
         } else { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); }
     });
+    
+    // Draw barricades (new style: box with green/red timer circle)
     barricades.forEach(b => {
-        const cx = b.cx !== undefined ? b.cx : b.x + b.w/2;
-        const cy = b.cy !== undefined ? b.cy : b.y + b.h/2;
+        const cx = b.cx;
+        const cy = b.cy;
         const hw = b.w/2, hh = b.h/2;
         const ang = b.angle || 0;
-        const r = Math.min(hw, hh) - 2;
-        const progress = b.life / (b.maxLife || 600);
+        const progress = b.life / b.maxLife;
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(ang);
-        ctx.fillStyle = 'rgba(250,204,21,0.7)';
+        // Box
+        ctx.fillStyle = 'rgba(250,204,21,0.85)';
         ctx.fillRect(-hw, -hh, b.w, b.h);
         ctx.strokeStyle = '#facc15';
         ctx.lineWidth = 2;
         ctx.strokeRect(-hw, -hh, b.w, b.h);
+        // Timer circle - green to red
+        const radius = Math.min(hw, hh) - 3;
         ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.fillStyle = '#ef4444';
         ctx.fill();
         if (progress > 0) {
@@ -1818,18 +1875,19 @@ function draw() {
             const endAngle = startAngle + (Math.PI * 2 * progress);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.arc(0, 0, r, startAngle, endAngle);
+            ctx.arc(0, 0, radius, startAngle, endAngle);
             ctx.closePath();
             ctx.fillStyle = '#22c55e';
             ctx.fill();
         }
         ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1.5;
         ctx.stroke();
         ctx.restore();
     });
+    
     if (gameMode === 'powerups') {
         powerups.forEach(p => {
             const colors = { speed: '#22c55e', ammo: '#fbbf24', shield: '#a855f7', score: '#ef4444' };
@@ -1866,7 +1924,6 @@ function draw() {
         ctx.globalAlpha = 1.0;
     }
     ctx.fillStyle = "#fbbf24"; balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); });
-    // No +x text above balls - removed per request
     projectiles.forEach(p => {
         if (p.isBoomerang) {
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
