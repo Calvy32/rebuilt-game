@@ -2908,7 +2908,7 @@ if (gameMode === 'fog') {
     
     // Step 3: NOW draw a BRIGHT overlay ONLY inside the circles
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0)';  // Adjust brightness here
+    ctx.fillStyle = 'rgba(255, 255, 255, .8)';  // Adjust brightness here
     ctx.beginPath();
     for (const robot of robots) {
         const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
