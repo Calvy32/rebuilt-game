@@ -925,84 +925,67 @@ function aiDecide(robot, alliance, isHubActive) {
     const hasBalls = robot.inventory > 0;
     const isTurret = robot.model.autoAim === true;
     
-    // Get current and next phase info for pre-positioning
-    const currentPhase = MATCH_PHASES[currentPhaseIdx];
-    const nextPhase = MATCH_PHASES[currentPhaseIdx + 1];
-    let timeUntilHubActive = Infinity;
-    if (nextPhase && nextPhase.redActive === true && alliance === 'red') {
-        timeUntilHubActive = nextPhase.start - matchElapsed;
-    } else if (nextPhase && nextPhase.blueActive === true && alliance === 'blue') {
-        timeUntilHubActive = nextPhase.start - matchElapsed;
-    }
-    const shouldPrePosition = timeUntilHubActive < 5 && timeUntilHubActive > 0;
+    // Get barrier wall positions (the wall between bump and trench)
+    let barrierLeftX = 156.61 * S; // Red side barrier x
+    let barrierRightX = FIELD_W - (156.61 * S) - BUMP_W; // Blue side barrier x
+    
+    // WAYPOINTS - paths around the barrier (go to ends of the field to bypass)
+    const topGap = { x: barrierLeftX + BUMP_W/2, y: FIELD_H/2 - HUB_S/2 - BUMP_L - 20 };
+    const bottomGap = { x: barrierLeftX + BUMP_W/2, y: FIELD_H/2 + HUB_S/2 + BUMP_L + 20 };
+    const centerTop = { x: FIELD_W/2, y: 60 };
+    const centerBottom = { x: FIELD_W/2, y: FIELD_H - 60 };
     
     let moveX = 0, moveY = 0, rotInput = 0, act = false;
+    let targetX = null, targetY = null;
     
-    // WALL AVOIDANCE - much weaker, only when very close
-    let avoidX = 0, avoidY = 0;
-    const leftDist = rcx;
-    const rightDist = FIELD_W - rcx;
-    const topDist = rcy;
-    const bottomDist = FIELD_H - rcy;
-    const wallThreshold = 40; // Only avoid when VERY close
-    
-    if (leftDist < wallThreshold) avoidX = 0.3;
-    else if (rightDist < wallThreshold) avoidX = -0.3;
-    if (topDist < wallThreshold) avoidY = 0.3;
-    else if (bottomDist < wallThreshold) avoidY = -0.3;
-    
-    // BARRIER WALL AVOIDANCE (between bump and trench)
-    let barrierAvoidX = 0, barrierAvoidY = 0;
-    for (const o of obstacles) {
-        if (o.type === 'barrier') {
-            // Distance to barrier
-            const barrierCenterX = o.x + o.w/2;
-            const barrierCenterY = o.y + o.h/2;
-            const dx = rcx - barrierCenterX;
-            const dy = rcy - barrierCenterY;
-            const distToBarrier = Math.hypot(dx, dy);
-            if (distToBarrier < 50) {
-                // Push away from barrier
-                const pushStrength = 0.4 * (1 - distToBarrier / 50);
-                barrierAvoidX += dx * pushStrength;
-                barrierAvoidY += dy * pushStrength;
-            }
+    // Get current phase info
+    const currentPhase = MATCH_PHASES[currentPhaseIdx];
+    const phaseTimeLeft = currentPhase ? currentPhase.end - matchElapsed : 0;
+    const nextPhase = MATCH_PHASES[currentPhaseIdx + 1];
+    let timeUntilHubActive = Infinity;
+    if (nextPhase) {
+        if (alliance === 'red' && nextPhase.redActive === true) {
+            timeUntilHubActive = nextPhase.start - matchElapsed;
+        } else if (alliance === 'blue' && nextPhase.blueActive === true) {
+            timeUntilHubActive = nextPhase.start - matchElapsed;
         }
     }
     
-    // SCORING: Has balls AND hub active -> go score
-    if (hasBalls && (hubActive || shouldPrePosition)) {
+    // Check if near barrier (between bump and trench)
+    const nearBarrier = (rcx > barrierLeftX - 40 && rcx < barrierLeftX + BUMP_W + 40 && 
+                          rcy > FIELD_H/2 - 100 && rcy < FIELD_H/2 + 100);
+    
+    // SCENARIO 1: Has balls AND hub active -> GO SCORE
+    if (hasBalls && hubActive) {
         const targetHub = zones.find(z => z.type === 'hub' && z.side === alliance);
         if (targetHub) {
-            const hubX = targetHub.x + targetHub.w/2;
-            const hubY = targetHub.y + targetHub.h/2;
-            const dx = hubX - rcx;
-            const dy = hubY - rcy;
-            const angle = Math.atan2(dy, dx);
-            
-            moveX = Math.cos(angle) * 1.2;
-            moveY = Math.sin(angle) * 1.2;
-            
-            if (!isTurret) {
-                let angleDiff = angle - robot.angle;
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                rotInput = Math.max(-0.8, Math.min(0.8, angleDiff));
-            }
-            
-            act = hubActive; // Only shoot if hub active, otherwise just position
+            targetX = targetHub.x + targetHub.w/2;
+            targetY = targetHub.y + targetHub.h/2;
+            act = true;
         }
     }
-    // COLLECTING: No balls OR hub inactive -> go get balls (including passing)
+    // SCENARIO 2: Has balls AND hub inactive -> GO PASS (move to center, shoot continuously)
+    else if (hasBalls && !hubActive) {
+        // Move to center field to pass
+        targetX = FIELD_W / 2;
+        targetY = FIELD_H / 2;
+        act = true; // Pass (shoot toward center)
+        
+        // If near barrier, use waypoint to go around
+        if (nearBarrier) {
+            if (rcy < FIELD_H/2) targetY = 80;
+            else targetY = FIELD_H - 80;
+        }
+    }
+    // SCENARIO 3: No balls -> COLLECT BALLS (weighted targeting)
     else {
-        // Weighted ball targeting (depot = 3x weight, clusters = bonus)
+        // Find best ball (depot = 3x, clusters = bonus)
         let bestBall = null;
         let bestScore = -Infinity;
         const depots = zones.filter(z => z.type === 'depot');
         
         for (const ball of balls) {
             let weight = 1.0;
-            // Depot bonus
             for (const depot of depots) {
                 if (ball.x > depot.x && ball.x < depot.x + depot.w && 
                     ball.y > depot.y && ball.y < depot.y + depot.h) {
@@ -1010,7 +993,6 @@ function aiDecide(robot, alliance, isHubActive) {
                     break;
                 }
             }
-            // Cluster bonus
             let nearbyCount = 0;
             for (const other of balls) {
                 if (other !== ball && Math.hypot(other.x - ball.x, other.y - ball.y) < 80) {
@@ -1018,7 +1000,6 @@ function aiDecide(robot, alliance, isHubActive) {
                 }
             }
             weight += nearbyCount * 0.3;
-            
             const dist = Math.hypot(ball.x - rcx, ball.y - rcy);
             const score = weight / (dist + 1);
             if (score > bestScore) {
@@ -1028,39 +1009,72 @@ function aiDecide(robot, alliance, isHubActive) {
         }
         
         if (bestBall) {
-            const dx = bestBall.x - rcx;
-            const dy = bestBall.y - rcy;
-            const angle = Math.atan2(dy, dx);
-            
-            moveX = Math.cos(angle) * 1.0;
-            moveY = Math.sin(angle) * 1.0;
-            
-            if (!isTurret) {
-                let angleDiff = angle - robot.angle;
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                rotInput = Math.max(-0.6, Math.min(0.6, angleDiff));
-            }
-            
-            // Pass if we have balls (shoot toward center) OR just collect
-            act = hasBalls; // If has balls, shoot (pass) while moving
+            targetX = bestBall.x;
+            targetY = bestBall.y;
+            act = false;
         } else {
-            // No balls on field - wander toward center
-            const centerX = FIELD_W / 2;
-            const centerY = FIELD_H / 2;
-            const dx = centerX - rcx;
-            const dy = centerY - rcy;
-            const angle = Math.atan2(dy, dx);
-            
-            moveX = Math.cos(angle) * 0.6;
-            moveY = Math.sin(angle) * 0.6;
-            rotInput = (Math.random() - 0.5) * 0.3;
+            // No balls - wander toward center
+            targetX = FIELD_W / 2;
+            targetY = FIELD_H / 2;
         }
     }
     
-    // Apply avoidance (add to movement, gentle strength)
-    moveX += avoidX * 0.5 + barrierAvoidX * 0.3;
-    moveY += avoidY * 0.5 + barrierAvoidY * 0.3;
+    // SCENARIO 4: Pre-position for next phase (move toward hub before it activates)
+    if (timeUntilHubActive < 5 && timeUntilHubActive > 0 && !hubActive) {
+        const targetHub = zones.find(z => z.type === 'hub' && z.side === alliance);
+        if (targetHub) {
+            targetX = targetHub.x + targetHub.w/2;
+            targetY = targetHub.y + targetHub.h/2;
+            act = false; // Don't shoot yet, just position
+        }
+    }
+    
+    // WAYPOINT NAVIGATION - if target is on other side of barrier, go through gap
+    if (targetX !== null && targetY !== null) {
+        // Check if path crosses barrier
+        const crossesBarrier = (rcx < barrierLeftX + BUMP_W && targetX > barrierLeftX) ||
+                               (rcx > barrierLeftX && targetX < barrierLeftX + BUMP_W);
+        
+        if (crossesBarrier && Math.abs(rcy - FIELD_H/2) < 150) {
+            // Use waypoint to go around (top or bottom gap)
+            if (rcy < FIELD_H/2) {
+                targetX = topGap.x;
+                targetY = topGap.y;
+            } else {
+                targetX = bottomGap.x;
+                targetY = bottomGap.y;
+            }
+        }
+        
+        // Move toward target
+        const dx = targetX - rcx;
+        const dy = targetY - rcy;
+        const dist = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx);
+        
+        // Speed based on distance
+        let speed = Math.min(1.2, 200 / Math.max(50, dist));
+        moveX = Math.cos(angle) * speed;
+        moveY = Math.sin(angle) * speed;
+        
+        // Rotation (turret robots don't need to rotate)
+        if (!isTurret) {
+            let angleDiff = angle - robot.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            rotInput = Math.max(-0.8, Math.min(0.8, angleDiff));
+        }
+    }
+    
+    // WALL AVOIDANCE (very gentle, only when touching)
+    let avoidX = 0, avoidY = 0;
+    if (rcx < 30) avoidX = 0.2;
+    else if (rcx > FIELD_W - 30) avoidX = -0.2;
+    if (rcy < 30) avoidY = 0.2;
+    else if (rcy > FIELD_H - 30) avoidY = -0.2;
+    
+    moveX += avoidX;
+    moveY += avoidY;
     const mag = Math.hypot(moveX, moveY);
     if (mag > 1) { moveX /= mag; moveY /= mag; }
     
