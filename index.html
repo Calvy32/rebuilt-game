@@ -523,7 +523,8 @@ function playSound(key) {}
 const BOT_MODELS = {
     '2910': { accel: 0.38, rotSpeed: 0.036, capacity: 62, fireRate: -0, w: 41, h: 41 },
     '3636': { accel: 0.38, rotSpeed: 0.036, capacity: 50, fireRate: 180, w: 41, h: 41 },
-    '3636 real': { accel: 0.5, rotSpeed: 0.04, capacity: 300, fireRate: -500, w: 47.5, h: 47.5 },
+    '3636 main season': { accel: 0.36, rotSpeed: 0.036, capacity: 20, fireRate: 500, w: 41, h: 41 },
+    '3636 real': { accel: 0.45, rotSpeed: 0.036, capacity: 150, fireRate: -75, w: 45, h: 45 },
     'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 },
     'Blitz': { accel: 0.38, rotSpeed: 0.036, capacity: 15, fireRate: 0, w: 41, h: 41 },
     'Boomerang': { accel: 0.52, rotSpeed: 0.055, capacity: 40, fireRate: 95, w: 41, h: 41 },
@@ -1499,8 +1500,14 @@ function resolveCollisionRobots(r1, r2, collision) {
     return true;
 }
 
-// BALL COLLISION
+// ============================================================
+// OPTIMIZED BALL COLLISION - SPATIAL HASHING REPLACEMENT
+// ============================================================
+// Original O(N^2) resolveBallCollision replaced with optimized version below
+// The function resolveBallCollision is kept for compatibility but not used in the main loop
+// We will override the ball collision handling in the update() function
 function resolveBallCollision(b1, b2) {
+    // Legacy function - replaced by spatial hashing in update loop
     let dx = b2.x - b1.x, dy = b2.y - b1.y, distSq = dx*dx + dy*dy, minDist = b1.r + b2.r;
     if (distSq < minDist * minDist) {
         let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; }
@@ -1508,6 +1515,86 @@ function resolveBallCollision(b1, b2) {
         b1.vx -= nx * force; b1.vy -= ny * force; b2.vx += nx * force; b2.vy += ny * force;
         if (overlap > 0.1) { b1.isStatic = false; b2.isStatic = false; }
         b1.x -= nx*overlap*0.05; b1.y -= ny*overlap*0.05; b2.x += nx*overlap*0.05; b2.y += ny*overlap*0.05;
+    }
+}
+
+// NEW: Spatial hashing for ball collisions - optimized for high ball counts
+const BALL_CELL_SIZE = BALL_R * 4.5;
+function getBallCellKey(x, y) {
+    return `${Math.floor(x / BALL_CELL_SIZE)},${Math.floor(y / BALL_CELL_SIZE)}`;
+}
+
+function handleOptimizedBallCollisions(ballsArray) {
+    if (ballsArray.length < 2) return;
+    
+    // Build spatial hash map
+    const spatialMap = new Map();
+    for (let i = 0; i < ballsArray.length; i++) {
+        const ball = ballsArray[i];
+        const key = getBallCellKey(ball.x, ball.y);
+        if (!spatialMap.has(key)) spatialMap.set(key, []);
+        spatialMap.get(key).push({ idx: i, ball: ball });
+    }
+    
+    // Check collisions only with nearby balls (same or adjacent cells)
+    const processedPairs = new Set();
+    
+    for (let i = 0; i < ballsArray.length; i++) {
+        const b1 = ballsArray[i];
+        const key = getBallCellKey(b1.x, b1.y);
+        const [cx, cy] = key.split(',').map(Number);
+        
+        // Collect balls from adjacent cells (3x3 grid)
+        const nearbyBalls = [];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+                const neighborKey = `${cx + dx},${cy + dy}`;
+                if (spatialMap.has(neighborKey)) {
+                    nearbyBalls.push(...spatialMap.get(neighborKey));
+                }
+            }
+        }
+        
+        // Check collisions with nearby balls
+        for (const neighbor of nearbyBalls) {
+            if (neighbor.idx <= i) continue; // Avoid duplicate pairs
+            
+            const b2 = neighbor.ball;
+            
+            // Skip if either ball has no-collide flag
+            const now = Date.now();
+            if (b1.noCollideUntil && now < b1.noCollideUntil) continue;
+            if (b2.noCollideUntil && now < b2.noCollideUntil) continue;
+            
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const distSq = dx * dx + dy * dy;
+            const minDist = b1.r + b2.r;
+            
+            if (distSq < minDist * minDist) {
+                const dist = Math.sqrt(distSq) || 1;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                const overlap = minDist - dist;
+                const force = overlap * 0.48; // Slightly reduced for stability
+                
+                // Apply impulse
+                b1.vx -= nx * force;
+                b1.vy -= ny * force;
+                b2.vx += nx * force;
+                b2.vy += ny * force;
+                
+                // Position correction
+                const correction = overlap * 0.3;
+                b1.x -= nx * correction;
+                b1.y -= ny * correction;
+                b2.x += nx * correction;
+                b2.y += ny * correction;
+                
+                b1.isStatic = false;
+                b2.isStatic = false;
+            }
+        }
     }
 }
 
@@ -1678,13 +1765,14 @@ function update() {
         }
         return true;
     });
-    for (let i = 0; i < balls.length; i++) {
-        for (let j = i + 1; j < balls.length; j++) {
-            if (balls[i].noCollideUntil && now < balls[i].noCollideUntil) continue;
-            if (balls[j].noCollideUntil && now < balls[j].noCollideUntil) continue;
-            resolveBallCollision(balls[i], balls[j]);
-        }
-    }
+    
+    // ============================================================
+    // OPTIMIZED BALL COLLISION LOOP - REPLACES ORIGINAL O(N^2) LOOP
+    // ============================================================
+    // Original O(N^2) double loop removed. Using spatial hashing instead.
+    // This provides near O(N) performance for large ball counts (triple mode).
+    handleOptimizedBallCollisions(balls);
+    
     balls = balls.filter(b => {
         let onB = false; zones.forEach(z => { if (z.type==='bump' && b.x>z.x && b.x<z.x+z.w && b.y>z.y && b.y<z.y+z.h) { onB = true; b.isStatic = false; b.vx += (b.x<z.x+z.w/2)?-0.12:0.12; } });
         if (!onB && b.wasOnBump) { b.vx *= 0.15; b.vy *= 0.15; } b.wasOnBump = onB;
