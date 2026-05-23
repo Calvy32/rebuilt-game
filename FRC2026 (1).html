@@ -922,150 +922,64 @@ function aiDecide(robot, alliance, isHubActive) {
     const rcx = robot.x + robot.model.w / 2;
     const rcy = robot.y + robot.model.h / 2;
     const hubActive = isHubActive(alliance);
-    const hasBalls = robot.inventory > 0;
     const isTurret = robot.model.autoAim === true;
-
+    
+    // Separate top/bottom based on robot identity
+    const isTopBot = (robot === botBlue);  // P3 goes top
+    const isBottomBot = (robot === botBlue2); // P4 goes bottom
+    
     // ── GEOMETRY ──────────────────────────────────────────────────────────────
     const redBumpX = 156.61 * S;
     const blueBumpX = FIELD_W - (156.61 * S) - BUMP_W;
-
+    
     const ownBar1 = alliance === 'red' ? redBumpX : blueBumpX;
     const ownBar2 = ownBar1 + BUMP_W;
     const oppBar1 = alliance === 'red' ? blueBumpX : redBumpX;
     const oppBar2 = oppBar1 + BUMP_W;
-
-    // Define zones
-    const ownSideMinX = alliance === 'red' ? 0 : ownBar2;
-    const ownSideMaxX = alliance === 'red' ? ownBar1 : FIELD_W;
+    
     const centerMinX = alliance === 'red' ? ownBar2 : oppBar1;
     const centerMaxX = alliance === 'red' ? oppBar1 : ownBar2;
-    const oppSideMinX = alliance === 'red' ? oppBar2 : 0;
-    const oppSideMaxX = alliance === 'red' ? FIELD_W : oppBar1;
-
-    // Count balls in each zone
-    let ownBalls = 0, centerBalls = 0, oppBalls = 0;
-    for (const b of balls) {
-        if (b.x >= ownSideMinX && b.x <= ownSideMaxX) ownBalls++;
-        else if (b.x >= centerMinX && b.x <= centerMaxX) centerBalls++;
-        else if (b.x >= oppSideMinX && b.x <= oppSideMaxX) oppBalls++;
-    }
-    const totalBalls = ownBalls + centerBalls + oppBalls;
-
-    // Determine behavior based on ball distribution and hub state
-    const ownBallRatio = totalBalls > 0 ? ownBalls / totalBalls : 0;
-    const oppBallRatio = totalBalls > 0 ? oppBalls / totalBalls : 0;
-    const centerBallRatio = totalBalls > 0 ? centerBalls / totalBalls : 0;
-
-    // SCORING TENDENCY: higher = more likely to score
-    let scoringTendency = 0.5; // neutral
     
-    // Hub active → score more
-    if (hubActive) scoringTendency += 0.3;
+    // Path Y positions (top and bottom routes)
+    const topRouteY = FIELD_H * 0.25;
+    const bottomRouteY = FIELD_H * 0.75;
+    const centerY = FIELD_H / 2;
     
-    // Lots of own balls → score more
-    if (ownBallRatio > 0.4) scoringTendency += 0.2;
+    const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
+    const hubCX = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? redBumpX - 80 : blueBumpX + BUMP_W + 80);
+    const hubCY = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
     
-    // Lots of opponent balls → pass more (collect them first)
-    if (oppBallRatio > 0.4) scoringTendency -= 0.2;
-    
-    // High inventory → score more
-    if (robot.inventory > 20) scoringTendency += 0.2;
-    else if (robot.inventory < 5) scoringTendency -= 0.2;
-    
-    // Clamp
-    scoringTendency = Math.max(0.1, Math.min(0.9, scoringTendency));
-    
-    // ── DECIDE ACTION ─────────────────────────────────────────────────────────
     let targetX = null, targetY = null;
     let act = false;
     
-    const shouldScore = (hasBalls && hubActive) || (robot.inventory > 15);
-    const shouldPass = hasBalls && !hubActive && robot.inventory < 25;
-    
-    if (shouldScore && scoringTendency > 0.4) {
-        // SCORE MODE - go to own hub
-        const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
-        if (ownHub) {
-            targetX = ownHub.x + ownHub.w / 2;
-            targetY = ownHub.y + ownHub.h / 2;
-            act = hubActive; // Only shoot if hub active
-        }
+    // SCORING MODE: Hub active
+    if (hubActive && ownHub) {
+        targetX = hubCX;
+        targetY = isTopBot ? hubCY - 35 : hubCY + 35; // Separate top/bottom at hub
+        act = robot.inventory > 0; // Shoot if has balls
     }
-    else if (shouldPass || (hasBalls && scoringTendency < 0.6)) {
-        // PASS MODE - move to center/opponent side and shoot
-        // Only shoot if NOT in own side (to avoid scoring on inactive hub)
-        const isInOwnSide = (alliance === 'red' && rcx < ownBar1) || (alliance === 'blue' && rcx > ownBar2);
-        
-        if (!isInOwnSide) {
-            // Shoot toward own side from center/opponent side
-            targetX = alliance === 'red' ? ownBar2 + 50 : ownBar1 - 50;
-            targetY = rcy < FIELD_H / 2 ? FIELD_H * 0.25 : FIELD_H * 0.75;
-            act = true;
-        } else {
-            // In own side - move to center first
-            targetX = (centerMinX + centerMaxX) / 2;
-            targetY = rcy < FIELD_H / 2 ? FIELD_H * 0.3 : FIELD_H * 0.7;
-            act = false;
-        }
+    // PASSING MODE: Hub inactive
+    else if (!hubActive) {
+        // Go to center field
+        targetX = (centerMinX + centerMaxX) / 2;
+        // Separate top/bottom routes
+        targetY = isTopBot ? topRouteY : bottomRouteY;
+        act = robot.inventory > 0; // Pass if has balls
     }
+    // FALLBACK: No target
     else {
-        // COLLECT MODE - go to where the balls are
-        let targetZone = null;
-        
-        // Prioritize based on ball distribution and scoring tendency
-        if (scoringTendency > 0.6 && ownBalls > 0) {
-            // Scorer tendency - collect own side balls
-            targetZone = { minX: ownSideMinX, maxX: ownSideMaxX };
-        } else if (scoringTendency < 0.4 && oppBalls > 0) {
-            // Passer tendency - collect opponent side balls
-            targetZone = { minX: oppSideMinX, maxX: oppSideMaxX };
-        } else if (centerBalls > 0) {
-            // Neutral - collect center balls
-            targetZone = { minX: centerMinX, maxX: centerMaxX };
-        } else if (ownBalls > 0) {
-            targetZone = { minX: ownSideMinX, maxX: ownSideMaxX };
-        } else if (oppBalls > 0) {
-            targetZone = { minX: oppSideMinX, maxX: oppSideMaxX };
-        } else {
-            targetZone = { minX: centerMinX, maxX: centerMaxX };
-        }
-        
-        // Find nearest ball in target zone
-        let bestBall = null;
-        let bestDist = Infinity;
-        for (const b of balls) {
-            if (b.x >= targetZone.minX && b.x <= targetZone.maxX) {
-                const d = Math.hypot(b.x - rcx, b.y - rcy);
-                if (d < bestDist) {
-                    bestDist = d;
-                    bestBall = b;
-                }
-            }
-        }
-        
-        if (bestBall) {
-            targetX = bestBall.x;
-            targetY = bestBall.y;
-        } else {
-            // No balls in target zone - go to center
-            targetX = (centerMinX + centerMaxX) / 2;
-            targetY = FIELD_H / 2;
-        }
+        targetX = (centerMinX + centerMaxX) / 2;
+        targetY = isTopBot ? topRouteY : bottomRouteY;
         act = false;
     }
     
-    // Fallback
-    if (targetX === null) {
-        targetX = FIELD_W / 2;
-        targetY = FIELD_H / 2;
-    }
-    
-    // ── NAVIGATION (waypoints, same as before) ────────────────────────────────
+    // ── NAVIGATION ──────────────────────────────────────────────────────────────
     const hubTopY = FIELD_H / 2 - HUB_S / 2;
     const topBarY1 = hubTopY - BUMP_L - BAR_L;
     const topBarY2 = hubTopY - BUMP_L;
     const botBarY1 = hubTopY + HUB_S + BUMP_L;
     const botBarY2 = botBarY1 + BAR_L;
+    
     const CROSS_Y = [
         topBarY1 * 0.5,
         (topBarY2 + hubTopY) / 2,
