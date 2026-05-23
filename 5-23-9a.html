@@ -2888,34 +2888,25 @@ function draw() {
     }
     ctx.restore();
     
-// FOG OF WAR overlay - dark outside, bright inside circles
+// FOG OF WAR - Dark outside, bright circles
 if (gameMode === 'fog') {
     ctx.save();
     
     // Step 1: Dark overlay over EVERYTHING
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Step 2: Cut out vision circles
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath();
-    for (const robot of robots) {
-        const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
-        const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
-        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
-    }
-    ctx.fill();
-    
-    // Step 3: Draw bright overlay ONLY inside circles (source-over now)
+    // Step 2: Draw bright circles ON TOP (not cutouts)
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(255, 255, 200, 0.6)';  // Yellow-ish bright
-    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255, 255, 220, 0.5)';  // Adjust for brightness
+    ctx.shadowBlur = 0;
     for (const robot of robots) {
         const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
         const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
-        ctx.arc(rx, ry, FOG_RADIUS - 2, 0, Math.PI * 2);
+        ctx.beginPath();
+        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
     }
-    ctx.fill();
     
     ctx.restore();
 }
