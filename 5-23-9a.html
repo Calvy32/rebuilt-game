@@ -2896,7 +2896,7 @@ if (gameMode === 'fog') {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Step 2: Cut out the vision circles (removes dark overlay)
+    // Step 2: Cut out vision circles
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
     for (const robot of robots) {
@@ -2906,14 +2906,14 @@ if (gameMode === 'fog') {
     }
     ctx.fill();
     
-    // Step 3: NOW draw a BRIGHT overlay ONLY inside the circles
+    // Step 3: Draw bright overlay ONLY inside circles (source-over now)
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(255, 255, 255, .8)';  // Adjust brightness here
+    ctx.fillStyle = 'rgba(255, 255, 200, 0.6)';  // Yellow-ish bright
     ctx.beginPath();
     for (const robot of robots) {
         const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
         const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
-        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
+        ctx.arc(rx, ry, FOG_RADIUS - 2, 0, Math.PI * 2);
     }
     ctx.fill();
     
