@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC 2026 - Local Multiplayer</title>
+    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom + Duplicator Rework + New Robot)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -32,7 +32,6 @@
             margin: 0 auto;
         }
 
-        /* ============ TOP-CENTER TIMER CARD (image-2 style) ============ */
         #timer-panel {
             position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
             display: flex; flex-direction: column; align-items: center;
@@ -63,7 +62,6 @@
             margin-top: 1px; color: #aaa; min-height: 1em;
         }
 
-        /* ============ SCORE HUD (flush with timer card) ============ */
         .hud {
             position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 18px; align-items: center;
@@ -78,7 +76,6 @@
         .warning { color: #fff !important; font-weight: 900; background: #ef4444; padding: 0 5px; border-radius: 4px; }
         .hud .divider { color: #444; font-size: 0.8rem; padding: 0 2px; }
 
-        /* ============ HUB STATUS PANEL ============ */
         #shift-panel {
             position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 8px; align-items: center;
@@ -102,7 +99,6 @@
             text-transform: uppercase; margin-right: 4px;
         }
 
-        /* ============ SIDE PANEL WRAPPERS ============ */
         .controls-wrapper-blue {
             position: absolute; top: 14px; right: 12px; z-index: 20;
             display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
@@ -118,7 +114,6 @@
         .controls-wrapper-blue::-webkit-scrollbar-thumb,
         .controls-wrapper-red::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 
-        /* HIDE BLUE / HIDE RED master toggles */
         #toggle-controls-btn-blue, #toggle-controls-btn-red {
             background: #1c1c22; color: #d1d5db; border: 1px solid #3a3a44;
             padding: 7px 14px; font-size: 0.7rem; font-weight: 800;
@@ -127,7 +122,6 @@
         #toggle-controls-btn-blue:hover { background: #1e293b; border-color: #3b82f6; }
         #toggle-controls-btn-red:hover  { background: #2a1414; border-color: #ef4444; }
 
-        /* VIEW CONTROLS buttons */
         #show-controls-btn-blue, #show-controls-btn-red {
             background: #1c1c22; color: #fff; border: 1px solid #3b82f6;
             padding: 7px 14px; font-size: 0.7rem; font-weight: 800;
@@ -135,7 +129,6 @@
         }
         #show-controls-btn-red { border-color: #ef4444; }
 
-        /* Player panel container */
         .controls-blue, .controls-red {
             display: flex; flex-direction: column; gap: 10px; width: 210px;
             transition: opacity 0.2s, transform 0.2s;
@@ -146,7 +139,6 @@
             opacity: 0; pointer-events: none; transform: scale(0.95); height: 0; overflow: hidden;
         }
 
-        /* ============ PLAYER CARDS (image-2 style) ============ */
         .player-card {
             background: #16161b; border: 1px solid #2a2a32; border-radius: 12px;
             padding: 10px; display: flex; flex-direction: column; gap: 6px;
@@ -187,7 +179,6 @@
         }
         .player-card .player-card-body { max-height: 600px; }
 
-        /* Action buttons in cards */
         .pc-btn {
             padding: 8px 10px; border-radius: 6px; border: none; cursor: pointer;
             font-weight: 800; font-size: 0.72rem; letter-spacing: 1px;
@@ -201,7 +192,6 @@
         .pc-btn.red-btn         { background: #dc2626; color: #fff; }
         .pc-btn.blue-btn        { background: #2563eb; color: #fff; }
 
-        /* Bot model select */
         .bot-select {
             padding: 8px 24px 8px 10px; border-radius: 6px; border: none; cursor: pointer;
             font-weight: 800; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
@@ -214,7 +204,6 @@
         .bot-select.blue-team { background-color: #2563eb; color: #fff; }
         .bot-select option { background: #1a1a1a; color: white; }
 
-        /* ============ BOTTOM CENTER MATCH CONTROLS ============ */
         #start-area {
             position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
             z-index: 20; display: flex; flex-direction: row; align-items: center; gap: 8px;
@@ -272,7 +261,6 @@
         .start-select.blue-team { background-color: #2563eb; }
         .start-select option { background: #1a1a1a; color: white; }
 
-        /* ============ GAMEPAD STATUS (bottom-left) ============ */
         #gp-status-bottom {
             position: absolute; bottom: 12px; left: 14px; z-index: 25;
             font-size: 0.65rem; color: #888; line-height: 1.5;
@@ -281,7 +269,6 @@
             max-width: 360px;
         }
 
-        /* ============ FLASH / AUTO WINNER ============ */
         #shift-flash {
             position: absolute; inset: 0; pointer-events: none; z-index: 50;
             opacity: 0; background: rgba(255,255,255,0.08);
@@ -295,7 +282,6 @@
         }
         #auto-winner.visible { opacity: 1; }
 
-        /* ============ CONTROLS MODAL ============ */
         #controls-modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100;
             display: flex; justify-content: center; align-items: center;
@@ -330,64 +316,65 @@
 <div id="controls-modal" class="hidden">
     <div class="modal-content">
         <h2>GAME CONTROLS</h2>
-
         <div class="control-section" style="border-left-color:#ef4444;background:rgba(239,68,68,0.08);">
             <h3 style="color:#ef4444;">P1 — Red Keyboard 1</h3>
             <p><b>W</b><b>A</b><b>S</b><b>D</b> = Move &nbsp; <b>Q</b>/<b>E</b> = Turn</p>
             <p><b>Space</b> = Shoot/Pass &nbsp; <b>X</b> = Ability</p>
         </div>
-
         <div class="control-section" style="border-left-color:#ef4444;background:rgba(239,68,68,0.05);">
             <h3 style="color:#ef4444;">P2 — Red Controller 1</h3>
             <p><b>Left Stick</b> = Move &nbsp; <b>Right Stick X</b> = Turn</p>
             <p><b>Right Trigger</b> = Shoot/Pass &nbsp; <b>Left Trigger</b> = Ability</p>
         </div>
-
         <div class="control-section" style="border-left-color:#3b82f6;background:rgba(59,130,246,0.08);">
             <h3 style="color:#3b82f6;">P3 — Blue Keyboard 2</h3>
             <p><b>↑</b><b>↓</b><b>←</b><b>→</b> = Move &nbsp; <b>N</b>/<b>M</b> = Turn</p>
             <p><b>RShift</b> = Shoot/Pass &nbsp; <b>RCtrl</b> = Ability</p>
         </div>
-
         <div class="control-section" style="border-left-color:#3b82f6;background:rgba(59,130,246,0.05);">
             <h3 style="color:#3b82f6;">P4 — Blue Controller 2</h3>
             <p><b>Left Stick</b> = Move &nbsp; <b>Right Stick X</b> = Turn</p>
             <p><b>Right Trigger</b> = Shoot/Pass &nbsp; <b>Left Trigger</b> = Ability</p>
         </div>
-
         <div class="control-section highlight">
             <h3>Ability Button Uses</h3>
-            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2) | <b>Other robots:</b> No effect</p>
+            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 8 sec life)</p>
         </div>
-
         <div class="control-section" style="border-left-color:#a78bfa;background:rgba(167,139,250,0.08);">
             <h3 style="color:#a78bfa;">Phantom Robot</h3>
-            <p>Shots <b>pass through walls and obstacles</b> — only the enemy hub can stop them. Ghostly appearance.</p>
+            <p><b>Weaker turret</b> that can <b>shoot through walls and obstacles</b>. Passes through objects. Slowed inside hubs.</p>
         </div>
-
         <div class="control-section" style="border-left-color:#facc15;background:rgba(250,204,21,0.08);">
             <h3 style="color:#facc15;">Barricade Robot</h3>
-            <p>Press <b>Ability (X / RCtrl / LT)</b> to place a <b>small barrier</b> that <b>only enemies collide with</b>. Max 2 barriers at a time.</p>
+            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a <b>small barrier</b> with a timer circle. Max 2 barriers, 8 second lifespan.</p>
         </div>
-
+        <div class="control-section" style="border-left-color:#ec4899;background:rgba(236,72,153,0.08);">
+            <h3 style="color:#ec4899;">Plasma Robot</h3>
+            <p>Fires a <b>slow energy ball</b> that <b>zaps nearby balls</b>. Each zap adds <b>0.33 points</b> to the final score. Passing shots are normal balls.</p>
+        </div>
+        <div class="control-section" style="border-left-color:#d946ef;background:rgba(217,70,239,0.08);">
+            <h3 style="color:#d946ef;">Duplicator Robot</h3>
+            <p><b>Shoots 3 balls for every 1 ball</b> in inventory. Permanent ball multiplication — use with caution!</p>
+        </div>
+        <div class="control-section" style="border-left-color:#f59e0b;background:rgba(245,158,11,0.08);">
+            <h3 style="color:#f59e0b;">Echo Robot (NEW)</h3>
+            <p>Fires a <b>sonic wave</b> that <b>pushes and damages balls</b>. Passing shots create a <b>lingering echo field</b> that pushes balls away. High utility, low damage.</p>
+        </div>
         <div class="control-section" style="border-left-color:#06b6d4;background:rgba(6,182,212,0.08);">
             <h3 style="color:#06b6d4;">Game Modes</h3>
             <p><b>Triple Balls</b>, <b>Slippery Field</b>, and <b>Rapid Fire</b> change field density, traction, and fire cadence.</p>
             <p><b>Power-ups</b> spawn temporary Speed, Ammo, Shield, and +10 Score pickups. <b>Random Shifts</b> changes hub activity on irregular timers after auto.</p>
         </div>
-
         <button id="close-controls-btn">CLOSE</button>
     </div>
 </div>
 
-<!-- TIMER PANEL (top center, image-2 style) -->
 <div id="timer-panel">
     <div id="match-clock" class="stopped">2:20</div>
     <div id="phase-label">MATCH NOT STARTED</div>
     <div id="phase-timer"></div>
 </div>
 
-<!-- SCORE HUD -->
 <div class="hud" id="main-hud">
     <div class="stat" style="color: #ef4444;">RED: <span id="scoreRedDisplay">0</span></div>
     <div class="divider">|</div>
@@ -398,14 +385,10 @@
 
 <div id="auto-winner">AUTO WON BY RED</div>
 
-
-<!-- ===== BLUE SIDE (RIGHT) — P3 & P4 ===== -->
 <div class="controls-wrapper-blue">
     <button id="toggle-controls-btn-blue">☰ HIDE BLUE</button>
     <div class="controls-blue" id="control-panel-blue">
         <button id="show-controls-btn-blue">🎮 VIEW CONTROLS</button>
-
-        <!-- P3 CARD -->
         <div class="player-card blue-card" id="card-p3">
             <div class="player-card-header">
                 <div class="player-card-title"><span class="dot"></span>P3</div>
@@ -431,8 +414,6 @@
                 </select>
             </div>
         </div>
-
-        <!-- P4 CARD -->
         <div class="player-card blue-card" id="card-p4">
             <div class="player-card-header">
                 <div class="player-card-title"><span class="dot"></span>P4</div>
@@ -461,13 +442,10 @@
     </div>
 </div>
 
-<!-- ===== RED SIDE (LEFT) — P1 & P2 ===== -->
 <div class="controls-wrapper-red">
     <button id="toggle-controls-btn-red">☰ HIDE RED</button>
     <div class="controls-red" id="control-panel-red">
         <button id="show-controls-btn-red">🎮 VIEW CONTROLS</button>
-
-        <!-- P1 CARD -->
         <div class="player-card red-card" id="card-p1">
             <div class="player-card-header">
                 <div class="player-card-title"><span class="dot"></span>P1</div>
@@ -493,8 +471,6 @@
                 </select>
             </div>
         </div>
-
-        <!-- P2 CARD -->
         <div class="player-card red-card" id="card-p2">
             <div class="player-card-header">
                 <div class="player-card-title"><span class="dot"></span>P2</div>
@@ -523,7 +499,6 @@
     </div>
 </div>
 
-<!-- BOTTOM CENTER MATCH CONTROLS -->
 <div id="start-area">
     <button id="reset-btn-center">RESET FIELD</button>
     <button id="start-btn-main">▶ START MATCH</button>
@@ -533,25 +508,17 @@
     </div>
 </div>
 
-<!-- BOTTOM-LEFT GAMEPAD STATUS -->
 <div id="gp-status-bottom">Gamepads: ❌ 0  ❌ 1  ❌ 2  ❌ 3  |  P1:GP0  P2:GP0  P3:GP1  P4:GP1</div>
 
 <canvas id="field"></canvas>
 
-
 <script>
 // ===================================================================
-// 🔊 PASTE AUDIO CODE HERE
-// Replace the two placeholder lines below with your audio system.
-// The audio code must define: `const SFX = {...}` and `function playSound(key) {...}`
-// ===================================================================
+// AUDIO PLACEHOLDER
 const SFX = {};
 function playSound(key) {}
 // ===================================================================
-// 🔊 END AUDIO PASTE BLOCK
-// ===================================================================
 
-// 2. CONFIG & MODELS
 const BOT_MODELS = {
     'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
     'Miss Daisy': { accel: 0.38, rotSpeed: 0.036, capacity: 8, fireRate: 85, w: 41, h: 41 },
@@ -566,15 +533,16 @@ const BOT_MODELS = {
     'Scattershot': { accel: 0.40, rotSpeed: 0.042, capacity: 90, fireRate: 272, w: 43, h: 43 },
     'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 600, w: 39, h: 39 },
     'Minigun': { accel: 0.42, rotSpeed: 0.050, capacity: 130, fireRate: 75, w: 42, h: 42 },
-    'Duplicator': { accel: 0.22, rotSpeed: 0.030, capacity: 18, fireRate: 520, w: 44, h: 44 },
+    'Duplicator': { accel: 0.20, rotSpeed: 0.028, capacity: 15, fireRate: 350, w: 44, h: 44 },
     'Dozer': { accel: 0.26, rotSpeed: 0.028, capacity: 225, fireRate: 70, w: 54, h: 54 },
     'Magnet': { accel: 0.36, rotSpeed: 0.042, capacity: 70, fireRate: 90, w: 42, h: 42 },
     'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
     'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 30, fireRate: 850, w: 46, h: 46 },
     'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
-    'Plasma': { accel: 0.39, rotSpeed: 0.041, capacity: 45, fireRate: 140, w: 42, h: 42 },
-    'Phantom': { accel: 0.50, rotSpeed: 0.052, capacity: 20, fireRate: 450, w: 40, h: 40 },
-    'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 }
+    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 375, w: 42, h: 42 },
+    'Phantom': { accel: 0.30, rotSpeed: 0.028, capacity: 15, fireRate: 480, w: 40, h: 40 },
+    'Barricade': { accel: 0.30, rotSpeed: 0.030, capacity: 50, fireRate: 200, w: 44, h: 44 },
+    'Echo': { accel: 0.36, rotSpeed: 0.038, capacity: 45, fireRate: 280, w: 43, h: 43 }
 };
 
 const S = 1.6; 
@@ -589,7 +557,6 @@ const BAR_L = 12 * S;
 const TRENCH_L = 49.86 * S; 
 const RED_SHOOT_LIMIT = (156.61 * S) + (BUMP_W / 2);
 const BLUE_SHOOT_LIMIT = FIELD_W - (156.61 * S) - (BUMP_W / 2);
-
 const TOWER_OFFSET = 144 * S;
 const TOWER_DIM = 45 * S;
 const TOWER_WALL_DEPTH = 6 * S;
@@ -601,16 +568,15 @@ const ctx = canvas.getContext('2d');
 canvas.width = FIELD_W + (WALL_VISUAL * 2); 
 canvas.height = FIELD_H + (WALL_VISUAL * 2);
 
-// 3. MATCH TIMER & SHIFT SYSTEM
 const MATCH_PHASES = [
-    { name: 'AUTO',             start: 0,   end: 20,  redActive: true,  blueActive: true  },
-    { name: 'DELAY',            start: 20,  end: 23,  redActive: false, blueActive: false },
-    { name: 'TRANSITION SHIFT', start: 23,  end: 33,  redActive: true,  blueActive: true  },
-    { name: 'SHIFT 1',          start: 33,  end: 58,  redActive: null,  blueActive: null  },
-    { name: 'SHIFT 2',          start: 58,  end: 83,  redActive: null,  blueActive: null  },
-    { name: 'SHIFT 3',          start: 83,  end: 108, redActive: null,  blueActive: null  },
-    { name: 'SHIFT 4',          start: 108, end: 133, redActive: null,  blueActive: null  },
-    { name: 'END GAME',         start: 133, end: 163, redActive: true,  blueActive: true  }
+    { name: 'AUTO',             start: 0,   end: 20,  redActive: true,  blueActive: true,  canMove: true },
+    { name: 'DELAY',            start: 20,  end: 23,  redActive: false, blueActive: false, canMove: false },
+    { name: 'TRANSITION SHIFT', start: 23,  end: 33,  redActive: true,  blueActive: true,  canMove: true },
+    { name: 'SHIFT 1',          start: 33,  end: 58,  redActive: null,  blueActive: null,  canMove: true },
+    { name: 'SHIFT 2',          start: 58,  end: 83,  redActive: null,  blueActive: null,  canMove: true },
+    { name: 'SHIFT 3',          start: 83,  end: 108, redActive: null,  blueActive: null,  canMove: true },
+    { name: 'SHIFT 4',          start: 108, end: 133, redActive: null,  blueActive: null,  canMove: true },
+    { name: 'END GAME',         start: 133, end: 163, redActive: true,  blueActive: true,  canMove: true }
 ];
 
 const SHIFT_STATES = {
@@ -659,12 +625,10 @@ function setPlayerInput(player, value) {
         inputType = 'controller';
         gamepadIndex = parseInt(value.replace('controller', ''), 10);
     }
-
     if (player === 'p1') { p1Input = inputType; if (gamepadIndex !== null) p1GamepadIndex = gamepadIndex; }
     else if (player === 'p2') { p2Input = inputType; if (gamepadIndex !== null) p2GamepadIndex = gamepadIndex; }
     else if (player === 'p3') { p3Input = inputType; if (gamepadIndex !== null) p3GamepadIndex = gamepadIndex; }
     else if (player === 'p4') { p4Input = inputType; if (gamepadIndex !== null) p4GamepadIndex = gamepadIndex; }
-
     updateGamepadStatusUI();
 }
 function setupInputDropdowns() {
@@ -676,7 +640,6 @@ function setupInputDropdowns() {
     });
     updateGamepadStatusUI();
 }
-
 function formatTime(s) { s = Math.max(0, Math.ceil(s)); let m = Math.floor(s / 60), sec = s % 60; return m + ":" + (sec < 10 ? "0" : "") + sec; }
 function getDisplayTime(elapsed) {
     if (elapsed <= 20) return formatTime(20 - elapsed);
@@ -715,7 +678,7 @@ function applyPowerup(bot, type, now) {
     if (type === 'speed') { bot.speedBoostUntil = now + 6000; }
     else if (type === 'ammo') { bot.inventory = Math.min(bot.model.capacity, bot.inventory + Math.max(8, Math.ceil(bot.model.capacity * 0.35))); document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = bot.inventory; }
     else if (type === 'shield') { bot.shieldUntil = now + 6500; bot.disruptedUntil = 0; }
-    else if (type === 'score') { if (alliance === 'red') scoreRed += 10; else scoreBlue += 10; document.getElementById('scoreRedDisplay').innerText = scoreRed; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; }
+    else if (type === 'score') { if (alliance === 'red') scoreRed += 10; else scoreBlue += 10; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); }
     bot.rapidBoostUntil = Math.max(bot.rapidBoostUntil || 0, now + (type === 'speed' ? 3500 : 0));
 }
 function applyRandomHubShift(now, force = false) {
@@ -746,7 +709,6 @@ function tickMatch() {
     const now = Date.now();
 
     if (gameMode === 'random' && matchElapsed >= 23 && matchElapsed < 133) applyRandomHubShift(now);
-
 
     if (matchElapsed >= 163) {
         matchRunning = false; endCooldown = 10;
@@ -797,7 +759,7 @@ function tickMatch() {
     }
 }
 
-// 4. ROBOT ENGINE
+// ROBOT CLASS
 class Robot {
     constructor(x, y, modelKey, startingAngle) {
         this.x = x; this.y = y; this.vx = 0; this.vy = 0;
@@ -813,6 +775,7 @@ class Robot {
         this.prevAbilityInput = false;
         this.barricadeCount = 0;
         this.placedBarricades = [];
+        this.barricadeCooldown = 0;
     }
     setModel(key) {
         this.model = BOT_MODELS[key];
@@ -820,6 +783,247 @@ class Robot {
         if (key === 'Vortex') { this.vortexParticles = []; this.vortexRotation = 0; }
         if (key === 'Plasma') { this.plasmaCharge = 0; this.plasmaMaxCharge = 100; this.plasmaTrail = []; }
     }
+    
+    // PLASMA FIRE METHOD
+    firePlasma(isShooting, alliance, rcx, rcy, now) {
+        let targetX, targetY;
+        let launchAngle = this.angle;
+        
+        if (isShooting) {
+            let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+            targetX = z.x + z.w / 2;
+            targetY = z.y + z.h / 2;
+            launchAngle = Math.atan2(targetY - rcy, targetX - rcx);
+            const speed = 6.5 + Math.random() * 1.2;
+            projectiles.push({
+                x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5),
+                y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5),
+                vx: Math.cos(launchAngle) * speed,
+                vy: Math.sin(launchAngle) * speed,
+                r: 9,
+                owner: alliance,
+                isPass: false,
+                isPlasmaBall: true,
+                zapCount: 0,
+                zappedBalls: [],
+                lightningFlashes: []
+            });
+        } else {
+            let tx = alliance === 'red' ? 40 : FIELD_W - 40;
+            let ty = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40;
+            launchAngle = Math.atan2(ty - rcy, tx - rcx) + (Math.random() - 0.5) * 0.15;
+            const speed = 9 + Math.random() * 2;
+            projectiles.push({
+                x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5),
+                y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5),
+                vx: Math.cos(launchAngle) * speed,
+                vy: Math.sin(launchAngle) * speed,
+                r: 4,
+                owner: alliance,
+                isPass: true
+            });
+        }
+        
+        this.inventory--;
+        this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+    
+    // DUPLICATOR FIRE METHOD - shoots 3 balls for 1 inventory
+    fireDuplicator(isShooting, alliance, rcx, rcy, now) {
+        let targetX, targetY;
+        let launchAngle = this.angle;
+        let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+        
+        if (isShooting) {
+            targetX = z.x + z.w / 2;
+            targetY = z.y + z.h / 2;
+            launchAngle = Math.atan2(targetY - rcy, targetX - rcx);
+        } else {
+            targetX = alliance === 'red' ? 40 : FIELD_W - 40;
+            targetY = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40;
+            launchAngle = Math.atan2(targetY - rcy, targetX - rcx) + (Math.random() - 0.5) * 0.15;
+        }
+        
+        const speed = 11 + Math.random() * 2;
+        
+        // Fire 3 balls for every 1 in inventory
+        for (let i = 0; i < 3 && this.inventory > 0; i++) {
+            const spreadAngle = launchAngle + (i - 1) * 0.12 + (Math.random() - 0.5) * 0.08;
+            projectiles.push({
+                x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5),
+                y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5),
+                vx: Math.cos(spreadAngle) * speed,
+                vy: Math.sin(spreadAngle) * speed,
+                r: 4,
+                owner: alliance,
+                isPass: !isShooting
+            });
+        }
+        
+        this.inventory--;
+        this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+    
+    // ECHO FIRE METHOD - sonic wave that pushes balls
+    fireEcho(isShooting, alliance, rcx, rcy, now) {
+        let launchAngle = this.angle;
+        let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+        
+        if (isShooting) {
+            launchAngle = Math.atan2((z.y+z.h/2)-rcy, (z.x+z.w/2)-rcx);
+        } else {
+            let tx = alliance === 'red' ? 40 : FIELD_W - 40;
+            let ty = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40;
+            launchAngle = Math.atan2(ty - rcy, tx - rcx);
+        }
+        
+        const speed = 14;
+        
+        projectiles.push({
+            x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5),
+            y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5),
+            vx: Math.cos(launchAngle) * speed,
+            vy: Math.sin(launchAngle) * speed,
+            r: 8,
+            owner: alliance,
+            isPass: !isShooting,
+            isEcho: true,
+            pushRadius: 55,
+            pushStrength: 4.2,
+            echoField: !isShooting
+        });
+        
+        this.inventory--;
+        this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+    
+    fireSingleStream(streamIdx, totalStreams, customSpacing, isShooting, alliance, rcx, rcy) {
+        let launchAngle = this.angle;
+        let speed = 7;
+        if (isShooting) { let z = zones.find(z => z.type === 'hub' && z.side === alliance); launchAngle = Math.atan2((z.y+z.h/2)-rcy, (z.x+z.w/2)-rcx); }
+        else {
+            if (this.name === 'Blitz') { launchAngle = this.angle; speed = 13 + Math.random()*2.0; }
+            else { let tx = alliance==='red'?40:FIELD_W-40, ty = rcy<FIELD_H/2?40:FIELD_H-40; launchAngle = Math.atan2(ty-rcy, tx-rcx); speed = (9.5 + (Math.hypot(tx-rcx, ty-rcy) * 0.01)) * (0.88 + Math.random()*0.22); }
+        }
+        let pX = -Math.sin(launchAngle), pY = Math.cos(launchAngle);
+        let rAngle = launchAngle + (Math.random()-0.5)*(isShooting?0.01:0.08);
+        let sSpacing = (streamIdx - (totalStreams - 1) / 2) * customSpacing;
+        projectiles.push({ x: rcx + Math.cos(launchAngle)*(this.model.w/2+4) + pX*sSpacing, y: rcy + Math.sin(launchAngle)*(this.model.w/2+4) + pY*sSpacing, vx: Math.cos(rAngle)*speed, vy: Math.sin(rAngle)*speed, r: 4, owner: alliance, isPass: !isShooting });
+        this.inventory--;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+
+    fireBoomerang(isShooting, alliance, rcx, rcy, now) {
+        let launchAngle = this.angle;
+        let speed = 10 + Math.random() * 3;
+        let hubX, hubY;
+        if (isShooting) { let z = zones.find(z => z.type === 'hub' && z.side === alliance); hubX = z.x + z.w / 2; hubY = z.y + z.h / 2; launchAngle = Math.atan2(hubY - rcy, hubX - rcx); speed = 9; }
+        else { hubX = alliance === 'red' ? 40 : FIELD_W - 40; hubY = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40; launchAngle = Math.atan2(hubY - rcy, hubX - rcx) + (Math.random() - 0.5) * 0.25; speed = 11 + Math.random() * 2; }
+        let perpAngle = launchAngle + Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1);
+        let curveMag = 1.8 + Math.random() * 1.2;
+        projectiles.push({ x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5), y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5), vx: Math.cos(launchAngle) * speed + Math.cos(perpAngle) * curveMag, vy: Math.sin(launchAngle) * speed + Math.sin(perpAngle) * curveMag, r: 5, owner: alliance, isPass: !isShooting, isBoomerang: true, boomerangTargetX: hubX, boomerangTargetY: hubY, boomerangCurve: curveMag * 0.045, boomerangAge: 0 });
+        this.inventory--; this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+
+    fireVortex(isShooting, alliance, rcx, rcy, now) {
+        const isPlasma = this.name === 'Plasma';
+        const pellets = isPlasma ? 3 : 5;
+        const baseSpeed = isPlasma ? 8 : 12;
+        const speedVar = isPlasma ? 1.5 : 2.5;
+        let launchAngle = this.angle;
+        let hubX, hubY;
+        if (isShooting) { let z = zones.find(z => z.type === 'hub' && z.side === alliance); hubX = z.x + z.w / 2; hubY = z.y + z.h / 2; launchAngle = Math.atan2(hubY - rcy, hubX - rcx); }
+        else { hubX = alliance === 'red' ? 40 : FIELD_W - 40; hubY = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40; launchAngle = Math.atan2(hubY - rcy, hubX - rcx) + (Math.random() - 0.5) * 0.3; }
+        for (let i = 0; i < pellets && this.inventory > 0; i++) {
+            const spiralAngle = launchAngle + (i / pellets) * Math.PI * 2 * (isPlasma ? 0.8 : 1.2);
+            const speed = baseSpeed + Math.random() * speedVar;
+            const r = isPlasma ? 5 : 4;
+            projectiles.push({ x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5), y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5), vx: Math.cos(spiralAngle) * speed, vy: Math.sin(spiralAngle) * speed, r: r, owner: alliance, isPass: !isShooting, isVortex: true, isPlasma: isPlasma, vortexAge: 0 });
+            this.inventory--;
+        }
+        this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+
+    fireStandard(isShooting, alliance, rcx, rcy, now) {
+        let launchAngle = this.angle, speed = 16;
+        if (this.name === '3636') speed = 6 + Math.random() * 3;
+        if (this.name === '3636 main season') speed = 6 + Math.random() * 3;
+        const isSniper = this.name === 'Sniper';
+        const isMinigun = this.name === 'Minigun';
+        const isDuplicator = this.name === 'Duplicator';
+        const isPhantom = this.name === 'Phantom';
+        const isEcho = this.name === 'Echo';
+        let aimHub = isSniper;
+        let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+        
+        if (aimHub || isShooting) {
+            launchAngle = Math.atan2((z.y+z.h/2)-rcy, (z.x+z.w/2)-rcx);
+            if (isSniper) speed = 26;
+            else if (isMinigun) speed = 13 + Math.random() * 2;
+            else if (isDuplicator) speed = 14 + Math.random() * 2;
+        } else {
+            let tx = alliance==='red'?40:FIELD_W-40, ty = rcy<FIELD_H/2?40:FIELD_H-40;
+            let jitter = isMinigun ? (Math.random()-0.5)*0.55 : (isDuplicator ? (Math.random()-0.5)*0.22 : (Math.random()-0.5)*0.12);
+            launchAngle = Math.atan2(ty-rcy, tx-rcx) + jitter;
+            if (isMinigun) speed = 11 + Math.random() * 4;
+            else if (isDuplicator) speed = 12 + Math.random() * 2;
+            else speed = (13 + (Math.hypot(tx-rcx, ty-rcy)*0.012)) * (0.85 + Math.random()*0.25);
+        }
+        const treatAsShooting = isShooting || aimHub;
+        
+        if (isMinigun) {
+            const pellets = 3;
+            for (let i = 0; i < pellets && this.inventory > 0; i++) {
+                let spread = (i - 1) * 0.18 + (Math.random()-0.5)*0.08;
+                let a = launchAngle + spread;
+                projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(a)*speed, vy: Math.sin(a)*speed, r: 3, owner: alliance, isPass: !treatAsShooting });
+                this.inventory--;
+            }
+            this.lastShot = now;
+            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+            return;
+        }
+        if (isDuplicator) {
+            this.fireDuplicator(isShooting, alliance, rcx, rcy, now);
+            return;
+        }
+        if (isEcho) {
+            this.fireEcho(isShooting, alliance, rcx, rcy, now);
+            return;
+        }
+        if (this.name === 'Howitzer') {
+            let targetX, targetY;
+            if (isShooting) {
+                targetX = z.x + z.w/2;
+                targetY = z.y + z.h/2;
+            } else {
+                targetX = alliance === 'red' ? 40 : FIELD_W - 40;
+                targetY = rcy < FIELD_H/2 ? 40 : FIELD_H - 40;
+            }
+            const dur = 55 + Math.hypot(targetX - rcx, targetY - rcy) * 0.5;
+            projectiles.push({ 
+                x: rcx, y: rcy, vx: 0, vy: 0, r: 6, owner: alliance, 
+                isPass: !isShooting, isLob: true, 
+                lobStartX: rcx, lobStartY: rcy, 
+                lobTargetX: targetX, lobTargetY: targetY, 
+                lobAge: 0, lobDuration: dur 
+            });
+            this.inventory--; this.lastShot = now;
+            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+            return;
+        }
+        const isRicochet = this.name === 'Ricochet';
+        if (isRicochet) { launchAngle = this.angle; speed = 18; }
+        projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(launchAngle)*speed, vy: Math.sin(launchAngle)*speed, r: isSniper ? 5 : (isRicochet ? 5 : (isPhantom ? 5 : 4)), owner: alliance, isPass: isRicochet ? false : !treatAsShooting, isSniper: isSniper, isRicochet: isRicochet, isPhantom: isPhantom });
+        this.inventory--; this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
+    }
+
     update(moveX, moveY, rotInput, rawActInput, rawToggleInput, alliance, obstacles, zones, otherBot = null) {
         if (isNaN(this.x) || isNaN(this.y) || isNaN(this.vx) || isNaN(this.vy)) {
             this.x = alliance === 'red' ? 80 : FIELD_W - 115;
@@ -827,31 +1031,30 @@ class Robot {
         }
         let isActionActive = rawActInput;
         let isAbilityActive = rawToggleInput;
-
-        // Barricade robot: place obstacles on ability press
-        if (this.name === 'Barricade' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
-            if (this.barricadeCount < 2) {
-                const rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
-                const newBarrier = {
-                    x: rcx - 16.5, y: rcy - 16.5, w: 33, h: 33, type: 'barricade',
-                    owner: alliance, ownerId: this.id, life: 600, maxLife: 600,
-                    angle: this.angle, cx: rcx, cy: rcy
-                };
-                barricades.push(newBarrier);
-                this.placedBarricades.push(newBarrier);
-                this.barricadeCount++;
-                playSound('pickup');
+        
+        const currentPhase = MATCH_PHASES[currentPhaseIdx];
+        const canMove = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
+        
+        if (!canMove && matchRunning && currentPhaseIdx !== 1) {
+            this.vx *= 0.5; this.vy *= 0.5; this.vAngle *= 0.5;
+            this.x += this.vx; this.y += this.vy; this.angle += this.vAngle;
+            const now = Date.now();
+            const rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
+            const isShootingZone = alliance === 'red' ? rcx < RED_SHOOT_LIMIT : rcx > BLUE_SHOOT_LIMIT;
+            if (isActionActive && this.inventory > 0 && now - this.lastShot > this.model.fireRate) {
+                if (this.name === 'Plasma') {
+                    this.firePlasma(isShootingZone, alliance, rcx, rcy, now);
+                } else if (this.name === 'Duplicator') {
+                    this.fireDuplicator(isShootingZone, alliance, rcx, rcy, now);
+                } else if (this.name === 'Echo') {
+                    this.fireEcho(isShootingZone, alliance, rcx, rcy, now);
+                } else {
+                    this.fireStandard(isShootingZone, alliance, rcx, rcy, now);
+                }
             }
+            return;
         }
-        this.prevAbilityInput = isAbilityActive;
-
-        if (this.name === 'Blitz') {
-            if (isAbilityActive && !this.prevIntakeInput) {
-                this.intakeSide = this.intakeSide === 'right' ? 'left' : 'right';
-            }
-            this.prevIntakeInput = isAbilityActive;
-        }
-
+        
         if (matchRunning && currentPhaseIdx === 1) {
             this.vx *= 0.5; this.vy *= 0.5; this.vAngle *= 0.5;
             this.x += this.vx; this.y += this.vy; this.angle += this.vAngle;
@@ -860,7 +1063,20 @@ class Robot {
 
         const now = Date.now();
         let onBump = false, inTower = false, inDepot = false;
+        let inHub = false;
         const myOBB = getOBB(this);
+        
+        if (this.name === 'Phantom') {
+            for (let z of zones) {
+                if (z.type === 'hub') {
+                    if (collideOBB_AABB(myOBB, { x: z.x, y: z.y, w: z.w, h: z.h }).colliding) {
+                        inHub = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
         zones.forEach(z => {
             if (z.type === 'bump' && collideOBB_AABB(myOBB, z).colliding) onBump = true;
             if (z.type === 'tower' && collideOBB_AABB(myOBB, z).colliding) inTower = true;
@@ -877,6 +1093,9 @@ class Robot {
         if (moveX !== 0 || moveY !== 0) { const mag = Math.sqrt(moveX*moveX + moveY*moveY); if (mag > 0.8) { moveX /= mag; moveY /= mag; } }
 
         let speedMod = (inDepot ? 0.65 : 1.0) * (now < (this.speedBoostUntil || 0) ? 1.45 : 1.0);
+        if (this.name === 'Phantom' && inHub) {
+            speedMod *= 0.2;
+        }
         let passSpeedDampen = this.name === 'Blitz' ? 0.60 : (this.name === 'dumper' ? 0.25 : (this.name === '2910' ? 0.25 : (this.name === '3636' ? 0.8 : (this.name === '3636 main season' ? 1.0 : (this.name === 'Boomerang' ? 0.70 : 0.50)))));
 
         if (this.name === 'Ricochet') {
@@ -940,12 +1159,17 @@ class Robot {
         const tryMove = (x, y) => {
             let testBot = { ...this, x, y };
             let testOBB = getOBB(testBot);
-            let collides = false;
+            
+            if (this.name === 'Phantom') {
+                x = Math.max(0, Math.min(FIELD_W - this.model.w, x));
+                y = Math.max(0, Math.min(FIELD_H - this.model.h, y));
+                return { x, y };
+            }
+            
             for (let o of obstacles) {
                 if (o.type === 'trench' && this.inventory < 85) continue;
                 const collision = collideOBB_AABB(testOBB, o);
                 if (collision.colliding) {
-                    collides = true;
                     const mtv = { x: collision.axis.x * collision.overlap, y: collision.axis.y * collision.overlap };
                     x -= mtv.x;
                     y -= mtv.y;
@@ -954,7 +1178,6 @@ class Robot {
                     break;
                 }
             }
-            // Barricade collision for enemies only
             for (let b of barricades) {
                 if (b.owner !== alliance) {
                     const barOBB = { center: { x: b.cx, y: b.cy }, halfW: b.w/2, halfH: b.h/2, angle: b.angle || 0, axes: [{ x: Math.cos(b.angle||0), y: Math.sin(b.angle||0) }, { x: -Math.sin(b.angle||0), y: Math.cos(b.angle||0) }] };
@@ -997,6 +1220,35 @@ class Robot {
             }
         }
 
+        // Barricade placement
+        if (this.name === 'Barricade' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
+            if (now - this.barricadeCooldown >= 0) {
+                const rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
+                const barricadeSize = 27;
+                const newBarrier = {
+                    x: rcx - barricadeSize/2, y: rcy - barricadeSize/2, w: barricadeSize, h: barricadeSize,
+                    cx: rcx, cy: rcy, w: barricadeSize, h: barricadeSize,
+                    owner: alliance, life: 8000, maxLife: 8000, born: now,
+                    angle: this.angle
+                };
+                if (barricades.filter(b => b.owner === alliance).length >= 2) {
+                    let oldest = barricades.filter(b => b.owner === alliance).sort((a,b) => a.born - b.born)[0];
+                    barricades = barricades.filter(b => b !== oldest);
+                }
+                barricades.push(newBarrier);
+                this.barricadeCooldown = now + 500;
+                playSound('pickup');
+            }
+        }
+        this.prevAbilityInput = isAbilityActive;
+
+        if (this.name === 'Blitz') {
+            if (isAbilityActive && !this.prevIntakeInput) {
+                this.intakeSide = this.intakeSide === 'right' ? 'left' : 'right';
+            }
+            this.prevIntakeInput = isAbilityActive;
+        }
+
         if (isActionActive && this.inventory > 0 && !inTower) {
             const currentFireRate = this.model.fireRate * (gameMode === 'rapid' ? 0.4 : 1.0) * (now < (this.rapidBoostUntil || 0) ? 0.55 : 1.0);
             if (this.name === 'Dozer') {
@@ -1019,7 +1271,7 @@ class Robot {
                     }
                 }
             } else if (this.name === 'Vortex' && !isDisrupted && now - this.lastShot > currentFireRate) { this.fireVortex(isShootingZone, alliance, rcx, rcy, now);
-            } else if (this.name === 'Plasma' && !isDisrupted && now - this.lastShot > currentFireRate) { this.fireVortex(isShootingZone, alliance, rcx, rcy, now);
+            } else if (this.name === 'Plasma' && !isDisrupted && now - this.lastShot > currentFireRate) { this.firePlasma(isShootingZone, alliance, rcx, rcy, now);
             } else if (this.name === 'Boomerang' && !isDisrupted && now - this.lastShot > currentFireRate) { this.fireBoomerang(isShootingZone, alliance, rcx, rcy, now);
             } else if (this.name === 'Scattershot' && !isDisrupted && now - this.lastShot > currentFireRate) {
                 const pellets = 5;
@@ -1032,127 +1284,8 @@ class Robot {
         }
     }
 
-    fireSingleStream(streamIdx, totalStreams, customSpacing, isShooting, alliance, rcx, rcy) {
-        let launchAngle = this.angle;
-        let speed = 7;
-        if (isShooting) { let z = zones.find(z => z.type === 'hub' && z.side === alliance); launchAngle = Math.atan2((z.y+z.h/2)-rcy, (z.x+z.w/2)-rcx); }
-        else {
-            if (this.name === 'Blitz') { launchAngle = this.angle; speed = 13 + Math.random()*2.0; }
-            else { let tx = alliance==='red'?40:FIELD_W-40, ty = rcy<FIELD_H/2?40:FIELD_H-40; launchAngle = Math.atan2(ty-rcy, tx-rcx); speed = (9.5 + (Math.hypot(tx-rcx, ty-rcy) * 0.01)) * (0.88 + Math.random()*0.22); }
-        }
-        let pX = -Math.sin(launchAngle), pY = Math.cos(launchAngle);
-        let rAngle = launchAngle + (Math.random()-0.5)*(isShooting?0.01:0.08);
-        let sSpacing = (streamIdx - (totalStreams - 1) / 2) * customSpacing;
-        projectiles.push({ x: rcx + Math.cos(launchAngle)*(this.model.w/2+4) + pX*sSpacing, y: rcy + Math.sin(launchAngle)*(this.model.w/2+4) + pY*sSpacing, vx: Math.cos(rAngle)*speed, vy: Math.sin(rAngle)*speed, r: 4, owner: alliance, isPass: !isShooting });
-        this.inventory--;
-        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-    }
-
-    fireBoomerang(isShooting, alliance, rcx, rcy, now) {
-        let launchAngle = this.angle;
-        let speed = 10 + Math.random() * 3;
-        let hubX, hubY;
-        if (isShooting) { let z = zones.find(z => z.type === 'hub' && z.side === alliance); hubX = z.x + z.w / 2; hubY = z.y + z.h / 2; launchAngle = Math.atan2(hubY - rcy, hubX - rcx); speed = 9; }
-        else { hubX = alliance === 'red' ? 40 : FIELD_W - 40; hubY = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40; launchAngle = Math.atan2(hubY - rcy, hubX - rcx) + (Math.random() - 0.5) * 0.25; speed = 11 + Math.random() * 2; }
-        let perpAngle = launchAngle + Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1);
-        let curveMag = 1.8 + Math.random() * 1.2;
-        projectiles.push({ x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5), y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5), vx: Math.cos(launchAngle) * speed + Math.cos(perpAngle) * curveMag, vy: Math.sin(launchAngle) * speed + Math.sin(perpAngle) * curveMag, r: 5, owner: alliance, isPass: !isShooting, isBoomerang: true, boomerangTargetX: hubX, boomerangTargetY: hubY, boomerangCurve: curveMag * 0.045, boomerangAge: 0 });
-        this.inventory--; this.lastShot = now;
-        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-    }
-
-    fireVortex(isShooting, alliance, rcx, rcy, now) {
-        const isPlasma = this.name === 'Plasma';
-        const pellets = isPlasma ? 3 : 5;
-        const baseSpeed = isPlasma ? 8 : 12;
-        const speedVar = isPlasma ? 1.5 : 2.5;
-        let launchAngle = this.angle;
-        let hubX, hubY;
-        if (isShooting) { let z = zones.find(z => z.type === 'hub' && z.side === alliance); hubX = z.x + z.w / 2; hubY = z.y + z.h / 2; launchAngle = Math.atan2(hubY - rcy, hubX - rcx); }
-        else { hubX = alliance === 'red' ? 40 : FIELD_W - 40; hubY = rcy < FIELD_H / 2 ? 40 : FIELD_H - 40; launchAngle = Math.atan2(hubY - rcy, hubX - rcx) + (Math.random() - 0.5) * 0.3; }
-        for (let i = 0; i < pellets && this.inventory > 0; i++) {
-            const spiralAngle = launchAngle + (i / pellets) * Math.PI * 2 * (isPlasma ? 0.8 : 1.2);
-            const speed = baseSpeed + Math.random() * speedVar;
-            const r = isPlasma ? 5 : 4;
-            projectiles.push({ x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5), y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5), vx: Math.cos(spiralAngle) * speed, vy: Math.sin(spiralAngle) * speed, r: r, owner: alliance, isPass: !isShooting, isVortex: true, isPlasma: isPlasma, vortexAge: 0 });
-            this.inventory--;
-        }
-        this.lastShot = now;
-        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-    }
-
-    fireStandard(isShooting, alliance, rcx, rcy, now) {
-        let launchAngle = this.angle, speed = 16;
-        if (this.name === '3636') speed = 6 + Math.random() * 3;
-        if (this.name === '3636 main season') speed = 6 + Math.random() * 3;
-        const isSniper = this.name === 'Sniper';
-        const isMinigun = this.name === 'Minigun';
-        const isDuplicator = this.name === 'Duplicator';
-        const isPhantom = this.name === 'Phantom';
-        let aimHub = isSniper;
-        let z = zones.find(z => z.type === 'hub' && z.side === alliance);
-        if (aimHub || isShooting) {
-            launchAngle = Math.atan2((z.y+z.h/2)-rcy, (z.x+z.w/2)-rcx);
-            if (isSniper) speed = 26;
-            else if (isMinigun) speed = 13 + Math.random() * 2;
-            else if (isDuplicator) speed = 14 + Math.random() * 2;
-        } else {
-            let tx = alliance==='red'?40:FIELD_W-40, ty = rcy<FIELD_H/2?40:FIELD_H-40;
-            let jitter = isMinigun ? (Math.random()-0.5)*0.55 : (isDuplicator ? (Math.random()-0.5)*0.22 : (Math.random()-0.5)*0.12);
-            launchAngle = Math.atan2(ty-rcy, tx-rcx) + jitter;
-            if (isMinigun) speed = 11 + Math.random() * 4;
-            else if (isDuplicator) speed = 12 + Math.random() * 2;
-            else speed = (13 + (Math.hypot(tx-rcx, ty-rcy)*0.012)) * (0.85 + Math.random()*0.25);
-        }
-        const treatAsShooting = isShooting || aimHub;
-        if (isMinigun) {
-            const pellets = 3;
-            for (let i = 0; i < pellets && this.inventory > 0; i++) {
-                let spread = (i - 1) * 0.18 + (Math.random()-0.5)*0.08;
-                let a = launchAngle + spread;
-                projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(a)*speed, vy: Math.sin(a)*speed, r: 3, owner: alliance, isPass: !treatAsShooting });
-                this.inventory--;
-            }
-            this.lastShot = now;
-            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-            return;
-        }
-        if (isDuplicator) {
-            let baseA = launchAngle;
-            projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(baseA)*speed, vy: Math.sin(baseA)*speed, r: 4, owner: alliance, isPass: !treatAsShooting });
-            let pa = baseA + 0.10;
-            projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(pa)*speed, vy: Math.sin(pa)*speed, r: 4, owner: alliance, isPass: !treatAsShooting, isPhantom: true });
-            this.inventory--; this.lastShot = now;
-            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-            return;
-        }
-        if (this.name === 'Howitzer') {
-            if (isShooting) {
-                // In scoring zone: fire the lob shot that scores
-                const targetX = z.x + z.w/2, targetY = z.y + z.h/2;
-                const dur = 55 + Math.hypot(targetX - rcx, targetY - rcy) * 0.5;
-                projectiles.push({ x: rcx, y: rcy, vx: 0, vy: 0, r: 6, owner: alliance, isPass: false, isLob: true, lobStartX: rcx, lobStartY: rcy, lobTargetX: targetX, lobTargetY: targetY, lobAge: 0, lobDuration: dur });
-            } else {
-                // Outside scoring zone: fire a normal pass toward the corner
-                let tx = alliance==='red'?40:FIELD_W-40, ty = rcy<FIELD_H/2?40:FIELD_H-40;
-                let passAngle = Math.atan2(ty-rcy, tx-rcx) + (Math.random()-0.5)*0.12;
-                let passSpeed = (10 + Math.hypot(tx-rcx, ty-rcy)*0.01) * (0.88 + Math.random()*0.22);
-                projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(passAngle)*passSpeed, vy: Math.sin(passAngle)*passSpeed, r: 4, owner: alliance, isPass: true, isHowitzerPass: true });
-            }
-            this.inventory--; this.lastShot = now;
-            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-            return;
-        }
-        const isRicochet = this.name === 'Ricochet';
-        if (isRicochet) { launchAngle = this.angle; speed = 18; }
-        projectiles.push({ x: rcx + Math.cos(this.angle)*(this.model.w/2+5), y: rcy + Math.sin(this.angle)*(this.model.w/2+5), vx: Math.cos(launchAngle)*speed, vy: Math.sin(launchAngle)*speed, r: isSniper ? 5 : (isRicochet ? 5 : (isPhantom ? 5 : 4)), owner: alliance, isPass: isRicochet ? false : !treatAsShooting, isSniper: isSniper, isRicochet: isRicochet, isPhantom: isPhantom });
-        this.inventory--; this.lastShot = now;
-        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
-    }
-
     draw(ctx, alliance) {
         ctx.save(); ctx.translate(this.x + this.model.w/2, this.y + this.model.h/2); ctx.rotate(this.angle);
-        
         if (this.name === 'Phantom') {
             ctx.fillStyle = alliance === 'red' ? 'rgba(239,68,68,0.5)' : 'rgba(59,130,246,0.5)';
             ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
@@ -1171,6 +1304,21 @@ class Robot {
             ctx.fillStyle = "#000";
             ctx.font = "bold 12px Segoe UI";
             ctx.fillText("⛔", -5, 5);
+        } else if (this.name === 'Echo') {
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            // Sonic rings
+            let t = Date.now() / 120;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.model.w/2 + 3 + Math.sin(t)*2, 0, Math.PI * 2);
+            ctx.strokeStyle = '#fde047';
+            ctx.stroke();
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 14px Segoe UI";
+            ctx.fillText("🔊", -6, 5);
         } else {
             ctx.fillStyle = alliance === 'red' ? '#ef4444' : '#3b82f6';
             ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
@@ -1178,7 +1326,6 @@ class Robot {
             ctx.lineWidth = 2;
             ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
         }
-
         if (this.name === 'Blitz') {
             ctx.fillStyle = "#fbbf24";
             if (this.intakeSide === 'right') ctx.fillRect(-this.model.w/2 + 2, this.model.h/2 - 6, this.model.w - 4, 12);
@@ -1193,8 +1340,17 @@ class Robot {
             ctx.fillStyle = '#f59e0b'; ctx.fillRect(this.model.w/2 - 1, -14, 5, 10); ctx.fillRect(this.model.w/2 - 1, -4, 5, 8); ctx.fillRect(this.model.w/2 - 1, 6, 5, 10);
             ctx.fillStyle = '#78350f'; ctx.fillRect(this.model.w/2 + 4, -12, 3, 6); ctx.fillRect(this.model.w/2 + 4, -2, 3, 4); ctx.fillRect(this.model.w/2 + 4, 8, 3, 6);
         } else if (this.name === 'Duplicator') {
-            ctx.fillStyle = '#d946ef'; ctx.fillRect(this.model.w/2 - 2, -10, 7, 5); ctx.fillRect(this.model.w/2 - 2, 5, 7, 5);
-            let t = Date.now() / 220; ctx.strokeStyle = 'rgba(217,70,239,0.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, this.model.w/2 + 4 + Math.sin(t)*1.5, 0, Math.PI*2); ctx.stroke(); ctx.lineWidth = 2;
+            ctx.fillStyle = '#d946ef';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.fillStyle = '#f0abfc';
+            ctx.beginPath();
+            ctx.moveTo(this.model.w/2 - 2, -6);
+            ctx.lineTo(this.model.w/2 + 10, 0);
+            ctx.lineTo(this.model.w/2 - 2, 6);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 10px Segoe UI";
+            ctx.fillText("3x", -7, 5);
         } else if (this.name === 'Dozer') {
             ctx.fillStyle = "#fbbf24"; ctx.fillRect(-this.model.w/2 + 2, -this.model.h/2 - 5, this.model.w - 4, 8); ctx.fillRect(-this.model.w/2 + 2, this.model.h/2 - 3, this.model.w - 4, 8);
             ctx.fillRect(-this.model.w/2 - 5, -this.model.h/2 + 2, 8, this.model.h - 4); ctx.fillRect(this.model.w/2 - 3, -this.model.h/2 + 2, 8, this.model.h - 4);
@@ -1227,143 +1383,14 @@ class Robot {
             let bH = (this.name === 'dumper' || this.name === '2910') ? 38 : 35;
             ctx.fillRect(this.model.w/2 - 2, bY, bW, bH);
         }
-
         const nowDraw = Date.now();
         if (nowDraw < (this.shieldUntil || 0)) { ctx.strokeStyle = 'rgba(168,85,247,0.95)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, Math.max(this.model.w, this.model.h) / 2 + 9 + Math.sin(nowDraw / 85) * 2, 0, Math.PI * 2); ctx.stroke(); }
         if (nowDraw < (this.speedBoostUntil || 0)) { ctx.strokeStyle = 'rgba(34,197,94,0.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, Math.max(this.model.w, this.model.h) / 2 + 15, -0.8, 0.8); ctx.stroke(); }
-
         ctx.rotate(-this.angle); ctx.fillStyle = "#fff"; ctx.font = "bold 14px Segoe UI"; ctx.textAlign = "center"; ctx.fillText(this.inventory, 0, 5); ctx.restore();
     }
 }
 
-// 5. PHYSICS & MAP SETUP
-function resolveBallCollision(b1, b2) {
-    let dx = b2.x - b1.x, dy = b2.y - b1.y, distSq = dx*dx + dy*dy, minDist = b1.r + b2.r;
-    if (distSq < minDist * minDist) {
-        let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; }
-        let nx = dx / dist, ny = dy / dist, overlap = (minDist - dist), force = overlap * 0.45;
-        b1.vx -= nx * force; b1.vy -= ny * force; b2.vx += nx * force; b2.vy += ny * force;
-        if (overlap > 0.1) { b1.isStatic = false; b2.isStatic = false; }
-        b1.x -= nx*overlap*0.05; b1.y -= ny*overlap*0.05; b2.x += nx*overlap*0.05; b2.y += ny*overlap*0.05;
-    }
-}
-
-let botRed = new Robot(80, FIELD_H/2 - 30, 'turret', 0);
-let botRed2 = new Robot(80, FIELD_H/2 + 10, 'turret', 0);
-let botBlue = new Robot(FIELD_W - 115, FIELD_H/2 - 30, 'double turret', Math.PI);
-let botBlue2 = new Robot(FIELD_W - 115, FIELD_H/2 + 10, 'double turret', Math.PI);
-let balls = [], projectiles = [], scoringBalls = [], obstacles = [], zones = [];
-let scoreRed = 0, scoreBlue = 0; const keys = {};
-
-function addElement(x, y, w, h, type, side) { const el = { x, y, w, h, type, side }; if (['hub', 'barrier', 'trench', 'towerWall'].includes(type)) obstacles.push(el); zones.push(el); }
-function buildLane(x, hubY, side, isTop) {
-    const bumpY = isTop ? hubY - BUMP_L : hubY + HUB_S; addElement(x, bumpY, BUMP_W, BUMP_L, 'bump', side);
-    const barY = isTop ? bumpY - BAR_L : bumpY + BUMP_L; addElement(x, barY, BUMP_W, BAR_L, 'barrier', side);
-    addElement(x + (BUMP_W/2) - (15 * S), isTop ? barY - TRENCH_L : barY + BAR_L, 30 * S, TRENCH_L, 'trench', side);
-}
-function initField() {
-    obstacles = []; zones = [];
-    addElement(156.61 * S, FIELD_H/2 - HUB_S/2, HUB_S, HUB_S, 'hub', 'red');
-    buildLane(156.61 * S, FIELD_H/2 - HUB_S/2, 'red', true); buildLane(156.61 * S, FIELD_H/2 - HUB_S/2, 'red', false);
-    addElement(0, TOWER_OFFSET, TOWER_DIM, TOWER_DIM, 'tower', 'red'); addElement(TOWER_DIM - TOWER_WALL_DEPTH, TOWER_OFFSET, TOWER_WALL_DEPTH, TOWER_DIM, 'towerWall', 'red');
-    addElement(FIELD_W - (156.61 * S) - HUB_S, FIELD_H/2 - HUB_S/2, HUB_S, HUB_S, 'hub', 'blue');
-    buildLane(FIELD_W - (156.61 * S) - BUMP_W, FIELD_H/2 - HUB_S/2, 'blue', true); buildLane(FIELD_W - (156.61 * S) - BUMP_W, FIELD_H/2 - HUB_S/2, 'blue', false);
-    addElement(FIELD_W - TOWER_DIM, FIELD_H - TOWER_OFFSET - TOWER_DIM, TOWER_DIM, TOWER_DIM, 'tower', 'blue'); addElement(FIELD_W - TOWER_DIM, FIELD_H - TOWER_OFFSET - TOWER_DIM, TOWER_WALL_DEPTH, TOWER_DIM, 'towerWall', 'blue');
-    let redDepotY = (82.32 * S) - (DEPOT_H / 2);
-    let blueDepotY = FIELD_H - (82.32 * S) - (DEPOT_H / 2);
-    addElement(0, redDepotY, DEPOT_W, DEPOT_H, 'depot', 'red');
-    addElement(FIELD_W - DEPOT_W, blueDepotY, DEPOT_W, DEPOT_H, 'depot', 'blue');
-}
-function spawnBalls() {
-    balls = [];
-    let rows = 30, cols = 12;
-    if (gameMode === 'triple') { rows = 45; cols = 24; }
-    let sx = (FIELD_W/2) - (cols*BALL_R*2)/2 + BALL_R, sy = (FIELD_H/2) - (rows*BALL_R*2)/2 + BALL_R;
-    for (let r=0; r<rows; r++) {
-        if (gameMode !== 'triple' && r >= 14 && r <= 15) continue;
-        for (let c=0; c<cols; c++) {
-            let bx = sx+(c*BALL_R*2), by = sy+(r*BALL_R*2);
-            let inHub = false;
-            obstacles.forEach(o => { if (o.type === 'hub' && bx > o.x-10 && bx < o.x+o.w+10 && by > o.y-10 && by < o.y+o.h+10) inHub = true; });
-            if (!inHub) balls.push({ x: bx, y: by, r: BALL_R, vx: 0, vy: 0, isStatic: true, frictionMod: 1.0, wasOnBump: false, owner: null });
-        }
-    }
-    let redDepotY = (82.32 * S) - (DEPOT_H / 2);
-    let blueDepotY = FIELD_H - (82.32 * S) - (DEPOT_H / 2);
-    let blueDepotX = FIELD_W - DEPOT_W;
-    let xStep = DEPOT_W / 4;
-    let yStep = DEPOT_H / 6;
-    for (let r = 0; r < 6; r++) {
-        for (let c = 0; c < 4; c++) {
-            balls.push({ x: c * xStep + xStep/2, y: redDepotY + r * yStep + yStep/2, r: BALL_R, vx: 0, vy: 0, isStatic: true, frictionMod: 1.0, wasOnBump: false, owner: null });
-            balls.push({ x: blueDepotX + c * xStep + xStep/2, y: blueDepotY + r * yStep + yStep/2, r: BALL_R, vx: 0, vy: 0, isStatic: true, frictionMod: 1.0, wasOnBump: false, owner: null });
-        }
-    }
-}
-
-function rectRect(r1x, r1y, r1w, r1h, r2) { return r1x < r2.x + r2.w && r1x + r1w > r2.x && r1y < r2.y + r2.h && r1y + r1h > r2.y; }
-function circleRectCollision(c, r) {
-    let cx = Math.max(r.x, Math.min(c.x, r.x + r.w)), cy = Math.max(r.y, Math.min(c.y, r.y + r.h)), dx = c.x - cx, dy = c.y - cy, distSq = dx*dx + dy*dy;
-    if (distSq < c.r*c.r) { let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; } return { hit: true, nx: dx/dist, ny: dy/dist, overlap: c.r - dist }; } return { hit: false };
-}
-
-function getInputs(type, playerId) {
-    let x=0, y=0, rot=0, act=false, toggleIn=false;
-    if (startCountdown > 0 || endCooldown > 0) return {x, y, rot, act, toggleIn};
-    if (type === 'keyboard') {
-        if (keys['KeyW']) y = -1; if (keys['KeyS']) y = 1;
-        if (keys['KeyA']) x = -1; if (keys['KeyD']) x = 1;
-        if (keys['KeyQ']) rot = -1; if (keys['KeyE']) rot = 1;
-        if (keys['Space']) act = true;
-        if (keys['KeyX']) toggleIn = true;
-    } else if (type === 'keyboard2') {
-        if (keys['ArrowUp']) y = -1; if (keys['ArrowDown']) y = 1;
-        if (keys['ArrowLeft']) x = -1; if (keys['ArrowRight']) x = 1;
-        if (keys['KeyN']) rot = -1; if (keys['KeyM']) rot = 1;
-        if (keys['ShiftRight']) act = true;
-        if (keys['ControlRight']) toggleIn = true;
-    } else if (type === 'controller' || type === 'controller2') {
-        let gpIdx;
-        if (playerId === 0) gpIdx = p1GamepadIndex;
-        else if (playerId === 1) gpIdx = p2GamepadIndex;
-        else if (playerId === 2) gpIdx = p3GamepadIndex;
-        else if (playerId === 3) gpIdx = p4GamepadIndex;
-        else gpIdx = 0;
-        const gp = navigator.getGamepads ? navigator.getGamepads()[gpIdx] : null;
-        if (!gp) return {x, y, rot, act, toggleIn};
-        if (gp.axes.length > 1) { x = gp.axes[0] || 0; y = gp.axes[1] || 0; }
-        if (gp.axes.length > 2) { rot = gp.axes[2] || 0; }
-        const deadzone = 0.18;
-        if (Math.abs(x) < deadzone) x = 0;
-        if (Math.abs(y) < deadzone) y = 0;
-        if (Math.abs(rot) < deadzone) rot = 0;
-        const b = gp.buttons;
-        const rightTrigger = (b[7] && b[7].value) || 0;
-        const faceButton = (b[0] && b[0].pressed) || (b[1] && b[1].pressed) || (b[2] && b[2].pressed) || (b[3] && b[3].pressed);
-        act = rightTrigger > 0.3 || faceButton;
-        const leftTrigger = (b[6] && b[6].value) || 0;
-        toggleIn = leftTrigger > 0.5;
-    }
-    return {x, y, rot, act, toggleIn};
-}
-
-window.addEventListener('gamepadconnected', handleGamepadConnected);
-window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
-setInterval(() => {
-    const gps = navigator.getGamepads();
-    for (let i = 0; i < gps.length; i++) {
-        if (gps[i] && (!gamepads[i] || gamepads[i].id !== gps[i].id)) gamepads[i] = gps[i];
-        else if (!gps[i] && gamepads[i]) gamepads[i] = null;
-    }
-    updateGamepadStatusUI();
-}, 500);
-window.addEventListener('DOMContentLoaded', () => {
-    setupInputDropdowns();
-    const gps = navigator.getGamepads();
-    for (let i = 0; i < gps.length; i++) if (gps[i]) gamepads[i] = gps[i];
-    updateGamepadStatusUI();
-});
-
+// COLLISION UTILITIES
 function getOBB(robot) {
     const center = { x: robot.x + robot.model.w/2, y: robot.y + robot.model.h/2 };
     const halfW = robot.model.w/2;
@@ -1476,6 +1503,133 @@ function resolveCollisionRobots(r1, r2, collision) {
     return true;
 }
 
+// BALL COLLISION
+function resolveBallCollision(b1, b2) {
+    let dx = b2.x - b1.x, dy = b2.y - b1.y, distSq = dx*dx + dy*dy, minDist = b1.r + b2.r;
+    if (distSq < minDist * minDist) {
+        let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; }
+        let nx = dx / dist, ny = dy / dist, overlap = (minDist - dist), force = overlap * 0.45;
+        b1.vx -= nx * force; b1.vy -= ny * force; b2.vx += nx * force; b2.vy += ny * force;
+        if (overlap > 0.1) { b1.isStatic = false; b2.isStatic = false; }
+        b1.x -= nx*overlap*0.05; b1.y -= ny*overlap*0.05; b2.x += nx*overlap*0.05; b2.y += ny*overlap*0.05;
+    }
+}
+
+let botRed = new Robot(80, FIELD_H/2 - 30, 'turret', 0);
+let botRed2 = new Robot(80, FIELD_H/2 + 10, 'turret', 0);
+let botBlue = new Robot(FIELD_W - 115, FIELD_H/2 - 30, 'double turret', Math.PI);
+let botBlue2 = new Robot(FIELD_W - 115, FIELD_H/2 + 10, 'double turret', Math.PI);
+let balls = [], projectiles = [], scoringBalls = [], obstacles = [], zones = [];
+let scoreRed = 0, scoreBlue = 0; const keys = {};
+
+function addElement(x, y, w, h, type, side) { const el = { x, y, w, h, type, side }; if (['hub', 'barrier', 'trench', 'towerWall'].includes(type)) obstacles.push(el); zones.push(el); }
+function buildLane(x, hubY, side, isTop) {
+    const bumpY = isTop ? hubY - BUMP_L : hubY + HUB_S; addElement(x, bumpY, BUMP_W, BUMP_L, 'bump', side);
+    const barY = isTop ? bumpY - BAR_L : bumpY + BUMP_L; addElement(x, barY, BUMP_W, BAR_L, 'barrier', side);
+    addElement(x + (BUMP_W/2) - (15 * S), isTop ? barY - TRENCH_L : barY + BAR_L, 30 * S, TRENCH_L, 'trench', side);
+}
+function initField() {
+    obstacles = []; zones = [];
+    addElement(156.61 * S, FIELD_H/2 - HUB_S/2, HUB_S, HUB_S, 'hub', 'red');
+    buildLane(156.61 * S, FIELD_H/2 - HUB_S/2, 'red', true); buildLane(156.61 * S, FIELD_H/2 - HUB_S/2, 'red', false);
+    addElement(0, TOWER_OFFSET, TOWER_DIM, TOWER_DIM, 'tower', 'red'); addElement(TOWER_DIM - TOWER_WALL_DEPTH, TOWER_OFFSET, TOWER_WALL_DEPTH, TOWER_DIM, 'towerWall', 'red');
+    addElement(FIELD_W - (156.61 * S) - HUB_S, FIELD_H/2 - HUB_S/2, HUB_S, HUB_S, 'hub', 'blue');
+    buildLane(FIELD_W - (156.61 * S) - BUMP_W, FIELD_H/2 - HUB_S/2, 'blue', true); buildLane(FIELD_W - (156.61 * S) - BUMP_W, FIELD_H/2 - HUB_S/2, 'blue', false);
+    addElement(FIELD_W - TOWER_DIM, FIELD_H - TOWER_OFFSET - TOWER_DIM, TOWER_DIM, TOWER_DIM, 'tower', 'blue'); addElement(FIELD_W - TOWER_DIM, FIELD_H - TOWER_OFFSET - TOWER_DIM, TOWER_WALL_DEPTH, TOWER_DIM, 'towerWall', 'blue');
+    let redDepotY = (82.32 * S) - (DEPOT_H / 2);
+    let blueDepotY = FIELD_H - (82.32 * S) - (DEPOT_H / 2);
+    addElement(0, redDepotY, DEPOT_W, DEPOT_H, 'depot', 'red');
+    addElement(FIELD_W - DEPOT_W, blueDepotY, DEPOT_W, DEPOT_H, 'depot', 'blue');
+}
+function spawnBalls() {
+    balls = [];
+    let rows = 30, cols = 12;
+    if (gameMode === 'triple') { rows = 45; cols = 24; }
+    let sx = (FIELD_W/2) - (cols*BALL_R*2)/2 + BALL_R, sy = (FIELD_H/2) - (rows*BALL_R*2)/2 + BALL_R;
+    for (let r=0; r<rows; r++) {
+        if (gameMode !== 'triple' && r >= 14 && r <= 15) continue;
+        for (let c=0; c<cols; c++) {
+            let bx = sx+(c*BALL_R*2), by = sy+(r*BALL_R*2);
+            let inHub = false;
+            obstacles.forEach(o => { if (o.type === 'hub' && bx > o.x-10 && bx < o.x+o.w+10 && by > o.y-10 && by < o.y+o.h+10) inHub = true; });
+            if (!inHub) balls.push({ x: bx, y: by, r: BALL_R, vx: 0, vy: 0, isStatic: true, frictionMod: 1.0, wasOnBump: false, owner: null, bonusValue: 0 });
+        }
+    }
+    let redDepotY = (82.32 * S) - (DEPOT_H / 2);
+    let blueDepotY = FIELD_H - (82.32 * S) - (DEPOT_H / 2);
+    let blueDepotX = FIELD_W - DEPOT_W;
+    let xStep = DEPOT_W / 4;
+    let yStep = DEPOT_H / 6;
+    for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 4; c++) {
+            balls.push({ x: c * xStep + xStep/2, y: redDepotY + r * yStep + yStep/2, r: BALL_R, vx: 0, vy: 0, isStatic: true, frictionMod: 1.0, wasOnBump: false, owner: null, bonusValue: 0 });
+            balls.push({ x: blueDepotX + c * xStep + xStep/2, y: blueDepotY + r * yStep + yStep/2, r: BALL_R, vx: 0, vy: 0, isStatic: true, frictionMod: 1.0, wasOnBump: false, owner: null, bonusValue: 0 });
+        }
+    }
+}
+
+function getInputs(type, playerId) {
+    let x=0, y=0, rot=0, act=false, toggleIn=false;
+    if (startCountdown > 0 || endCooldown > 0) return {x, y, rot, act, toggleIn};
+    if (type === 'keyboard') {
+        if (keys['KeyW']) y = -1; if (keys['KeyS']) y = 1;
+        if (keys['KeyA']) x = -1; if (keys['KeyD']) x = 1;
+        if (keys['KeyQ']) rot = -1; if (keys['KeyE']) rot = 1;
+        if (keys['Space']) act = true;
+        if (keys['KeyX']) toggleIn = true;
+    } else if (type === 'keyboard2') {
+        if (keys['ArrowUp']) y = -1; if (keys['ArrowDown']) y = 1;
+        if (keys['ArrowLeft']) x = -1; if (keys['ArrowRight']) x = 1;
+        if (keys['KeyN']) rot = -1; if (keys['KeyM']) rot = 1;
+        if (keys['ShiftRight']) act = true;
+        if (keys['ControlRight']) toggleIn = true;
+    } else if (type === 'controller' || type === 'controller2') {
+        let gpIdx;
+        if (playerId === 0) gpIdx = p1GamepadIndex;
+        else if (playerId === 1) gpIdx = p2GamepadIndex;
+        else if (playerId === 2) gpIdx = p3GamepadIndex;
+        else if (playerId === 3) gpIdx = p4GamepadIndex;
+        else gpIdx = 0;
+        const gp = navigator.getGamepads ? navigator.getGamepads()[gpIdx] : null;
+        if (!gp) return {x, y, rot, act, toggleIn};
+        if (gp.axes.length > 1) { x = gp.axes[0] || 0; y = gp.axes[1] || 0; }
+        if (gp.axes.length > 2) { rot = gp.axes[2] || 0; }
+        const deadzone = 0.18;
+        if (Math.abs(x) < deadzone) x = 0;
+        if (Math.abs(y) < deadzone) y = 0;
+        if (Math.abs(rot) < deadzone) rot = 0;
+        const b = gp.buttons;
+        const rightTrigger = (b[7] && b[7].value) || 0;
+        const faceButton = (b[0] && b[0].pressed) || (b[1] && b[1].pressed) || (b[2] && b[2].pressed) || (b[3] && b[3].pressed);
+        act = rightTrigger > 0.3 || faceButton;
+        const leftTrigger = (b[6] && b[6].value) || 0;
+        toggleIn = leftTrigger > 0.5;
+    }
+    return {x, y, rot, act, toggleIn};
+}
+
+window.addEventListener('gamepadconnected', handleGamepadConnected);
+window.addEventListener('gamepaddisconnected', handleGamepadDisconnected);
+setInterval(() => {
+    const gps = navigator.getGamepads();
+    for (let i = 0; i < gps.length; i++) {
+        if (gps[i] && (!gamepads[i] || gamepads[i].id !== gps[i].id)) gamepads[i] = gps[i];
+        else if (!gps[i] && gamepads[i]) gamepads[i] = null;
+    }
+    updateGamepadStatusUI();
+}, 500);
+window.addEventListener('DOMContentLoaded', () => {
+    setupInputDropdowns();
+    const gps = navigator.getGamepads();
+    for (let i = 0; i < gps.length; i++) if (gps[i]) gamepads[i] = gps[i];
+    updateGamepadStatusUI();
+});
+
+function circleRectCollision(c, r) {
+    let cx = Math.max(r.x, Math.min(c.x, r.x + r.w)), cy = Math.max(r.y, Math.min(c.y, r.y + r.h)), dx = c.x - cx, dy = c.y - cy, distSq = dx*dx + dy*dy;
+    if (distSq < c.r*c.r) { let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; } return { hit: true, nx: dx/dist, ny: dy/dist, overlap: c.r - dist }; } return { hit: false };
+}
+
 function update() {
     tickMatch(); updateHudBar(); const now = Date.now();
     let p1State = getInputs(p1Input, 0), p2State = getInputs(p2Input, 1), p3State = getInputs(p3Input, 2), p4State = getInputs(p4Input, 3);
@@ -1492,17 +1646,13 @@ function update() {
     if (p2Enabled) botRed2.update(p2State.x, p2State.y, p2State.rot, p2State.act, p2State.toggleIn, 'red', obstacles, zones, null);
     if (p3Enabled) botBlue.update(p3State.x, p3State.y, p3State.rot, p3State.act, p3State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
     if (p4Enabled) botBlue2.update(p4State.x, p4State.y, p4State.rot, p4State.act, p4State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
-    // Tick barricade life and remove expired ones, then sync each bot's barricadeCount
-    barricades.forEach(b => { b.life--; });
-    barricades = barricades.filter(b => b.life > 0);
-    for (const bot of [botRed, botRed2, botBlue, botBlue2]) {
-        if (bot.name === 'Barricade') {
-            // Re-sync placedBarricades to only those still alive
-            bot.placedBarricades = bot.placedBarricades.filter(b => barricades.includes(b));
-            bot.barricadeCount = bot.placedBarricades.length;
-        }
+    
+    // Update barricade lifetimes
+    for (let b of barricades) {
+        b.life = Math.max(0, 8000 - (now - b.born));
     }
-
+    barricades = barricades.filter(b => b.life > 0);
+    
     if (gameMode === 'powerups') {
         if (matchRunning && now >= nextPowerupSpawnTime && powerups.length < 6) { spawnPowerup(now); nextPowerupSpawnTime = now + 2200 + Math.random() * 2600; }
         powerups = powerups.filter(p => now < p.expires);
@@ -1527,7 +1677,7 @@ function update() {
     scoringBalls = scoringBalls.filter(sb => {
         if (now >= sb.exitTime) {
             let dir = sb.side === 'red' ? 1 : -1, eS = 4 + Math.random()*0.9, eA = (Math.random()-0.5)*0.8;
-            balls.push({ x: sb.side==='red' ? sb.hubX+HUB_S+BALL_R+2 : sb.hubX-BALL_R-2, y: sb.hubY+HUB_S/2, r: BALL_R, vx: Math.cos(eA)*(dir*eS), vy: Math.sin(eA)*eS, isStatic: false, frictionMod: 0.985, rollTimer: now + 1500, wasOnBump: false, owner: sb.side, noCollideUntil: now + 300 });
+            balls.push({ x: sb.side==='red' ? sb.hubX+HUB_S+BALL_R+2 : sb.hubX-BALL_R-2, y: sb.hubY+HUB_S/2, r: BALL_R, vx: Math.cos(eA)*(dir*eS), vy: Math.sin(eA)*eS, isStatic: false, frictionMod: 0.985, rollTimer: now + 1500, wasOnBump: false, owner: sb.side, noCollideUntil: now + 300, bonusValue: 0 });
             return false;
         }
         return true;
@@ -1547,7 +1697,6 @@ function update() {
         if (b.y < b.r) { b.y = b.r; b.vy *= -0.2; b.isStatic = false; } if (b.y > FIELD_H - b.r) { b.y = FIELD_H - b.r; b.vy *= -0.2; b.isStatic = false; }
         obstacles.forEach(o => { if (o.type !== 'trench') { let col = circleRectCollision(b, o); if (col.hit) { b.isStatic = false; b.vx *= 0.8; b.vy *= 0.8; b.x += col.nx * col.overlap; b.y += col.ny * col.overlap; } } });
         for (let bar of barricades) {
-            // Transform ball into barricade local space for OBB-circle collision
             const ang = bar.angle || 0;
             const dx = b.x - bar.cx, dy = b.y - bar.cy;
             const lx = dx * Math.cos(-ang) - dy * Math.sin(-ang);
@@ -1580,16 +1729,53 @@ function update() {
         return true;
     });
     projectiles = projectiles.filter(p => {
+        // Echo wave - pushes balls
+        if (p.isEcho) {
+            p.x += p.vx; p.y += p.vy;
+            // Push nearby balls away
+            for (let ball of balls) {
+                let dx = ball.x - p.x, dy = ball.y - p.y, dist = Math.hypot(dx, dy);
+                if (dist < p.pushRadius && dist > 5) {
+                    let angle = Math.atan2(dy, dx);
+                    let strength = p.pushStrength * (1 - dist / p.pushRadius);
+                    ball.vx += Math.cos(angle) * strength;
+                    ball.vy += Math.sin(angle) * strength;
+                    ball.isStatic = false;
+                }
+            }
+            // Scoring
+            let scored = false;
+            zones.forEach(z => {
+                if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x - (z.x + z.w/2), p.y - (z.y + z.h/2)) < HUB_S/2) {
+                    scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
+                    scored = true;
+                    const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+                    if (matchRunning && isHubActive) {
+                        if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
+                        else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
+                    }
+                }
+            });
+            if (scored) return false;
+            if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
+            // Echo field lingering effect for passing shots
+            if (p.echoField && p.age === undefined) {
+                p.age = 0;
+            }
+            if (p.echoField) {
+                p.age++;
+                if (p.age > 90) return false;
+            }
+            return true;
+        }
+        
         if (p.isLob) {
             p.lobAge++; const t = Math.min(1, p.lobAge / p.lobDuration);
             p.x = p.lobStartX + (p.lobTargetX - p.lobStartX) * t;
             p.y = p.lobStartY + (p.lobTargetY - p.lobStartY) * t;
             p.r = 6 + Math.sin(t * Math.PI) * 7;
-
-            // Gravity well: pull nearby balls; absorb them into consumed count
-            const pullRadius = 35;
-            const pullStrength = 0.7;
             if (!p.consumedCount) p.consumedCount = 0;
+            const pullRadius = 35, pullStrength = 0.7;
             for (let bi = balls.length - 1; bi >= 0; bi--) {
                 const bl = balls[bi];
                 const dx = p.x - bl.x, dy = p.y - bl.y;
@@ -1602,19 +1788,26 @@ function update() {
                     if (d < 10) { p.consumedCount++; balls.splice(bi, 1); }
                 }
             }
-
             if (t >= 1) {
-                const z = zones.find(zz => zz.type === 'hub' && zz.side === p.owner);
-                if (z) {
-                    const total = 1 + (p.consumedCount || 0);
-                    const hubCx = z.x + z.w/2, hubCy = z.y + z.h/2;
-                    const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
-                    for (let i = 0; i < total; i++) {
-                        const ejectDelay = i * 80;
-                        scoringBalls.push({ exitTime: now + 300 + ejectDelay, hubX: z.x, hubY: z.y, side: z.side });
-                        if (matchRunning && isHubActive) {
-                            if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed++; }
-                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue++; }
+                if (p.isPass) {
+                    const dropCount = 1 + (p.consumedCount || 0);
+                    for (let i = 0; i < dropCount; i++) {
+                        const angle = (Math.PI * 2 * i) / dropCount;
+                        const spread = dropCount > 1 ? BALL_R * 2.5 : 0;
+                        balls.push({ x: p.x + Math.cos(angle) * spread, y: p.y + Math.sin(angle) * spread, r: BALL_R, vx: Math.cos(angle) * (dropCount > 1 ? 0.8 : 0), vy: Math.sin(angle) * (dropCount > 1 ? 0.8 : 0), isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+                    }
+                } else {
+                    const z = zones.find(zz => zz.type === "hub" && zz.side === p.owner);
+                    if (z) {
+                        const total = 1 + (p.consumedCount || 0);
+                        const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+                        for (let i = 0; i < total; i++) {
+                            const ejectDelay = i * 80;
+                            scoringBalls.push({ exitTime: now + 300 + ejectDelay, hubX: z.x, hubY: z.y, side: z.side });
+                            if (matchRunning && isHubActive) {
+                                if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
+                                else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
+                            }
                         }
                     }
                 }
@@ -1622,8 +1815,48 @@ function update() {
             }
             return true;
         }
-        p.x+=p.vx; p.y+=p.vy; if (p.isPass) { p.vx*=0.975; p.vy*=0.975; }
-        // Howitzer pass: also pulls and absorbs nearby balls; drops all on stop
+        
+        // PLASMA BALL HANDLING
+        if (p.isPlasmaBall) {
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= 0.99; p.vy *= 0.99;
+            
+            const zapRadius = 18;
+            for (let bi = 0; bi < balls.length; bi++) {
+                const bl = balls[bi];
+                const dx = p.x - bl.x, dy = p.y - bl.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < zapRadius && !p.zappedBalls.includes(bi)) {
+                    p.zappedBalls.push(bi);
+                    p.zapCount = (p.zapCount || 0) + 1;
+                    bl.bonusValue = (bl.bonusValue || 0) + 1/3;
+                    p.lightningFlashes.push({ x: bl.x, y: bl.y, age: 0 });
+                }
+            }
+            for (let l of p.lightningFlashes) l.age++;
+            p.lightningFlashes = p.lightningFlashes.filter(l => l.age < 6);
+            
+            let scored = false;
+            zones.forEach(z => {
+                if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x - (z.x + z.w/2), p.y - (z.y + z.h/2)) < HUB_S/2) {
+                    const totalPoints = 1 + (p.zapCount || 0) / 3;
+                    const isActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+                    if (matchRunning && isActive) {
+                        if (p.owner === 'red') { scoreRed += totalPoints; autoScoreRed += totalPoints; }
+                        else { scoreBlue += totalPoints; autoScoreBlue += totalPoints; }
+                        document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed);
+                        document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue);
+                    }
+                    scored = true;
+                }
+            });
+            if (scored) return false;
+            if (p.x < 5 || p.x > FIELD_W - 5 || p.y < 5 || p.y > FIELD_H - 5) return false;
+            return true;
+        }
+        
+        p.x += p.vx; p.y += p.vy;
+        if (p.isPass) { p.vx *= 0.975; p.vy *= 0.975; }
         if (p.isPass && p.isHowitzerPass) {
             if (!p.consumedCount) p.consumedCount = 0;
             const pullRadius = 35, pullStrength = 0.7;
@@ -1667,39 +1900,50 @@ function update() {
             }
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
-        // Phantom: passes through everything - no collision with walls, only scoring
+        // PHANTOM SHOT FIX - passes through walls, drops balls on pass
         if (p.isPhantom) {
-            let scored = false;
-            zones.forEach(z => {
-                if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
-                    scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
-                    scored = true;
-                    const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
-                    if (matchRunning && isHubActive) {
-                        if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed++; }
-                        else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue++; }
+            if (!p.isPass) {
+                let scored = false;
+                zones.forEach(z => {
+                    if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
+                        scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
+                        scored = true;
+                        const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+                        if (matchRunning && isHubActive) {
+                            if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
+                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
+                        }
                     }
+                });
+                return !scored;
+            } else {
+                p.x += p.vx;
+                p.y += p.vy;
+                if (Math.hypot(p.vx, p.vy) < 0.95) {
+                    balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+                    return false;
                 }
-            });
-            return !scored;
+                if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
+                return true;
+            }
         }
         let hitWall = false; const wallR = p.isRicochet ? 0.944 : 0.4;
         if (p.x < p.r) { if (p.isSniper) return false; p.x = p.r; p.vx = Math.abs(p.vx)*wallR; hitWall = true; }
         else if (p.x > FIELD_W-p.r) { if (p.isSniper) return false; p.x = FIELD_W-p.r; p.vx = -Math.abs(p.vx)*wallR; hitWall = true; }
         if (p.y < p.r) { if (p.isSniper) return false; p.y = p.r; p.vy = Math.abs(p.vy)*wallR; hitWall = true; }
         else if (p.y > FIELD_H-p.r) { if (p.isSniper) return false; p.y = FIELD_H-p.r; p.vy = -Math.abs(p.vy)*wallR; hitWall = true; }
-        if (hitWall) { p.wallHits = (p.wallHits || 0) + 1; const maxHits = p.isRicochet ? 4 : 3; const minSpd = p.isRicochet ? 0.5 : 1.2; if (p.wallHits >= maxHits || Math.hypot(p.vx, p.vy) < minSpd) { if (!p.isPhantom) balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner }); return false; } }
+        if (hitWall) { p.wallHits = (p.wallHits || 0) + 1; const maxHits = p.isRicochet ? 4 : 3; const minSpd = p.isRicochet ? 0.5 : 1.2; if (p.wallHits >= maxHits || Math.hypot(p.vx, p.vy) < minSpd) { if (!p.isPhantom) balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner, bonusValue: 0 }); return false; } }
         obstacles.forEach(o => { if (o.type==='hub' && !p.isPass && !p.isSniper && !p.isRicochet && o.side!==p.owner) { let col = circleRectCollision(p, o); if(col.hit){p.vx*=-0.2;p.vy*=-0.2;} } });
         if (p.isRicochet) { obstacles.forEach(o => { if (o.type==='hub' && o.side!==p.owner) { const col = circleRectCollision(p, o); if (col.hit) { const cx = o.x + o.w/2, cy = o.y + o.h/2, dx = p.x - cx, dy = p.y - cy; if (Math.abs(dx)/o.w > Math.abs(dy)/o.h) { p.vx = Math.sign(dx)*Math.abs(p.vx)*0.95; p.x = cx + Math.sign(dx)*(o.w/2 + p.r + 0.5); } else { p.vy = Math.sign(dy)*Math.abs(p.vy)*0.95; p.y = cy + Math.sign(dy)*(o.h/2 + p.r + 0.5); } p.wallHits = (p.wallHits || 0) + 1; } } }); }
         if (!p.isSniper && !p.isLob) { obstacles.forEach(o => { if (o.type !== 'hub' || o.side !== p.owner) return; const innerX = o.side === 'red' ? o.x + o.w : o.x; const withinY = p.y > o.y - p.r - 2 && p.y < o.y + o.h + p.r + 2; if (!withinY) return; if (o.side === 'red') { if (p.vx < 0 && p.x - p.r < innerX && p.x > innerX - 4) { p.x = innerX + p.r; p.vx = Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; } } else { if (p.vx > 0 && p.x + p.r > innerX && p.x < innerX + 4) { p.x = innerX - p.r; p.vx = -Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; } } }); }
         let scored = false;
-        zones.forEach(z => { if (z.type === 'hub' && z.side === p.owner && !p.isPass && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) { if (!p.isPhantom) scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side }); scored = true; let isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive; if (matchRunning && (isHubActive || p.isSniper)) { if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed++; } else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue++; } } } });
+        zones.forEach(z => { if (z.type === 'hub' && z.side === p.owner && !p.isPass && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) { if (!p.isPhantom) scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side }); scored = true; let isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive; if (matchRunning && (isHubActive || p.isSniper)) { if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; } else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; } } } });
         if (p.isPass && Math.hypot(p.vx, p.vy) < 0.95) {
             const dropCount = p.isHowitzerPass ? 1 + (p.consumedCount || 0) : 1;
             for (let i = 0; i < dropCount; i++) {
                 const angle = (Math.PI * 2 * i) / dropCount;
                 const spread = dropCount > 1 ? BALL_R * 2.5 : 0;
-                balls.push({ x: p.x + Math.cos(angle) * spread, y: p.y + Math.sin(angle) * spread, r: BALL_R, vx: p.vx * 0.35 + Math.cos(angle) * (dropCount > 1 ? 0.8 : 0), vy: p.vy * 0.35 + Math.sin(angle) * (dropCount > 1 ? 0.8 : 0), isStatic: false, wasOnBump: false, owner: p.owner });
+                balls.push({ x: p.x + Math.cos(angle) * spread, y: p.y + Math.sin(angle) * spread, r: BALL_R, vx: p.vx * 0.35 + Math.cos(angle) * (dropCount > 1 ? 0.8 : 0), vy: p.vy * 0.35 + Math.sin(angle) * (dropCount > 1 ? 0.8 : 0), isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
             }
             return false;
         }
@@ -1753,54 +1997,44 @@ function draw() {
             ctx.strokeStyle = `rgba(${c}, 0.8)`; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); ctx.setLineDash([]);
         } else { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); }
     });
-    // Draw barricades
+    
     barricades.forEach(b => {
-        const cx = b.cx !== undefined ? b.cx : b.x + b.w/2;
-        const cy = b.cy !== undefined ? b.cy : b.y + b.h/2;
+        const cx = b.cx;
+        const cy = b.cy;
         const hw = b.w/2, hh = b.h/2;
         const ang = b.angle || 0;
-        const r = Math.min(hw, hh) - 2;
-        const progress = b.life / (b.maxLife || 600);
-
+        const progress = b.life / b.maxLife;
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(ang);
-
-        // Rotated square
-        ctx.fillStyle = 'rgba(250,204,21,0.7)';
+        ctx.fillStyle = 'rgba(250,204,21,0.85)';
         ctx.fillRect(-hw, -hh, b.w, b.h);
         ctx.strokeStyle = '#facc15';
         ctx.lineWidth = 2;
         ctx.strokeRect(-hw, -hh, b.w, b.h);
-
-        // Timer circle (drawn in rotated space, always centered)
-        // Red base
+        const radius = Math.min(hw, hh) - 3;
         ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.fillStyle = '#ef4444';
         ctx.fill();
-
-        // Green sweep
         if (progress > 0) {
             const startAngle = -Math.PI / 2;
             const endAngle = startAngle + (Math.PI * 2 * progress);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.arc(0, 0, r, startAngle, endAngle);
+            ctx.arc(0, 0, radius, startAngle, endAngle);
             ctx.closePath();
             ctx.fillStyle = '#22c55e';
             ctx.fill();
         }
-
-        // Circle border
         ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-
         ctx.restore();
     });
+    
     if (gameMode === 'powerups') {
         powerups.forEach(p => {
             const colors = { speed: '#22c55e', ammo: '#fbbf24', shield: '#a855f7', score: '#ef4444' };
@@ -1838,7 +2072,17 @@ function draw() {
     }
     ctx.fillStyle = "#fbbf24"; balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); });
     projectiles.forEach(p => {
-        if (p.isBoomerang) {
+        if (p.isEcho) {
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 4, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+            ctx.fill();
+        } else if (p.isBoomerang) {
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(167,139,250,0.3)'; ctx.fill();
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
@@ -1864,6 +2108,18 @@ function draw() {
             ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(t*Math.PI)*18, p.r + 2, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#7c3aed';
             ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(t*Math.PI)*18, p.r, 0, Math.PI*2); ctx.fill();
+        } else if (p.isPlasmaBall) {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(236,72,153,0.4)'; ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 1, 0, Math.PI*2);
+            ctx.fillStyle = '#ec4899'; ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 3, 0, Math.PI*2);
+            ctx.fillStyle = '#facc15'; ctx.fill();
+            if (p.lightningFlashes) p.lightningFlashes.forEach(f => {
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(f.x, f.y);
+                ctx.strokeStyle = `rgba(255, 220, 80, ${1 - f.age / 5})`;
+                ctx.lineWidth = 2.5; ctx.stroke();
+            });
         } else if (p.isVortex) {
             if (p.isPlasma) {
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2.5, 0, Math.PI*2);
@@ -1956,8 +2212,7 @@ function getBlue2StartPos(idx) {
     else if (idx === 4) { x = bumpX + BUMP_W + bumpGap; y = (FIELD_H/2 + HUB_S/2 + BUMP_L/2) - robotHalf; }
     return {x, y, a: Math.PI};
 }
-function resetBots() { const r1 = getRedStartPos(p1StartIdx); botRed.x = r1.x; botRed.y = r1.y; botRed.vx=0; botRed.vy=0; botRed.vAngle=0; botRed.angle=r1.a; botRed.prevIntakeInput = false; botRed.prevAbilityInput = false; if (p2Enabled) { const r2 = getRed2StartPos(p2StartIdx); botRed2.x = r2.x; botRed2.y = r2.y; botRed2.angle = r2.a; botRed2.vx=0; botRed2.vy=0; botRed2.vAngle=0; botRed2.prevIntakeInput = false; botRed2.prevAbilityInput = false; } else { botRed2.x = -1000; botRed2.y = -1000; } if (p3Enabled) { const b1 = getBlueStartPos(p3StartIdx); botBlue.x = b1.x; botBlue.y = b1.y; botBlue.angle = b1.a; botBlue.vx=0; botBlue.vy=0; botBlue.vAngle=0; botBlue.prevIntakeInput = false; botBlue.prevAbilityInput = false; } else { botBlue.x = -1000; botBlue.y = -1000; } if (p4Enabled) { const b2 = getBlue2StartPos(p4StartIdx); botBlue2.x = b2.x; botBlue2.y = b2.y; botBlue2.angle = b2.a; botBlue2.vx=0; botBlue2.vy=0; botBlue2.vAngle=0; botBlue2.prevIntakeInput = false; botBlue2.prevAbilityInput = false; } else { botBlue2.x = -1000; botBlue2.y = -1000; } p1UnstickUsed = false; p2UnstickUsed = false; p3UnstickUsed = false; p4UnstickUsed = false; p1FreezeUntil = 0; p2FreezeUntil = 0; p3FreezeUntil = 0; p4FreezeUntil = 0;  }
-
+function resetBots() { const r1 = getRedStartPos(p1StartIdx); botRed.x = r1.x; botRed.y = r1.y; botRed.vx=0; botRed.vy=0; botRed.vAngle=0; botRed.angle=r1.a; botRed.prevIntakeInput = false; botRed.prevAbilityInput = false; if (p2Enabled) { const r2 = getRed2StartPos(p2StartIdx); botRed2.x = r2.x; botRed2.y = r2.y; botRed2.angle = r2.a; botRed2.vx=0; botRed2.vy=0; botRed2.vAngle=0; botRed2.prevIntakeInput = false; botRed2.prevAbilityInput = false; } else { botRed2.x = -1000; botRed2.y = -1000; } if (p3Enabled) { const b1 = getBlueStartPos(p3StartIdx); botBlue.x = b1.x; botBlue.y = b1.y; botBlue.angle = b1.a; botBlue.vx=0; botBlue.vy=0; botBlue.vAngle=0; botBlue.prevIntakeInput = false; botBlue.prevAbilityInput = false; } else { botBlue.x = -1000; botBlue.y = -1000; } if (p4Enabled) { const b2 = getBlue2StartPos(p4StartIdx); botBlue2.x = b2.x; botBlue2.y = b2.y; botBlue2.angle = b2.a; botBlue2.vx=0; botBlue2.vy=0; botBlue2.vAngle=0; botBlue2.prevIntakeInput = false; botBlue2.prevAbilityInput = false; } else { botBlue2.x = -1000; botBlue2.y = -1000; } p1UnstickUsed = false; p2UnstickUsed = false; p3UnstickUsed = false; p4UnstickUsed = false; p1FreezeUntil = 0; p2FreezeUntil = 0; p3FreezeUntil = 0; p4FreezeUntil = 0; }
 
 function setupStartDropdowns() {
     ['p1','p2','p3','p4'].forEach(player => {
@@ -1981,8 +2236,6 @@ setupStartDropdowns();
 
 document.getElementById('toggle-controls-btn-blue').onclick = function() { const p = document.getElementById('control-panel-blue'); p.classList.toggle('collapsed'); this.innerText = p.classList.contains('collapsed') ? '☰ SHOW BLUE' : '☰ HIDE BLUE'; };
 document.getElementById('toggle-controls-btn-red').onclick = function() { const p = document.getElementById('control-panel-red'); p.classList.toggle('collapsed'); this.innerText = p.classList.contains('collapsed') ? '☰ SHOW RED' : '☰ HIDE RED'; };
-
-// Per-card collapse (− button on each player card header)
 document.querySelectorAll('.player-card-collapse').forEach(btn => {
     btn.addEventListener('click', () => {
         const card = document.getElementById(btn.dataset.target);
@@ -1994,7 +2247,6 @@ document.querySelectorAll('.player-card-collapse').forEach(btn => {
 document.getElementById('show-controls-btn-blue').onclick = function() { document.getElementById('controls-modal').classList.remove('hidden'); };
 document.getElementById('show-controls-btn-red').onclick = function() { document.getElementById('controls-modal').classList.remove('hidden'); };
 document.getElementById('close-controls-btn').onclick = function() { document.getElementById('controls-modal').classList.add('hidden'); };
-
 document.getElementById('team-mode-toggle-center').onclick = function() { sameTeamMode = !sameTeamMode; this.innerText = 'TEAM: ' + (sameTeamMode ? 'CO-OP (RED)' : 'STARTERED'); ['bot-blue-select','bot-blue2-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = (sameTeamMode ? 'red-team' : 'blue-team') + ' bot-select'; }); ['p3-input-select','p4-input-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'input-select ' + (sameTeamMode ? 'red-team' : 'blue-team'); }); ['p3-start-select','p4-start-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'start-select ' + (sameTeamMode ? 'red-team' : 'blue-team'); }); document.getElementById('reset-btn-center').click(); };
 document.getElementById('game-mode-toggle-center').onclick = function() { const modes = ['standard', 'triple', 'slippery', 'rapid', 'powerups', 'random']; const labels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID FIRE', 'POWER-UPS', 'RANDOM SHIFTS']; let idx = (modes.indexOf(gameMode) + 1) % modes.length; gameMode = modes[idx]; this.innerText = 'MODE: ' + labels[idx]; document.getElementById('reset-btn-center').click(); };
 document.getElementById('p2-toggle').onclick = () => { p2Enabled = !p2Enabled; const btn = document.getElementById('p2-toggle'); btn.innerText = 'P2: ' + (p2Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p2Enabled); resetBots(); };
@@ -2004,13 +2256,15 @@ document.getElementById('start-btn-main').onclick = () => {
     if (matchRunning || startCountdown > 0) {
         matchRunning = false; startCountdown = 0; endCooldown = 0;
         if (countdownInterval) clearInterval(countdownInterval);
+        // CLEAR ALL PROJECTILES when match is stopped/cancelled
+        projectiles = [];
+        scoringBalls = [];
         document.getElementById('start-btn-main').innerText = '▶ START MATCH';
         document.getElementById('start-btn-main').classList.remove('running');
         document.getElementById('match-clock').className = 'stopped';
         document.getElementById('match-clock').innerText = '2:20';
         document.getElementById('phase-label').innerText = 'MATCH STOPPED';
         document.getElementById('phase-timer').innerText = '';
-        
         updateHubUI(false, false);
     } else {
         document.getElementById('control-panel-blue').classList.add('collapsed');
@@ -2023,6 +2277,9 @@ document.getElementById('start-btn-main').onclick = () => {
         botRed.inventory = 0; botRed2.inventory = 0; botBlue.inventory = 0; botBlue2.inventory = 0;
         document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0;
         autoScoreRed = 0; autoScoreBlue = 0; autoPhaseEnded = false; currentPhaseIdx = -1;
+        // CLEAR ALL PROJECTILES on new match start
+        projectiles = [];
+        scoringBalls = [];
         resetModeState(); spawnBalls(); resetBots();
         startCountdown = 3;
         document.getElementById('match-clock').innerText = startCountdown;
@@ -2051,7 +2308,7 @@ document.getElementById('bot-red-select').onchange = function() { if (matchRunni
 document.getElementById('bot-red2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed2.name; return; } botRed2.setModel(this.value); };
 document.getElementById('bot-blue-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue.name; return; } botBlue.setModel(this.value); };
 document.getElementById('bot-blue2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue2.name; return; } botBlue2.setModel(this.value); };
-document.getElementById('reset-btn-center').onclick = () => { matchRunning = false; scoreRed = 0; scoreBlue = 0; startCountdown = 0; endCooldown = 0; if (countdownInterval) clearInterval(countdownInterval); document.getElementById('scoreRedDisplay').innerText = 0; document.getElementById('scoreBlueDisplay').innerText = 0; botRed.inventory = 0; botRed2.inventory = 0; botBlue.inventory = 0; botBlue2.inventory = 0; document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0; matchElapsed = 0; resetModeState(); document.getElementById('match-clock').innerText = '2:20'; document.getElementById('match-clock').className = 'stopped'; document.getElementById('phase-label').innerText = 'MATCH NOT STARTED'; document.getElementById('phase-timer').innerText = ''; document.getElementById('start-btn-main').innerText = '▶ START MATCH'; document.getElementById('start-btn-main').classList.remove('running');  updateHubUI(false, false); spawnBalls(); resetBots(); };
+document.getElementById('reset-btn-center').onclick = () => { matchRunning = false; scoreRed = 0; scoreBlue = 0; startCountdown = 0; endCooldown = 0; if (countdownInterval) clearInterval(countdownInterval); document.getElementById('scoreRedDisplay').innerText = 0; document.getElementById('scoreBlueDisplay').innerText = 0; botRed.inventory = 0; botRed2.inventory = 0; botBlue.inventory = 0; botBlue2.inventory = 0; document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0; matchElapsed = 0; resetModeState(); projectiles = []; scoringBalls = []; document.getElementById('match-clock').innerText = '2:20'; document.getElementById('match-clock').className = 'stopped'; document.getElementById('phase-label').innerText = 'MATCH NOT STARTED'; document.getElementById('phase-timer').innerText = ''; document.getElementById('start-btn-main').innerText = '▶ START MATCH'; document.getElementById('start-btn-main').classList.remove('running');  updateHubUI(false, false); spawnBalls(); resetBots(); };
 
 document.getElementById('control-panel-blue').classList.add('collapsed');
 document.getElementById('control-panel-red').classList.add('collapsed');
