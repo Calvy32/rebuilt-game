@@ -1763,7 +1763,7 @@ function update() {
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
         // Phantom shot - passes through walls, drops balls on pass
-    if (p.isPhantom) {
+        if (p.isPhantom) {
             // Check for scoring (only if not a pass)
             if (!p.isPass) {
                 let scored = false;
@@ -1791,7 +1791,6 @@ function update() {
                 return true;
             }
         }
-}
         let hitWall = false; const wallR = p.isRicochet ? 0.944 : 0.4;
         if (p.x < p.r) { if (p.isSniper) return false; p.x = p.r; p.vx = Math.abs(p.vx)*wallR; hitWall = true; }
         else if (p.x > FIELD_W-p.r) { if (p.isSniper) return false; p.x = FIELD_W-p.r; p.vx = -Math.abs(p.vx)*wallR; hitWall = true; }
