@@ -1773,8 +1773,15 @@ function update() {
                         scored = true;
                         const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
                         if (matchRunning && isHubActive) {
-                            if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
-                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
+                            if (p.owner === 'red') {
+                                scoreRed++;
+                                document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed);
+                                if (!autoPhaseEnded) autoScoreRed++;
+                            } else {
+                                scoreBlue++;
+                                document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue);
+                                if (!autoPhaseEnded) autoScoreBlue++;
+                            }
                         }
                     }
                 });
