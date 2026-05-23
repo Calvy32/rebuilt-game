@@ -922,11 +922,12 @@ function aiDecide(robot, alliance, isHubActive) {
     const rcx = robot.x + robot.model.w / 2;
     const rcy = robot.y + robot.model.h / 2;
     const hubActive = isHubActive(alliance);
+    const hasBalls = robot.inventory > 0;
     const isTurret = robot.model.autoAim === true;
     
-    // Separate top/bottom based on robot identity
-    const isTopBot = (robot === botBlue);  // P3 goes top
-    const isBottomBot = (robot === botBlue2); // P4 goes bottom
+    // Separate top/bottom routes
+    const isTopBot = (robot === botBlue);
+    const isBottomBot = (robot === botBlue2);
     
     // ── GEOMETRY ──────────────────────────────────────────────────────────────
     const redBumpX = 156.61 * S;
@@ -939,41 +940,160 @@ function aiDecide(robot, alliance, isHubActive) {
     
     const centerMinX = alliance === 'red' ? ownBar2 : oppBar1;
     const centerMaxX = alliance === 'red' ? oppBar1 : ownBar2;
+    const centerX = (centerMinX + centerMaxX) / 2;
     
-    // Path Y positions (top and bottom routes)
-    const topRouteY = FIELD_H * 0.25;
-    const bottomRouteY = FIELD_H * 0.75;
+    // Top/bottom route Y positions
+    const topRouteY = FIELD_H * 0.28;
+    const bottomRouteY = FIELD_H * 0.72;
     const centerY = FIELD_H / 2;
+    
+    // Count balls by zone (for collection priority)
+    let ownBalls = 0, centerBalls = 0, oppBalls = 0;
+    for (const b of balls) {
+        if (b.x < ownBar1 && alliance === 'red' || b.x > ownBar2 && alliance === 'blue') ownBalls++;
+        else if (b.x >= centerMinX && b.x <= centerMaxX) centerBalls++;
+        else oppBalls++;
+    }
     
     const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
     const hubCX = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? redBumpX - 80 : blueBumpX + BUMP_W + 80);
     const hubCY = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
     
+    // Shooting position (stand just outside hub)
+    function hubShootSpot() {
+        if (!ownHub) return { x: hubCX, y: hubCY };
+        const clearance = 38;
+        const standY = rcy < hubCY ? ownHub.y - clearance : ownHub.y + ownHub.h + clearance;
+        return { x: hubCX, y: standY };
+    }
+    
     let targetX = null, targetY = null;
     let act = false;
     
-    // SCORING MODE: Hub active
+    // ── SIMPLE RULES ──────────────────────────────────────────────────────────
+    
+    // RULE 1: Hub ACTIVE → SCORE (go to own hub)
     if (hubActive && ownHub) {
-        targetX = hubCX;
-        targetY = isTopBot ? hubCY - 35 : hubCY + 35; // Separate top/bottom at hub
-        act = robot.inventory > 0; // Shoot if has balls
+        const spot = hubShootSpot();
+        targetX = spot.x;
+        targetY = isTopBot ? spot.y - 20 : spot.y + 20; // Separate top/bottom at hub
+        act = hasBalls;
     }
-    // PASSING MODE: Hub inactive
-    else if (!hubActive) {
-        // Go to center field
-        targetX = (centerMinX + centerMaxX) / 2;
-        // Separate top/bottom routes
+    // RULE 2: Hub INACTIVE but HAS BALLS → PASS (go to center, shoot toward own side)
+    else if (!hubActive && hasBalls) {
+        targetX = centerX;
         targetY = isTopBot ? topRouteY : bottomRouteY;
-        act = robot.inventory > 0; // Pass if has balls
+        act = true; // Pass
     }
-    // FALLBACK: No target
-    else {
-        targetX = (centerMinX + centerMaxX) / 2;
-        targetY = isTopBot ? topRouteY : bottomRouteY;
+    // RULE 3: Hub INACTIVE and NO BALLS → COLLECT BALLS
+    else if (!hubActive && !hasBalls) {
+        // Prioritize: own side balls (for scoring later) > center balls > opponent balls
+        let targetZone = null;
+        let targetZoneY = null;
+        
+        if (ownBalls > 0) {
+            // Collect from own side
+            targetZone = { minX: alliance === 'red' ? 0 : ownBar2, maxX: alliance === 'red' ? ownBar1 : FIELD_W };
+            targetZoneY = isTopBot ? topRouteY : bottomRouteY;
+        } else if (centerBalls > 0) {
+            // Collect from center
+            targetZone = { minX: centerMinX, maxX: centerMaxX };
+            targetZoneY = isTopBot ? topRouteY : bottomRouteY;
+        } else if (oppBalls > 0) {
+            // Collect from opponent side (need to cross barrier)
+            targetZone = { minX: alliance === 'red' ? oppBar2 : 0, maxX: alliance === 'red' ? FIELD_W : oppBar1 };
+            targetZoneY = isTopBot ? topRouteY : bottomRouteY;
+        } else {
+            // No balls anywhere - go to center
+            targetX = centerX;
+            targetY = isTopBot ? topRouteY : bottomRouteY;
+            act = false;
+        }
+        
+        if (targetZone) {
+            // Find nearest ball in target zone
+            let bestBall = null;
+            let bestDist = Infinity;
+            // Weight depot balls higher (3x)
+            const depots = zones.filter(z => z.type === 'depot');
+            for (const b of balls) {
+                if (b.x >= targetZone.minX && b.x <= targetZone.maxX) {
+                    let weight = 1.0;
+                    for (const depot of depots) {
+                        if (b.x > depot.x && b.x < depot.x + depot.w && 
+                            b.y > depot.y && b.y < depot.y + depot.h) {
+                            weight = 3.0;
+                            break;
+                        }
+                    }
+                    const d = Math.hypot(b.x - rcx, b.y - rcy) / weight;
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestBall = b;
+                    }
+                }
+            }
+            if (bestBall) {
+                targetX = bestBall.x;
+                targetY = bestBall.y;
+            } else {
+                targetX = centerX;
+                targetY = targetZoneY;
+            }
+        }
+        act = false;
+    }
+    // RULE 4: Hub ACTIVE but NO BALLS → go to own depot or own side balls
+    else if (hubActive && !hasBalls && ownHub) {
+        // Check own depot first
+        const ownDepot = zones.find(z => z.type === 'depot' && z.side === alliance);
+        let depotHasBalls = false;
+        if (ownDepot) {
+            for (const b of balls) {
+                if (b.x > ownDepot.x && b.x < ownDepot.x + ownDepot.w &&
+                    b.y > ownDepot.y && b.y < ownDepot.y + ownDepot.h) {
+                    depotHasBalls = true;
+                    break;
+                }
+            }
+        }
+        
+        if (ownDepot && depotHasBalls) {
+            targetX = ownDepot.x + ownDepot.w / 2;
+            targetY = ownDepot.y + ownDepot.h / 2;
+        } else {
+            // Find nearest ball on own side
+            let bestBall = null;
+            let bestDist = Infinity;
+            for (const b of balls) {
+                const isOnOwnSide = (alliance === 'red' && b.x < ownBar1) || (alliance === 'blue' && b.x > ownBar2);
+                if (isOnOwnSide) {
+                    const d = Math.hypot(b.x - rcx, b.y - rcy);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestBall = b;
+                    }
+                }
+            }
+            if (bestBall) {
+                targetX = bestBall.x;
+                targetY = bestBall.y;
+            } else {
+                const spot = hubShootSpot();
+                targetX = spot.x;
+                targetY = isTopBot ? spot.y - 20 : spot.y + 20;
+            }
+        }
         act = false;
     }
     
-    // ── NAVIGATION ──────────────────────────────────────────────────────────────
+    // Fallback
+    if (targetX === null) {
+        targetX = centerX;
+        targetY = isTopBot ? topRouteY : bottomRouteY;
+    }
+    
+    // ── WAYPOINT NAVIGATION (barrier crossing) ────────────────────────────────
     const hubTopY = FIELD_H / 2 - HUB_S / 2;
     const topBarY1 = hubTopY - BUMP_L - BAR_L;
     const topBarY2 = hubTopY - BUMP_L;
@@ -1018,6 +1138,40 @@ function aiDecide(robot, alliance, isHubActive) {
     const nav = navigate(targetX, targetY);
     targetX = nav.x; targetY = nav.y;
     
+    // ── ROBOT-ROBOT AVOIDANCE ─────────────────────────────────────────────────
+    const otherBot = isTopBot ? botBlue2 : botBlue;
+    let avoidX = 0, avoidY = 0;
+    if (otherBot) {
+        const bx = otherBot.x + otherBot.model.w / 2;
+        const by = otherBot.y + otherBot.model.h / 2;
+        const sep = Math.hypot(rcx - bx, rcy - by);
+        const MIN_SEP = robot.model.w + otherBot.model.w + 25;
+        if (sep < MIN_SEP && sep > 0.1) {
+            const strength = (MIN_SEP - sep) / MIN_SEP;
+            avoidX = ((rcx - bx) / sep) * strength * 1.2;
+            avoidY = ((rcy - by) / sep) * strength * 1.2;
+        }
+    }
+    
+    // ── TOWER AVOIDANCE ───────────────────────────────────────────────────────
+    const redTowerY1 = TOWER_OFFSET - 30;
+    const redTowerY2 = TOWER_OFFSET + TOWER_DIM + 30;
+    const redTowerX2 = TOWER_DIM + 30;
+    const blueTowerY1 = FIELD_H - TOWER_OFFSET - TOWER_DIM - 30;
+    const blueTowerY2 = FIELD_H - TOWER_OFFSET + 30;
+    const blueTowerX1 = FIELD_W - TOWER_DIM - 30;
+    
+    function nearTower(x, y) {
+        if (x < redTowerX2 && y > redTowerY1 && y < redTowerY2) return true;
+        if (x > blueTowerX1 && y > blueTowerY1 && y < blueTowerY2) return true;
+        return false;
+    }
+    
+    if (nearTower(rcx, rcy)) {
+        avoidX += rcx < FIELD_W / 2 ? 0.6 : -0.6;
+        avoidY += rcy < (TOWER_OFFSET + TOWER_DIM / 2) ? -0.6 : 0.6;
+    }
+    
     // ── MOVEMENT ──────────────────────────────────────────────────────────────
     const dx = targetX - rcx;
     const dy = targetY - rcy;
@@ -1025,14 +1179,25 @@ function aiDecide(robot, alliance, isHubActive) {
     const angle = Math.atan2(dy, dx);
     
     const inputMag = dist < 18 ? 0.15 : 0.8;
-    let moveX = Math.cos(angle) * inputMag;
-    let moveY = Math.sin(angle) * inputMag;
+    let moveX = Math.cos(angle) * inputMag + avoidX;
+    let moveY = Math.sin(angle) * inputMag + avoidY;
     
     // Wall push
-    if (rcx < 25) moveX = Math.max(moveX, 0.8);
-    if (rcx > FIELD_W - 25) moveX = Math.min(moveX, -0.8);
-    if (rcy < 25) moveY = Math.max(moveY, 0.8);
-    if (rcy > FIELD_H - 25) moveY = Math.min(moveY, -0.8);
+    if (rcx < 25) moveX = Math.max(moveX, 0.7);
+    if (rcx > FIELD_W - 25) moveX = Math.min(moveX, -0.7);
+    if (rcy < 25) moveY = Math.max(moveY, 0.7);
+    if (rcy > FIELD_H - 25) moveY = Math.min(moveY, -0.7);
+    
+    // Barrier escape
+    const inBarColOwn = rcx > ownBar1 - 4 && rcx < ownBar2 + 4;
+    const inBarColOpp = rcx > oppBar1 - 4 && rcx < oppBar2 + 4;
+    const inTopBar = rcy > topBarY1 - 4 && rcy < topBarY2 + 4;
+    const inBotBar = rcy > botBarY1 - 4 && rcy < botBarY2 + 4;
+    if ((inBarColOwn || inBarColOpp) && (inTopBar || inBotBar)) {
+        const gapY = bestCrossY(rcy);
+        moveX = 0;
+        moveY = gapY < rcy ? -0.7 : 0.7;
+    }
     
     let rotInput = 0;
     if (!isTurret) {
