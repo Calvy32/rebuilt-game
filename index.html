@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom Rework + Duplicator + Echo)</title>
+    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom + Duplicator + Echo + SPEDO + DRONE)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -336,9 +336,18 @@
             <p><b>Left Stick</b> = Move &nbsp; <b>Right Stick X</b> = Turn</p>
             <p><b>Right Trigger</b> = Shoot/Pass &nbsp; <b>Left Trigger</b> = Ability</p>
         </div>
+        <div class="control-section" style="border-left-color:#10b981;background:rgba(16,185,129,0.08);">
+            <h3 style="color:#10b981;">SPEDO Robot</h3>
+            <p>Ultra-fast firing (100ms), 30 ball capacity, high speed (0.7x movement multiplier), 0.0425 rotation speed.</p>
+        </div>
+        <div class="control-section" style="border-left-color:#8b5cf6;background:rgba(139,92,246,0.08);">
+            <h3 style="color:#8b5cf6;">DRONE Robot</h3>
+            <p><b>X / LT / RCtrl</b> = Deploy autonomous drone (20 sec duration, 15 sec cooldown). Drone flies in its field section (left/middle/right based on robot position), collects up to 15 balls, fires every 300ms, passes to its alliance.</p>
+            <p>Drone robot: 40 capacity, 250ms fire rate.</p>
+        </div>
         <div class="control-section highlight">
             <h3>Ability Button Uses</h3>
-            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 10 sec life)</p>
+            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 10 sec life) | <b>Drone:</b> Deploy autonomous helper</p>
         </div>
         <div class="control-section" style="border-left-color:#a78bfa;background:rgba(167,139,250,0.08);">
             <h3 style="color:#a78bfa;">Phantom Robot</h3>
@@ -519,7 +528,7 @@ const SFX = {};
 function playSound(key) {}
 // ===================================================================
 
-// ROBOT MODELS - ALPHABETICAL ORDER
+// ROBOT MODELS - Added SPEDO and DRONE
 const BOT_MODELS = {
     '2910': { accel: 0.38, rotSpeed: 0.036, capacity: 62, fireRate: -0, w: 41, h: 41 },
     '3636': { accel: 0.38, rotSpeed: 0.036, capacity: 50, fireRate: 180, w: 41, h: 41 },
@@ -543,7 +552,10 @@ const BOT_MODELS = {
     'Scattershot': { accel: 0.40, rotSpeed: 0.042, capacity: 90, fireRate: 272, w: 43, h: 43 },
     'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 600, w: 39, h: 39 },
     'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
-    'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 }
+    'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
+    // NEW ROBOTS
+    'SPEDO': { accel: 0.68, rotSpeed: 0.0425, capacity: 30, fireRate: 100, w: 40, h: 40, speedMultiplier: 1 },
+    'Drone': { accel: 0.32, rotSpeed: 0.034, capacity: 40, fireRate: 250, w: 44, h: 44 }
 };
 
 const S = 1.6; 
@@ -596,6 +608,7 @@ let powerups = [];
 let nextPowerupSpawnTime = 0;
 let nextShiftTime = 0;
 let barricades = [];
+let drones = []; // Active drones: { x, y, owner, alliance, capacity, inventory, lastShot, expiry, section }
 let p1Input = 'keyboard';
 let p2Input = 'controller';
 let p3Input = 'keyboard2';
@@ -654,6 +667,7 @@ function getBotAlliance(bot) { if (bot === botRed || bot === botRed2) return 're
 function resetModeState() {
     powerups = [];
     barricades = [];
+    drones = [];
     nextPowerupSpawnTime = Date.now() + 2500;
     nextShiftTime = Date.now() + 9000 + Math.random() * 6000;
     [botRed, botRed2, botBlue, botBlue2].forEach(bot => {
@@ -661,6 +675,7 @@ function resetModeState() {
         bot.rapidBoostUntil = 0;
         bot.shieldUntil = 0;
         if (bot.name === 'Barricade') { bot.barricadeCount = 0; bot.placedBarricades = []; }
+        if (bot.name === 'Drone') { bot.droneCooldownUntil = 0; bot.activeDrone = null; }
     });
 }
 function spawnPowerup(now) {
@@ -774,6 +789,9 @@ class Robot {
         this.barricadeCount = 0;
         this.placedBarricades = [];
         this.barricadeCooldown = 0;
+        // Drone specific properties
+        this.droneCooldownUntil = 0;
+        this.activeDrone = null;
     }
     setModel(key) {
         this.model = BOT_MODELS[key];
@@ -897,6 +915,32 @@ class Robot {
         document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
     }
     
+    // SPEDO FAST FIRE
+    fireSpedo(isShooting, alliance, rcx, rcy, now) {
+        let launchAngle = this.angle;
+        let z = zones.find(z => z.type === 'hub' && z.side === alliance);
+        
+        if (isShooting && z) {
+            let tx = z.x + z.w/2, ty = z.y + z.h/2;
+            launchAngle = Math.atan2(ty - rcy, tx - rcx);
+        } else {
+            let tx = alliance === 'red' ? 40 : FIELD_W - 40;
+            let ty = rcy < FIELD_H/2 ? 40 : FIELD_H - 40;
+            launchAngle = Math.atan2(ty - rcy, tx - rcx) + (Math.random() - 0.5) * 0.1;
+        }
+        
+        const speed = 15 + Math.random() * 2;
+        projectiles.push({
+            x: rcx + Math.cos(launchAngle) * (this.model.w / 2 + 5),
+            y: rcy + Math.sin(launchAngle) * (this.model.w / 2 + 5),
+            vx: Math.cos(launchAngle) * speed,
+            vy: Math.sin(launchAngle) * speed,
+            r: 3,
+            owner: alliance,
+            isPass: !isShooting
+        });
+    }
+    
     fireSingleStream(streamIdx, totalStreams, customSpacing, isShooting, alliance, rcx, rcy) {
         let launchAngle = this.angle;
         let speed = 7;
@@ -955,6 +999,7 @@ class Robot {
         const isDuplicator = this.name === 'Duplicator';
         const isPhantom = this.name === 'Phantom';
         const isEcho = this.name === 'Echo';
+        const isSpedo = this.name === 'SPEDO';
         let aimHub = isSniper;
         let z = zones.find(z => z.type === 'hub' && z.side === alliance);
         
@@ -963,12 +1008,14 @@ class Robot {
             if (isSniper) speed = 26;
             else if (isMinigun) speed = 13 + Math.random() * 2;
             else if (isDuplicator) speed = 14 + Math.random() * 2;
+            else if (isSpedo) speed = 18;
         } else {
             let tx = alliance==='red'?40:FIELD_W-40, ty = rcy<FIELD_H/2?40:FIELD_H-40;
             let jitter = isMinigun ? (Math.random()-0.5)*0.55 : (isDuplicator ? (Math.random()-0.5)*0.22 : (Math.random()-0.5)*0.12);
             launchAngle = Math.atan2(ty-rcy, tx-rcx) + jitter;
             if (isMinigun) speed = 11 + Math.random() * 4;
             else if (isDuplicator) speed = 12 + Math.random() * 2;
+            else if (isSpedo) speed = 16 + Math.random() * 3;
             else speed = (13 + (Math.hypot(tx-rcx, ty-rcy)*0.012)) * (0.85 + Math.random()*0.25);
         }
         const treatAsShooting = isShooting || aimHub;
@@ -991,6 +1038,13 @@ class Robot {
         }
         if (isEcho) {
             this.fireEcho(isShooting, alliance, rcx, rcy, now);
+            return;
+        }
+        if (isSpedo) {
+            this.fireSpedo(isShooting, alliance, rcx, rcy, now);
+            this.inventory--;
+            this.lastShot = now;
+            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
             return;
         }
         if (this.name === 'Howitzer') {
@@ -1045,6 +1099,11 @@ class Robot {
                     this.fireDuplicator(isShootingZone, alliance, rcx, rcy, now);
                 } else if (this.name === 'Echo') {
                     this.fireEcho(isShootingZone, alliance, rcx, rcy, now);
+                } else if (this.name === 'SPEDO') {
+                    this.fireSpedo(isShootingZone, alliance, rcx, rcy, now);
+                    this.inventory--;
+                    this.lastShot = now;
+                    document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
                 } else {
                     this.fireStandard(isShootingZone, alliance, rcx, rcy, now);
                 }
@@ -1090,6 +1149,12 @@ class Robot {
         if (moveX !== 0 || moveY !== 0) { const mag = Math.sqrt(moveX*moveX + moveY*moveY); if (mag > 0.8) { moveX /= mag; moveY /= mag; } }
 
         let speedMod = (inDepot ? 0.65 : 1.0) * (now < (this.speedBoostUntil || 0) ? 1.45 : 1.0);
+        
+        // SPEDO speed multiplier
+        if (this.name === 'SPEDO' && this.model.speedMultiplier) {
+            speedMod *= this.model.speedMultiplier;
+        }
+        
         // Phantom penalty inside hub (reduced to bump-like speed)
         if (this.name === 'Phantom' && inHub) {
             speedMod *= 0.45;
@@ -1238,14 +1303,36 @@ class Robot {
                 playSound('pickup');
             }
         }
-        this.prevAbilityInput = isAbilityActive;
-
-        if (this.name === 'Blitz') {
-            if (isAbilityActive && !this.prevIntakeInput) {
-                this.intakeSide = this.intakeSide === 'right' ? 'left' : 'right';
+        
+        // DRONE DEPLOYMENT
+        if (this.name === 'Drone' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
+            if (now >= (this.droneCooldownUntil || 0)) {
+                // Determine section based on robot X position
+                let section = 'middle';
+                if (this.x < FIELD_W / 3) section = 'left';
+                else if (this.x > (FIELD_W * 2) / 3) section = 'right';
+                else section = 'middle';
+                
+                const newDrone = {
+                    x: this.x + this.model.w/2 - 15,
+                    y: this.y + this.model.h/2 - 15,
+                    owner: this,
+                    alliance: alliance,
+                    capacity: 15,
+                    inventory: 0,
+                    lastShot: 0,
+                    expiry: now + 20000, // 20 seconds
+                    section: section,
+                    w: 30, h: 30,
+                    vx: 0, vy: 0
+                };
+                drones.push(newDrone);
+                this.droneCooldownUntil = now + 15000; // 15 second cooldown
+                playSound('pickup');
             }
-            this.prevIntakeInput = isAbilityActive;
         }
+        this.prevAbilityInput = isAbilityActive;
+        this.prevIntakeInput = isAbilityActive;
 
         if (isActionActive && this.inventory > 0 && !inTower) {
             const currentFireRate = this.model.fireRate * (gameMode === 'rapid' ? 0.4 : 1.0) * (now < (this.rapidBoostUntil || 0) ? 0.55 : 1.0);
@@ -1271,6 +1358,11 @@ class Robot {
             } else if (this.name === 'Vortex' && !isDisrupted && now - this.lastShot > currentFireRate) { this.fireVortex(isShootingZone, alliance, rcx, rcy, now);
             } else if (this.name === 'Plasma' && !isDisrupted && now - this.lastShot > currentFireRate) { this.firePlasma(isShootingZone, alliance, rcx, rcy, now);
             } else if (this.name === 'Boomerang' && !isDisrupted && now - this.lastShot > currentFireRate) { this.fireBoomerang(isShootingZone, alliance, rcx, rcy, now);
+            } else if (this.name === 'SPEDO' && !isDisrupted && now - this.lastShot > currentFireRate) { 
+                this.fireSpedo(isShootingZone, alliance, rcx, rcy, now);
+                this.inventory--;
+                this.lastShot = now;
+                document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
             } else if (this.name === 'Scattershot' && !isDisrupted && now - this.lastShot > currentFireRate) {
                 const pellets = 5;
                 for (let i = 0; i < pellets && this.inventory > 0; i++) this.fireSingleStream(i, pellets, 6.0, isShootingZone, alliance, rcx, rcy);
@@ -1316,6 +1408,26 @@ class Robot {
             ctx.fillStyle = "#fff";
             ctx.font = "bold 14px Segoe UI";
             ctx.fillText("🔊", -6, 5);
+        } else if (this.name === 'SPEDO') {
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.strokeStyle = "#34d399";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            // Lightning bolt icon
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 14px Segoe UI";
+            ctx.fillText("⚡", -6, 5);
+        } else if (this.name === 'Drone') {
+            ctx.fillStyle = '#8b5cf6';
+            ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            ctx.strokeStyle = "#a78bfa";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
+            // Drone icon
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 14px Segoe UI";
+            ctx.fillText("✈", -6, 5);
         } else {
             ctx.fillStyle = alliance === 'red' ? '#ef4444' : '#3b82f6';
             ctx.fillRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
@@ -1501,24 +1613,8 @@ function resolveCollisionRobots(r1, r2, collision) {
 }
 
 // ============================================================
-// OPTIMIZED BALL COLLISION - SPATIAL HASHING REPLACEMENT
+// OPTIMIZED BALL COLLISION - SPATIAL HASHING
 // ============================================================
-// Original O(N^2) resolveBallCollision replaced with optimized version below
-// The function resolveBallCollision is kept for compatibility but not used in the main loop
-// We will override the ball collision handling in the update() function
-function resolveBallCollision(b1, b2) {
-    // Legacy function - replaced by spatial hashing in update loop
-    let dx = b2.x - b1.x, dy = b2.y - b1.y, distSq = dx*dx + dy*dy, minDist = b1.r + b2.r;
-    if (distSq < minDist * minDist) {
-        let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; }
-        let nx = dx / dist, ny = dy / dist, overlap = (minDist - dist), force = overlap * 0.45;
-        b1.vx -= nx * force; b1.vy -= ny * force; b2.vx += nx * force; b2.vy += ny * force;
-        if (overlap > 0.1) { b1.isStatic = false; b2.isStatic = false; }
-        b1.x -= nx*overlap*0.05; b1.y -= ny*overlap*0.05; b2.x += nx*overlap*0.05; b2.y += ny*overlap*0.05;
-    }
-}
-
-// NEW: Spatial hashing for ball collisions - optimized for high ball counts
 const BALL_CELL_SIZE = BALL_R * 4.5;
 function getBallCellKey(x, y) {
     return `${Math.floor(x / BALL_CELL_SIZE)},${Math.floor(y / BALL_CELL_SIZE)}`;
@@ -1527,7 +1623,6 @@ function getBallCellKey(x, y) {
 function handleOptimizedBallCollisions(ballsArray) {
     if (ballsArray.length < 2) return;
     
-    // Build spatial hash map
     const spatialMap = new Map();
     for (let i = 0; i < ballsArray.length; i++) {
         const ball = ballsArray[i];
@@ -1536,15 +1631,11 @@ function handleOptimizedBallCollisions(ballsArray) {
         spatialMap.get(key).push({ idx: i, ball: ball });
     }
     
-    // Check collisions only with nearby balls (same or adjacent cells)
-    const processedPairs = new Set();
-    
     for (let i = 0; i < ballsArray.length; i++) {
         const b1 = ballsArray[i];
         const key = getBallCellKey(b1.x, b1.y);
         const [cx, cy] = key.split(',').map(Number);
         
-        // Collect balls from adjacent cells (3x3 grid)
         const nearbyBalls = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
@@ -1555,13 +1646,10 @@ function handleOptimizedBallCollisions(ballsArray) {
             }
         }
         
-        // Check collisions with nearby balls
         for (const neighbor of nearbyBalls) {
-            if (neighbor.idx <= i) continue; // Avoid duplicate pairs
+            if (neighbor.idx <= i) continue;
             
             const b2 = neighbor.ball;
-            
-            // Skip if either ball has no-collide flag
             const now = Date.now();
             if (b1.noCollideUntil && now < b1.noCollideUntil) continue;
             if (b2.noCollideUntil && now < b2.noCollideUntil) continue;
@@ -1576,15 +1664,13 @@ function handleOptimizedBallCollisions(ballsArray) {
                 const nx = dx / dist;
                 const ny = dy / dist;
                 const overlap = minDist - dist;
-                const force = overlap * 0.48; // Slightly reduced for stability
+                const force = overlap * 0.48;
                 
-                // Apply impulse
                 b1.vx -= nx * force;
                 b1.vy -= ny * force;
                 b2.vx += nx * force;
                 b2.vy += ny * force;
                 
-                // Position correction
                 const correction = overlap * 0.3;
                 b1.x -= nx * correction;
                 b1.y -= ny * correction;
@@ -1713,6 +1799,140 @@ function circleRectCollision(c, r) {
     if (distSq < c.r*c.r) { let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; } return { hit: true, nx: dx/dist, ny: dy/dist, overlap: c.r - dist }; } return { hit: false };
 }
 
+// Drone AI update function
+function updateDrones(now) {
+    for (let i = 0; i < drones.length; i++) {
+        const drone = drones[i];
+        
+        // Check expiration
+        if (now >= drone.expiry) {
+            drones.splice(i, 1);
+            i--;
+            continue;
+        }
+        
+        // Find nearest ball in drone's section
+        let targetBall = null;
+        let minDist = Infinity;
+        
+        // Define section boundaries based on drone's section
+        let leftBound, rightBound;
+        if (drone.section === 'left') {
+            leftBound = 0;
+            rightBound = FIELD_W / 3;
+        } else if (drone.section === 'right') {
+            leftBound = (FIELD_W * 2) / 3;
+            rightBound = FIELD_W;
+        } else {
+            leftBound = FIELD_W / 3;
+            rightBound = (FIELD_W * 2) / 3;
+        }
+        
+        for (const ball of balls) {
+            if (ball.x >= leftBound && ball.x <= rightBound) {
+                const dist = Math.hypot(ball.x - (drone.x + drone.w/2), ball.y - (drone.y + drone.h/2));
+                if (dist < minDist) {
+                    minDist = dist;
+                    targetBall = ball;
+                }
+            }
+        }
+        
+        // Move toward target ball
+        if (targetBall) {
+            const dx = targetBall.x - (drone.x + drone.w/2);
+            const dy = targetBall.y - (drone.y + drone.h/2);
+            const dist = Math.hypot(dx, dy);
+            if (dist > 5) {
+                const move = Math.min(3.5, dist * 0.08);
+                drone.vx += (dx / dist) * move;
+                drone.vy += (dy / dist) * move;
+            }
+        }
+        
+        // Apply movement and damping
+        drone.vx *= 0.92;
+        drone.vy *= 0.92;
+        drone.x += drone.vx;
+        drone.y += drone.vy;
+        
+        // Boundary constraints
+        drone.x = Math.max(0, Math.min(FIELD_W - drone.w, drone.x));
+        drone.y = Math.max(0, Math.min(FIELD_H - drone.h, drone.y));
+        
+        // Pick up balls
+        for (let j = 0; j < balls.length; j++) {
+            const ball = balls[j];
+            const dx = (drone.x + drone.w/2) - ball.x;
+            const dy = (drone.y + drone.h/2) - ball.y;
+            if (Math.hypot(dx, dy) < 18 && drone.inventory < drone.capacity) {
+                drone.inventory++;
+                balls.splice(j, 1);
+                j--;
+            }
+        }
+        
+        // Shoot at hub (passing)
+        if (drone.inventory > 0 && now - drone.lastShot > 300) {
+            const z = zones.find(zone => zone.type === 'hub' && zone.side === drone.alliance);
+            if (z) {
+                const fromX = drone.x + drone.w/2;
+                const fromY = drone.y + drone.h/2;
+                const targetX = z.x + z.w/2;
+                const targetY = z.y + z.h/2;
+                const angle = Math.atan2(targetY - fromY, targetX - fromX);
+                const speed = 9 + Math.random() * 2;
+                
+                projectiles.push({
+                    x: fromX + Math.cos(angle) * 18,
+                    y: fromY + Math.sin(angle) * 18,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    r: 4,
+                    owner: drone.alliance,
+                    isPass: true
+                });
+                
+                drone.inventory--;
+                drone.lastShot = now;
+            }
+        }
+    }
+}
+
+// Draw drones
+function drawDrones() {
+    for (const drone of drones) {
+        ctx.save();
+        ctx.translate(drone.x + drone.w/2, drone.y + drone.h/2);
+        // Rotate based on velocity
+        if (drone.vx !== 0 || drone.vy !== 0) {
+            ctx.rotate(Math.atan2(drone.vy, drone.vx));
+        }
+        ctx.fillStyle = drone.alliance === 'red' ? '#ef4444cc' : '#3b82f6cc';
+        ctx.fillRect(-drone.w/2, -drone.h/2, drone.w, drone.h);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-drone.w/2, -drone.h/2, drone.w, drone.h);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 12px Segoe UI";
+        ctx.fillText("✈", -6, 5);
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "bold 10px monospace";
+        ctx.fillText(drone.inventory, -3, -8);
+        
+        // Draw cooldown/progress ring
+        const progress = 1 - (drone.expiry - Date.now()) / 20000;
+        ctx.beginPath();
+        ctx.arc(0, 0, drone.w/2 + 3, 0, Math.PI * 2 * progress);
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+}
+
 function update() {
     tickMatch(); updateHudBar(); const now = Date.now();
     let p1State = getInputs(p1Input, 0), p2State = getInputs(p2Input, 1), p3State = getInputs(p3Input, 2), p4State = getInputs(p4Input, 3);
@@ -1735,6 +1955,9 @@ function update() {
         b.life = Math.max(0, 10000 - (now - b.born));
     }
     barricades = barricades.filter(b => b.life > 0);
+    
+    // Update drones
+    updateDrones(now);
     
     if (gameMode === 'powerups') {
         if (matchRunning && now >= nextPowerupSpawnTime && powerups.length < 6) { spawnPowerup(now); nextPowerupSpawnTime = now + 2200 + Math.random() * 2600; }
@@ -1766,11 +1989,7 @@ function update() {
         return true;
     });
     
-    // ============================================================
-    // OPTIMIZED BALL COLLISION LOOP - REPLACES ORIGINAL O(N^2) LOOP
-    // ============================================================
-    // Original O(N^2) double loop removed. Using spatial hashing instead.
-    // This provides near O(N) performance for large ball counts (triple mode).
+    // OPTIMIZED BALL COLLISION
     handleOptimizedBallCollisions(balls);
     
     balls = balls.filter(b => {
@@ -1812,6 +2031,7 @@ function update() {
         let speed = Math.hypot(b.vx, b.vy); if (speed > 25) { b.vx = (b.vx / speed) * 25; b.vy = (b.vy / speed) * 25; }
         return true;
     });
+    
     projectiles = projectiles.filter(p => {
         if (p.isEcho) {
             p.x += p.vx; p.y += p.vy;
@@ -2107,6 +2327,9 @@ function draw() {
         ctx.stroke();
         ctx.restore();
     });
+    
+    // Draw drones
+    drawDrones();
     
     if (gameMode === 'powerups') {
         powerups.forEach(p => {
