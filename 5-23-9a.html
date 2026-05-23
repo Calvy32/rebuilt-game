@@ -319,11 +319,11 @@
         </div>
         <div class="control-section" style="border-left-color:#8b5cf6;background:rgba(139,92,246,0.08);">
             <h3 style="color:#8b5cf6;">DRONE Robot</h3>
-            <p><b>X / LT / RCtrl</b> = Deploy autonomous drone (no timeout). Drone flies in its field section (left/middle/right based on robot position when X pressed), collects up to 15 balls, fires every 300ms. Drone PASSES to alliance corner when in middle, SCORES when in left/right zone.</p>
+            <p><b>X / LT / RCtrl</b> = Deploy autonomous drone (no timeout). Drone flies in its field section (left/middle/right based on robot position when X pressed), collects up to 15 balls, fires every 300ms. Drone PASSES to alliance corner when in middle OR when on blue side but owner is red, SCORES when in friendly zone.</p>
         </div>
         <div class="control-section" style="border-left-color:#ef4444;background:rgba(239,68,68,0.08);">
             <h3 style="color:#ef4444;">LEECH Robot</h3>
-            <p>Can go to opposing hub and press X to attach a leech. Leeched alliance loses 1 point per second until a teammate touches the leech to kill it.</p>
+            <p>Can go to opposing hub and press X to attach a leech. Leeched alliance loses 1 point per second (points added to leech owner) until a member of the leeched alliance touches the hub to kill the leech.</p>
         </div>
         <div class="control-section" style="border-left-color:#f59e0b;background:rgba(245,158,11,0.08);">
             <h3 style="color:#f59e0b;">THIEF Robot</h3>
@@ -532,11 +532,12 @@ const BOT_MODELS = {
     'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 30, fireRate: 850, w: 46, h: 46 },
     'Magnet': { accel: 0.36, rotSpeed: 0.042, capacity: 70, fireRate: 90, w: 42, h: 42 },
     'Minigun': { accel: 0.42, rotSpeed: 0.050, capacity: 130, fireRate: 75, w: 42, h: 42 },
-    'Phantom': { accel: 0.38, rotSpeed: 0.032, capacity: 28, fireRate: 260, w: 40, h: 40 },
-    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 425, w: 42, h: 42 },
+    'Miss Daisy': { accel: 0.38, rotSpeed: 0.036, capacity: 8, fireRate: 85, w: 41, h: 41 },
+    'Phantom': { accel: 0.34, rotSpeed: 0.032, capacity: 20, fireRate: 380, w: 40, h: 40 },
+    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 375, w: 42, h: 42 },
     'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
     'Scattershot': { accel: 0.40, rotSpeed: 0.042, capacity: 90, fireRate: 272, w: 43, h: 43 },
-    'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 450, w: 39, h: 39 },
+    'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 600, w: 39, h: 39 },
     'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
     'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
     'SPEDO': { accel: 0.65, rotSpeed: 0.0425, capacity: 30, fireRate: 100, w: 40, h: 40 },
@@ -544,7 +545,7 @@ const BOT_MODELS = {
     // NEW ROBOTS
     'Leech': { accel: 0.36, rotSpeed: 0.036, capacity: 60, fireRate: 200, w: 42, h: 42 },
     'Thief': { accel: 0.40, rotSpeed: 0.040, capacity: 50, fireRate: 120, w: 41, h: 41, noIntake: true },
-    'Oasis': { accel: 0.32, rotSpeed: 0.032, capacity: 45, fireRate: 160, w: 44, h: 44 }
+    'Oasis': { accel: 0.32, rotSpeed: 0.032, capacity: 45, fireRate: 220, w: 44, h: 44 }
 };
 
 const S = 1.6; 
@@ -758,7 +759,7 @@ function tickMatch() {
     matchElapsed += 1/60;
     const now = Date.now();
 
-    // KING OF THE HUB mode
+    // KING OF THE HUB mode - BOTH teams can score into the active hub
     if (gameMode === 'kinghub') {
         kingHubTimer += 1/60;
         if (kingHubTimer >= 20) {
@@ -767,22 +768,32 @@ function tickMatch() {
             triggerShiftFlash();
             playSound('shiftChange');
         }
+        // Show which hub is active (both teams can score into it)
         if (kingOfTheHubActive === 'red') updateHubUI(true, false);
         else updateHubUI(false, true);
     } else if (gameMode === 'random' && matchElapsed >= 23 && matchElapsed < 133) {
         applyRandomHubShift(now);
     }
 
-    // Leeches drain points
+    // Leeches drain points - points REMOVED from leeched team, ADDED to leech owner
     for (let i = 0; i < leeches.length; i++) {
         const leech = leeches[i];
         if (leech.active && matchRunning && matchElapsed > 20) {
+            const drainAmount = 1/60;
             if (leech.hubSide === 'red') {
-                scoreRed = Math.max(0, scoreRed - 1/60);
-                if (!autoPhaseEnded) autoScoreRed = Math.max(0, autoScoreRed - 1/60);
+                scoreRed = Math.max(0, scoreRed - drainAmount);
+                scoreBlue += drainAmount;  // Points go to leech owner (blue)
+                if (!autoPhaseEnded) {
+                    autoScoreRed = Math.max(0, autoScoreRed - drainAmount);
+                    autoScoreBlue += drainAmount;
+                }
             } else {
-                scoreBlue = Math.max(0, scoreBlue - 1/60);
-                if (!autoPhaseEnded) autoScoreBlue = Math.max(0, autoScoreBlue - 1/60);
+                scoreBlue = Math.max(0, scoreBlue - drainAmount);
+                scoreRed += drainAmount;  // Points go to leech owner (red)
+                if (!autoPhaseEnded) {
+                    autoScoreBlue = Math.max(0, autoScoreBlue - drainAmount);
+                    autoScoreRed += drainAmount;
+                }
             }
             document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed);
             document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue);
@@ -2046,7 +2057,7 @@ function circleRectCollision(c, r) {
     if (distSq < c.r*c.r) { let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; } return { hit: true, nx: dx/dist, ny: dy/dist, overlap: c.r - dist }; } return { hit: false };
 }
 
-// DRONE AI UPDATE - FIXED: Drone scores in left/right zones
+// DRONE AI UPDATE - FIXED: Drone PASSES when on blue side but owner is red (or vice versa)
 function updateDrones(now) {
     const NORMAL_MAX_SPEED = 7;
     const DRONE_MAX_SPEED = NORMAL_MAX_SPEED * 2;
@@ -2120,19 +2131,43 @@ function updateDrones(now) {
             }
         }
         
-        // Drone shooting: SCORES in left/right, PASSES in middle
+        // Drone shooting logic:
+        // - If drone is in left section (red territory) AND drone.alliance is red -> SCORE at red hub
+        // - If drone is in right section (blue territory) AND drone.alliance is blue -> SCORE at blue hub
+        // - Otherwise (drone in enemy territory or middle) -> PASS to its own alliance corner
         let shouldScore = false;
         let targetHub = null;
+        let isInOwnTerritory = false;
         
         if (drone.section === 'left') {
-            targetHub = zones.find(z => z.type === 'hub' && z.side === 'red');
-            shouldScore = true;
+            // Left side is red territory
+            if (drone.alliance === 'red') {
+                targetHub = zones.find(z => z.type === 'hub' && z.side === 'red');
+                shouldScore = true;
+                isInOwnTerritory = true;
+            } else {
+                // Blue drone in red territory - PASS
+                targetHub = null;
+                shouldScore = false;
+                isInOwnTerritory = false;
+            }
         } else if (drone.section === 'right') {
-            targetHub = zones.find(z => z.type === 'hub' && z.side === 'blue');
-            shouldScore = true;
+            // Right side is blue territory
+            if (drone.alliance === 'blue') {
+                targetHub = zones.find(z => z.type === 'hub' && z.side === 'blue');
+                shouldScore = true;
+                isInOwnTerritory = true;
+            } else {
+                // Red drone in blue territory - PASS
+                targetHub = null;
+                shouldScore = false;
+                isInOwnTerritory = false;
+            }
         } else {
+            // Middle section - always PASS
             targetHub = null;
             shouldScore = false;
+            isInOwnTerritory = false;
         }
         
         if (drone.inventory > 0 && now - drone.lastShot > 300) {
@@ -2142,9 +2177,11 @@ function updateDrones(now) {
             let speed = 9 + Math.random() * 2;
             
             if (targetHub) {
+                // Shoot at own hub to score
                 angle = Math.atan2((targetHub.y + targetHub.h/2) - fromY, (targetHub.x + targetHub.w/2) - fromX);
                 speed = 12 + Math.random() * 2;
             } else {
+                // Pass to alliance corner
                 let tx = drone.alliance === 'red' ? 40 : FIELD_W - 40;
                 let ty = fromY < FIELD_H/2 ? 40 : FIELD_H - 40;
                 angle = Math.atan2(ty - fromY, tx - fromX);
@@ -2261,13 +2298,14 @@ function update() {
     }
     barricades = barricades.filter(b => b.life > 0);
     
-    // Leech removal - teammate touching leeched hub
+    // Leech removal - opposing team (the leeched team) touches hub to kill leech
     for (let i = 0; i < leeches.length; i++) {
         const leech = leeches[i];
         const hub = zones.find(z => z.type === 'hub' && z.side === leech.hubSide);
         if (hub) {
             for (const bot of activeBotsList) {
                 const botAlliance = (bot === botRed || bot === botRed2) ? 'red' : (sameTeamMode ? 'red' : 'blue');
+                // The leeched team (hubSide) touches the hub to kill leech
                 if (botAlliance === leech.hubSide) {
                     const bx = bot.x + bot.model.w/2;
                     const by = bot.y + bot.model.h/2;
@@ -2585,6 +2623,7 @@ function update() {
             if (z.type === 'hub' && z.side === p.owner && !p.isPass && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
                 let canScore = true;
                 if (gameMode === 'kinghub') {
+                    // In king of the hub, BOTH teams score into the active hub
                     canScore = (z.side === kingOfTheHubActive);
                 } else {
                     canScore = (p.owner === 'red' ? hubRedActive : hubBlueActive);
@@ -2610,6 +2649,7 @@ function update() {
     });
 }
 
+// DRAW FUNCTION - with FOG OF WAR (cutout, not another circle)
 function draw() {
     const robots = [];
     if (p1Enabled) robots.push(botRed);
@@ -2618,18 +2658,11 @@ function draw() {
     if (p4Enabled) robots.push(botBlue2);
     
     // Draw field normally (full brightness)
-    ctx.clearRect(0,0, canvas.width, canvas.height);
-    ctx.fillStyle = "#111";
-    ctx.fillRect(0,0, canvas.width, canvas.height);
-    ctx.fillStyle = "#222";
-    ctx.fillRect(0,0, canvas.width, WALL_VISUAL);
-    ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
-    ctx.fillRect(0,0, WALL_VISUAL, canvas.height);
-    ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
-    ctx.save();
-    ctx.translate(WALL_VISUAL, WALL_VISUAL);
+    ctx.clearRect(0,0, canvas.width, canvas.height); ctx.fillStyle = "#111"; ctx.fillRect(0,0, canvas.width, canvas.height);
+    ctx.fillStyle = "#222"; ctx.fillRect(0,0, canvas.width, WALL_VISUAL); ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
+    ctx.fillRect(0,0, WALL_VISUAL, canvas.height); ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
+    ctx.save(); ctx.translate(WALL_VISUAL, WALL_VISUAL);
     
-    // Draw zones
     zones.forEach(z => {
         const c = z.side === 'red' ? '239, 68, 68' : '59, 130, 246';
         if (z.type === 'hub') {
@@ -2668,36 +2701,15 @@ function draw() {
                 ctx.font = 'bold 12px monospace';
                 ctx.fillText('ACTIVE', z.x + z.w/2 - 25, z.y - 5);
             }
-        } else if (z.type === 'barrier' || z.type === 'towerWall') {
-            ctx.fillStyle = `rgb(${c})`;
-            ctx.fillRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'trench') {
-            ctx.fillStyle = `rgba(${c}, 0.2)`;
-            ctx.fillRect(z.x, z.y, z.w, z.h);
-            ctx.strokeStyle = `rgba(${c}, 0.5)`;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'tower') {
-            ctx.fillStyle = "#222";
-            ctx.fillRect(z.x, z.y, z.w, z.h);
-            ctx.strokeStyle = "#444";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'depot') {
-            ctx.fillStyle = `rgba(${c}, 0.15)`;
-            ctx.fillRect(z.x, z.y, z.w, z.h);
-            ctx.strokeStyle = `rgba(${c}, 0.8)`;
-            ctx.setLineDash([5, 5]);
-            ctx.lineWidth = 2;
-            ctx.strokeRect(z.x, z.y, z.w, z.h);
-            ctx.setLineDash([]);
-        } else {
-            ctx.fillStyle = `rgba(${c}, 0.2)`;
-            ctx.fillRect(z.x, z.y, z.w, z.h);
-        }
+        } else if (z.type === 'barrier' || z.type === 'towerWall') { ctx.fillStyle = `rgb(${c})`; ctx.fillRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'trench') { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = `rgba(${c}, 0.5)`; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'tower') { ctx.fillStyle = "#222"; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); 
+        } else if (z.type === 'depot') { 
+            ctx.fillStyle = `rgba(${c}, 0.15)`; ctx.fillRect(z.x, z.y, z.w, z.h); 
+            ctx.strokeStyle = `rgba(${c}, 0.8)`; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); ctx.setLineDash([]);
+        } else { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); }
     });
     
-    // Draw barricades
     barricades.forEach(b => {
         const cx = b.cx;
         const cy = b.cy;
@@ -2735,12 +2747,10 @@ function draw() {
         ctx.restore();
     });
     
-    // Draw oasis pools, leeches, drones
     drawOasisPools();
     drawLeeches();
     drawDrones();
     
-    // Draw powerups
     if (gameMode === 'powerups') {
         powerups.forEach(p => {
             const colors = { speed: '#22c55e', ammo: '#fbbf24', shield: '#a855f7', score: '#ef4444' };
@@ -2758,7 +2768,6 @@ function draw() {
         });
     }
     
-    // Draw robots
     const t = Date.now();
     if (p1Enabled && t < p1FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
     if (p1Enabled) botRed.draw(ctx, 'red');
@@ -2779,16 +2788,17 @@ function draw() {
         ctx.globalAlpha = 1.0;
     }
     
-    // Draw balls
+    // Draw balls - FOG hides them outside vision
     for (const b of balls) {
+        if (gameMode === 'fog' && !isPointVisibleInFog(b.x, b.y, robots)) continue;
         ctx.fillStyle = "#fbbf24";
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
         ctx.fill();
     }
     
-    // Draw projectiles
+    // Draw projectiles - FOG hides them outside vision
     for (const p of projectiles) {
+        if (gameMode === 'fog' && !isPointVisibleInFog(p.x, p.y, robots)) continue;
         if (p.isEcho) {
             ctx.fillStyle = '#f59e0b';
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
@@ -2855,7 +2865,6 @@ function draw() {
         }
     }
     
-    // Warning indicators
     const botList = [];
     if (p1Enabled) botList.push(botRed);
     if (p2Enabled) botList.push(botRed2);
@@ -2879,23 +2888,28 @@ function draw() {
     }
     ctx.restore();
     
-    // FOG OF WAR - Apply dark overlay, cut out vision circles
-    if (gameMode === 'fog') {
-        ctx.save();
-        // Dark overlay over everything
-        ctx.fillStyle = 'rgb(17, 17, 17)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Cut out vision circles (this reveals the field underneath at full brightness)
-        ctx.globalCompositeOperation = 'destination-out';
-        for (const robot of robots) {
-            const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
-            const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
-            ctx.beginPath();
-            ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
+// FOG OF WAR overlay - black semi-transparent overlay with cutout
+if (gameMode === 'fog') {
+    ctx.save();
+    
+    // Create a separate canvas or use a path to combine all circles
+    // First, draw the dark overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Now draw ALL vision circles as a SINGLE combined shape
+    // Use 'destination-out' but we need to combine circles first
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    for (const robot of robots) {
+        const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
+        const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
+        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
     }
+    ctx.fill();
+    
+    ctx.restore();
+}
     
     requestAnimationFrame(draw);
 }
