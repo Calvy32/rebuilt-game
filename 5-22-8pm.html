@@ -1555,21 +1555,49 @@ function update() {
                     if (d < 10) { p.consumedCount++; balls.splice(bi, 1); }
                 }
             }
-            if (t >= 1) {
-                const z = zones.find(zz => zz.type === 'hub' && zz.side === p.owner);
-                if (z) {
-                    const total = 1 + (p.consumedCount || 0);
-                    const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
-                    for (let i = 0; i < total; i++) {
-                        const ejectDelay = i * 80;
-                        scoringBalls.push({ exitTime: now + 300 + ejectDelay, hubX: z.x, hubY: z.y, side: z.side });
-                        if (matchRunning && isHubActive) {
-                            if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = scoreRed; if (!autoPhaseEnded) autoScoreRed++; }
-                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = scoreBlue; if (!autoPhaseEnded) autoScoreBlue++; }
-                        }
+           if (t >= 1) {
+    if (p.isPass) {
+        // PASSING LOB: drop balls on field at landing point
+        const dropCount = 1 + (p.consumedCount || 0);
+        for (let i = 0; i < dropCount; i++) {
+            const angle = (Math.PI * 2 * i) / dropCount;
+            const spread = dropCount > 1 ? BALL_R * 2.5 : 0;
+            balls.push({ 
+                x: p.x + Math.cos(angle) * spread, 
+                y: p.y + Math.sin(angle) * spread, 
+                r: BALL_R, 
+                vx: Math.cos(angle) * (dropCount > 1 ? 0.8 : 0), 
+                vy: Math.sin(angle) * (dropCount > 1 ? 0.8 : 0), 
+                isStatic: false, 
+                wasOnBump: false, 
+                owner: p.owner 
+            });
+        }
+    } else {
+        // SCORING LOB: score at hub
+        const z = zones.find(zz => zz.type === "hub" && zz.side === p.owner);
+        if (z) {
+            const total = 1 + (p.consumedCount || 0);
+            const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+            for (let i = 0; i < total; i++) {
+                const ejectDelay = i * 80;
+                scoringBalls.push({ exitTime: now + 300 + ejectDelay, hubX: z.x, hubY: z.y, side: z.side });
+                if (matchRunning && isHubActive) {
+                    if (p.owner === 'red') { 
+                        scoreRed++; 
+                        document.getElementById('scoreRedDisplay').innerText = scoreRed; 
+                        if (!autoPhaseEnded) autoScoreRed++; 
+                    } else { 
+                        scoreBlue++; 
+                        document.getElementById('scoreBlueDisplay').innerText = scoreBlue; 
+                        if (!autoPhaseEnded) autoScoreBlue++; 
                     }
                 }
-                return false;
+            }
+        }
+    }
+    return false;
+}
             }
             return true;
         }
