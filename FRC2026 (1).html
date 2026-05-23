@@ -922,14 +922,11 @@ function aiDecide(robot, alliance, isHubActive) {
     const rcx = robot.x + robot.model.w / 2;
     const rcy = robot.y + robot.model.h / 2;
     const hubActive = isHubActive(alliance);
-    const hasBalls  = robot.inventory > 0;
-    const isTurret  = robot.model.autoAim === true;
-
-    const isScorer = (robot === botBlue);
-    const isPasser = (robot === botBlue2);
+    const hasBalls = robot.inventory > 0;
+    const isTurret = robot.model.autoAim === true;
 
     // ── GEOMETRY ──────────────────────────────────────────────────────────────
-    const redBumpX  = 156.61 * S;
+    const redBumpX = 156.61 * S;
     const blueBumpX = FIELD_W - (156.61 * S) - BUMP_W;
 
     const ownBar1 = alliance === 'red' ? redBumpX : blueBumpX;
@@ -938,108 +935,144 @@ function aiDecide(robot, alliance, isHubActive) {
     const oppBar2 = oppBar1 + BUMP_W;
 
     // Define zones
-    const ownSideMaxX = alliance === 'red' ? ownBar1 : FIELD_W;
     const ownSideMinX = alliance === 'red' ? 0 : ownBar2;
+    const ownSideMaxX = alliance === 'red' ? ownBar1 : FIELD_W;
     const centerMinX = alliance === 'red' ? ownBar2 : oppBar1;
     const centerMaxX = alliance === 'red' ? oppBar1 : ownBar2;
     const oppSideMinX = alliance === 'red' ? oppBar2 : 0;
     const oppSideMaxX = alliance === 'red' ? FIELD_W : oppBar1;
 
-    // Check which zone the robot is currently in
-    const isInOwnSide = (alliance === 'red' && rcx < ownBar1) || (alliance === 'blue' && rcx > ownBar2);
-    const isInCenter = (rcx >= centerMinX && rcx <= centerMaxX);
-    const isInOppSide = (alliance === 'red' && rcx > oppBar2) || (alliance === 'blue' && rcx < oppBar1);
+    // Count balls in each zone
+    let ownBalls = 0, centerBalls = 0, oppBalls = 0;
+    for (const b of balls) {
+        if (b.x >= ownSideMinX && b.x <= ownSideMaxX) ownBalls++;
+        else if (b.x >= centerMinX && b.x <= centerMaxX) centerBalls++;
+        else if (b.x >= oppSideMinX && b.x <= oppSideMaxX) oppBalls++;
+    }
+    const totalBalls = ownBalls + centerBalls + oppBalls;
 
-    // Barrier Y extents
-    const hubTopY  = FIELD_H / 2 - HUB_S / 2;
+    // Determine behavior based on ball distribution and hub state
+    const ownBallRatio = totalBalls > 0 ? ownBalls / totalBalls : 0;
+    const oppBallRatio = totalBalls > 0 ? oppBalls / totalBalls : 0;
+    const centerBallRatio = totalBalls > 0 ? centerBalls / totalBalls : 0;
+
+    // SCORING TENDENCY: higher = more likely to score
+    let scoringTendency = 0.5; // neutral
+    
+    // Hub active → score more
+    if (hubActive) scoringTendency += 0.3;
+    
+    // Lots of own balls → score more
+    if (ownBallRatio > 0.4) scoringTendency += 0.2;
+    
+    // Lots of opponent balls → pass more (collect them first)
+    if (oppBallRatio > 0.4) scoringTendency -= 0.2;
+    
+    // High inventory → score more
+    if (robot.inventory > 20) scoringTendency += 0.2;
+    else if (robot.inventory < 5) scoringTendency -= 0.2;
+    
+    // Clamp
+    scoringTendency = Math.max(0.1, Math.min(0.9, scoringTendency));
+    
+    // ── DECIDE ACTION ─────────────────────────────────────────────────────────
+    let targetX = null, targetY = null;
+    let act = false;
+    
+    const shouldScore = (hasBalls && hubActive) || (robot.inventory > 15);
+    const shouldPass = hasBalls && !hubActive && robot.inventory < 25;
+    
+    if (shouldScore && scoringTendency > 0.4) {
+        // SCORE MODE - go to own hub
+        const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
+        if (ownHub) {
+            targetX = ownHub.x + ownHub.w / 2;
+            targetY = ownHub.y + ownHub.h / 2;
+            act = hubActive; // Only shoot if hub active
+        }
+    }
+    else if (shouldPass || (hasBalls && scoringTendency < 0.6)) {
+        // PASS MODE - move to center/opponent side and shoot
+        // Only shoot if NOT in own side (to avoid scoring on inactive hub)
+        const isInOwnSide = (alliance === 'red' && rcx < ownBar1) || (alliance === 'blue' && rcx > ownBar2);
+        
+        if (!isInOwnSide) {
+            // Shoot toward own side from center/opponent side
+            targetX = alliance === 'red' ? ownBar2 + 50 : ownBar1 - 50;
+            targetY = rcy < FIELD_H / 2 ? FIELD_H * 0.25 : FIELD_H * 0.75;
+            act = true;
+        } else {
+            // In own side - move to center first
+            targetX = (centerMinX + centerMaxX) / 2;
+            targetY = rcy < FIELD_H / 2 ? FIELD_H * 0.3 : FIELD_H * 0.7;
+            act = false;
+        }
+    }
+    else {
+        // COLLECT MODE - go to where the balls are
+        let targetZone = null;
+        
+        // Prioritize based on ball distribution and scoring tendency
+        if (scoringTendency > 0.6 && ownBalls > 0) {
+            // Scorer tendency - collect own side balls
+            targetZone = { minX: ownSideMinX, maxX: ownSideMaxX };
+        } else if (scoringTendency < 0.4 && oppBalls > 0) {
+            // Passer tendency - collect opponent side balls
+            targetZone = { minX: oppSideMinX, maxX: oppSideMaxX };
+        } else if (centerBalls > 0) {
+            // Neutral - collect center balls
+            targetZone = { minX: centerMinX, maxX: centerMaxX };
+        } else if (ownBalls > 0) {
+            targetZone = { minX: ownSideMinX, maxX: ownSideMaxX };
+        } else if (oppBalls > 0) {
+            targetZone = { minX: oppSideMinX, maxX: oppSideMaxX };
+        } else {
+            targetZone = { minX: centerMinX, maxX: centerMaxX };
+        }
+        
+        // Find nearest ball in target zone
+        let bestBall = null;
+        let bestDist = Infinity;
+        for (const b of balls) {
+            if (b.x >= targetZone.minX && b.x <= targetZone.maxX) {
+                const d = Math.hypot(b.x - rcx, b.y - rcy);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestBall = b;
+                }
+            }
+        }
+        
+        if (bestBall) {
+            targetX = bestBall.x;
+            targetY = bestBall.y;
+        } else {
+            // No balls in target zone - go to center
+            targetX = (centerMinX + centerMaxX) / 2;
+            targetY = FIELD_H / 2;
+        }
+        act = false;
+    }
+    
+    // Fallback
+    if (targetX === null) {
+        targetX = FIELD_W / 2;
+        targetY = FIELD_H / 2;
+    }
+    
+    // ── NAVIGATION (waypoints, same as before) ────────────────────────────────
+    const hubTopY = FIELD_H / 2 - HUB_S / 2;
     const topBarY1 = hubTopY - BUMP_L - BAR_L;
     const topBarY2 = hubTopY - BUMP_L;
     const botBarY1 = hubTopY + HUB_S + BUMP_L;
     const botBarY2 = botBarY1 + BAR_L;
-
     const CROSS_Y = [
         topBarY1 * 0.5,
         (topBarY2 + hubTopY) / 2,
         (hubTopY + HUB_S + botBarY1) / 2,
         botBarY2 + (FIELD_H - botBarY2) * 0.5,
     ];
-
-    // Tower zones
-    const redTowerY1  = TOWER_OFFSET - 30;
-    const redTowerY2  = TOWER_OFFSET + TOWER_DIM + 30;
-    const redTowerX2  = TOWER_DIM + 30;
-    const blueTowerY1 = FIELD_H - TOWER_OFFSET - TOWER_DIM - 30;
-    const blueTowerY2 = FIELD_H - TOWER_OFFSET + 30;
-    const blueTowerX1 = FIELD_W - TOWER_DIM - 30;
-
-    function nearTower(x, y) {
-        if (x < redTowerX2  && y > redTowerY1  && y < redTowerY2)  return true;
-        if (x > blueTowerX1 && y > blueTowerY1 && y < blueTowerY2) return true;
-        return false;
-    }
-
-    const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
-    const hubCX  = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? redBumpX - 80 : blueBumpX + BUMP_W + 80);
-    const hubCY  = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
-
-    const timeLeft  = 163 - matchElapsed;
-    const endgame   = timeLeft < 20;
-
-    // ── HUB TIMING ───────────────────────────────────────────────────────────
-    function getSecondsUntilActive() {
-        if (gameMode === 'kinghub') return 20 - kingHubTimer;
-        if (gameMode === 'random') return (nextShiftTime - Date.now()) / 1000;
-        
-        const currentPhase = MATCH_PHASES[currentPhaseIdx];
-        if (!currentPhase) return 999;
-        if (hubActive) return 0;
-        
-        for (let i = currentPhaseIdx + 1; i < MATCH_PHASES.length; i++) {
-            const p = MATCH_PHASES[i];
-            let active = p.redActive;
-            if (p.redActive === null) {
-                const shiftIdx = i - 3;
-                const states = SHIFT_STATES[autoWinner];
-                if (states && states[shiftIdx]) {
-                    active = alliance === 'red' ? states[shiftIdx].redActive : states[shiftIdx].blueActive;
-                }
-            }
-            if (active) return p.start - matchElapsed;
-        }
-        return 999;
-    }
-    const secondsUntilActive = getSecondsUntilActive();
-
-    // ── BALL QUERIES ──────────────────────────────────────────────────────────
-    function getBestBall(minX, maxX) {
-        let best = null, bestDist = Infinity;
-        for (const b of balls) {
-            if (b.x < minX || b.x > maxX) continue;
-            const d = Math.hypot(b.x - rcx, b.y - rcy);
-            if (d < bestDist) { bestDist = d; best = b; }
-        }
-        return best;
-    }
-
-    // ── ROBOT-ROBOT AVOIDANCE ─────────────────────────────────────────────────
-    const buddy = isScorer ? botBlue2 : botBlue;
-    let avoidX = 0, avoidY = 0;
-    if (buddy) {
-        const bx  = buddy.x + buddy.model.w / 2;
-        const by  = buddy.y + buddy.model.h / 2;
-        const sep = Math.hypot(rcx - bx, rcy - by);
-        const MIN_SEP = robot.model.w + buddy.model.w + 30;
-        if (sep < MIN_SEP && sep > 0.1) {
-            const strength = (MIN_SEP - sep) / MIN_SEP;
-            avoidX = ((rcx - bx) / sep) * strength * 1.5;
-            avoidY = ((rcy - by) / sep) * strength * 1.5;
-            const perp = isScorer ? 1 : -1;
-            avoidX += (-(rcy - by) / sep) * strength * 0.6 * perp;
-            avoidY += ( (rcx - bx) / sep) * strength * 0.6 * perp;
-        }
-    }
-
-    // ── WAYPOINT ──────────────────────────────────────────────────────────────
+    
     function bestCrossY(currentY) {
         let best = CROSS_Y[0], bestDist = Math.abs(currentY - CROSS_Y[0]);
         for (let i = 1; i < CROSS_Y.length; i++) {
@@ -1048,10 +1081,8 @@ function aiDecide(robot, alliance, isHubActive) {
         }
         return best;
     }
-
-    function navigate(rawX, rawY) {
-        let tx = rawX, ty = rawY;
-
+    
+    function navigate(tx, ty) {
         const checkBarrier = (barX1, barX2) => {
             const needsCross = (rcx < barX1 && tx > barX2) || (rcx > barX2 && tx < barX1);
             if (needsCross) {
@@ -1065,166 +1096,44 @@ function aiDecide(robot, alliance, isHubActive) {
             }
             return null;
         };
-
         let nav = checkBarrier(ownBar1, ownBar2) || checkBarrier(oppBar1, oppBar2);
         if (nav) return nav;
-
         return { x: tx, y: ty };
     }
-
-    function avoidTower(tx, ty) {
-        if (tx < redTowerX2 && ty > redTowerY1 && ty < redTowerY2) {
-            ty = redTowerY2 + 20;
-        }
-        if (tx > blueTowerX1 && ty > blueTowerY1 && ty < blueTowerY2) {
-            ty = blueTowerY1 - 20;
-        }
-        return { x: tx, y: ty };
-    }
-
-    function hubShootSpot() {
-        if (!ownHub) return { x: hubCX, y: hubCY };
-        const clearance = 32;
-        const standY = rcy < hubCY ? ownHub.y - clearance
-                                   : ownHub.y + ownHub.h + clearance;
-        return { x: hubCX, y: standY };
-    }
-
-    // ── DECISION ──────────────────────────────────────────────────────────────
-    let targetX = null, targetY = null;
-    let act = false;
-
-    // ========== SCORER ROBOT ==========
-    if (isScorer) {
-        const returningEarly = !hubActive && secondsUntilActive <= 3.0;
-        
-        if (hasBalls && (hubActive || returningEarly)) {
-            const spot = hubShootSpot();
-            targetX = spot.x; targetY = spot.y;
-            act = hubActive;
-        }
-        else if (hasBalls && !hubActive && !returningEarly) {
-            // Move to center to receive passes (don't shoot from own side)
-            targetX = (centerMinX + centerMaxX) / 2;
-            targetY = rcy < FIELD_H / 2 ? FIELD_H * 0.3 : FIELD_H * 0.7;
-            act = false; // Don't shoot - just wait for passes
-        }
-        else {
-            // No balls - collect from own side ONLY
-            const ball = getBestBall(ownSideMinX, ownSideMaxX);
-            if (ball) {
-                targetX = ball.x; targetY = ball.y;
-            } else {
-                // No balls on own side - go to center to receive passes
-                targetX = (centerMinX + centerMaxX) / 2;
-                targetY = FIELD_H / 2;
-            }
-            act = false;
-        }
-    }
-
-    // ========== PASSER ROBOT ==========
-    else if (isPasser) {
-        // Emergency score only in endgame AND hub active
-        if (endgame && hubActive && hasBalls) {
-            const spot = hubShootSpot();
-            targetX = spot.x; targetY = spot.y;
-            act = true;
-        }
-        else if (hasBalls) {
-            // PASS - only shoot if NOT in own side (to avoid scoring on inactive hub)
-            // Shoot toward own side, but only from center or opponent side
-            if (!isInOwnSide) {
-                // Aim pass toward own side (deeper)
-                const passTargetX = alliance === 'red' ? ownBar2 + 30 : ownBar1 - 30;
-                const passTargetY = rcy < FIELD_H / 2 ? FIELD_H * 0.25 : FIELD_H * 0.75;
-                targetX = passTargetX;
-                targetY = passTargetY;
-                act = true;
-            } else {
-                // In own side with balls - move to center first before passing
-                targetX = (centerMinX + centerMaxX) / 2;
-                targetY = rcy < FIELD_H / 2 ? FIELD_H * 0.3 : FIELD_H * 0.7;
-                act = false;
-            }
-        }
-        else {
-            // No balls - collect from center FIRST, then opponent side
-            // NEVER collect from own side (scorer's job)
-            let ball = getBestBall(centerMinX, centerMaxX);
-            let onOppHalf = false;
-            if (!ball) {
-                ball = getBestBall(oppSideMinX, oppSideMaxX);
-                onOppHalf = !!ball;
-            }
-            
-            if (ball) {
-                targetX = ball.x; targetY = ball.y;
-            } else {
-                // Nothing anywhere - go to center to wait
-                targetX = (centerMinX + centerMaxX) / 2;
-                targetY = FIELD_H / 2;
-            }
-            act = false;
-        }
-    }
-
-    if (targetX === null) { targetX = FIELD_W / 2; targetY = FIELD_H / 2; }
-
-    // Apply navigation
+    
     const nav = navigate(targetX, targetY);
     targetX = nav.x; targetY = nav.y;
-    const ta = avoidTower(targetX, targetY);
-    targetX = ta.x; targetY = ta.y;
-
+    
     // ── MOVEMENT ──────────────────────────────────────────────────────────────
-    const dx    = targetX - rcx;
-    const dy    = targetY - rcy;
-    const dist  = Math.hypot(dx, dy);
+    const dx = targetX - rcx;
+    const dy = targetY - rcy;
+    const dist = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
-
+    
     const inputMag = dist < 18 ? 0.15 : 0.8;
-
-    let moveX = Math.cos(angle) * inputMag + avoidX;
-    let moveY = Math.sin(angle) * inputMag + avoidY;
-
-    // Hard wall push
-    if (rcx < 25)           moveX = Math.max(moveX,  0.8);
+    let moveX = Math.cos(angle) * inputMag;
+    let moveY = Math.sin(angle) * inputMag;
+    
+    // Wall push
+    if (rcx < 25) moveX = Math.max(moveX, 0.8);
     if (rcx > FIELD_W - 25) moveX = Math.min(moveX, -0.8);
-    if (rcy < 25)           moveY = Math.max(moveY,  0.8);
+    if (rcy < 25) moveY = Math.max(moveY, 0.8);
     if (rcy > FIELD_H - 25) moveY = Math.min(moveY, -0.8);
-
-    // Barrier escape
-    const inBarColOwn = rcx > ownBar1 - 4 && rcx < ownBar2 + 4;
-    const inBarColOpp = rcx > oppBar1 - 4 && rcx < oppBar2 + 4;
-    const inTopBar    = rcy > topBarY1 - 4 && rcy < topBarY2 + 4;
-    const inBotBar    = rcy > botBarY1 - 4 && rcy < botBarY2 + 4;
-    if ((inBarColOwn || inBarColOpp) && (inTopBar || inBotBar)) {
-        const gapY = bestCrossY(rcy);
-        moveX = 0;
-        moveY = gapY < rcy ? -0.8 : 0.8;
-    }
-
-    // Tower escape
-    if (nearTower(rcx, rcy)) {
-        moveX = rcx < FIELD_W / 2 ? 0.8 : -0.8;
-        moveY = rcy < (TOWER_OFFSET + TOWER_DIM / 2) ? -0.8 : 0.8;
-    }
-
+    
     let rotInput = 0;
     if (!isTurret) {
         let angleDiff = angle - robot.angle;
-        while (angleDiff >  Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
         rotInput = Math.max(-0.9, Math.min(0.9, angleDiff));
     }
-
+    
     const mag = Math.hypot(moveX, moveY);
     if (mag > 0.8) { moveX = moveX / mag * 0.8; moveY = moveY / mag * 0.8; }
-
+    
     const currentPhase = MATCH_PHASES[currentPhaseIdx];
     const canMovePhase = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
-
+    
     if (canMovePhase || currentPhaseIdx === 1) {
         robot.update(moveX, moveY, rotInput, act, false, alliance, obstacles, zones, null, true);
     } else {
