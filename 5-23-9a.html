@@ -2610,7 +2610,6 @@ function update() {
     });
 }
 
-// DRAW FUNCTION - with FOG OF WAR (field bright, outside dark, vision circles normal)
 function draw() {
     const robots = [];
     if (p1Enabled) robots.push(botRed);
@@ -2619,11 +2618,18 @@ function draw() {
     if (p4Enabled) robots.push(botBlue2);
     
     // Draw field normally (full brightness)
-    ctx.clearRect(0,0, canvas.width, canvas.height); ctx.fillStyle = "#111"; ctx.fillRect(0,0, canvas.width, canvas.height);
-    ctx.fillStyle = "#222"; ctx.fillRect(0,0, canvas.width, WALL_VISUAL); ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
-    ctx.fillRect(0,0, WALL_VISUAL, canvas.height); ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
-    ctx.save(); ctx.translate(WALL_VISUAL, WALL_VISUAL);
+    ctx.clearRect(0,0, canvas.width, canvas.height);
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0,0, canvas.width, canvas.height);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(0,0, canvas.width, WALL_VISUAL);
+    ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
+    ctx.fillRect(0,0, WALL_VISUAL, canvas.height);
+    ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
+    ctx.save();
+    ctx.translate(WALL_VISUAL, WALL_VISUAL);
     
+    // Draw zones
     zones.forEach(z => {
         const c = z.side === 'red' ? '239, 68, 68' : '59, 130, 246';
         if (z.type === 'hub') {
@@ -2662,15 +2668,36 @@ function draw() {
                 ctx.font = 'bold 12px monospace';
                 ctx.fillText('ACTIVE', z.x + z.w/2 - 25, z.y - 5);
             }
-        } else if (z.type === 'barrier' || z.type === 'towerWall') { ctx.fillStyle = `rgb(${c})`; ctx.fillRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'trench') { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = `rgba(${c}, 0.5)`; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'tower') { ctx.fillStyle = "#222"; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); 
-        } else if (z.type === 'depot') { 
-            ctx.fillStyle = `rgba(${c}, 0.15)`; ctx.fillRect(z.x, z.y, z.w, z.h); 
-            ctx.strokeStyle = `rgba(${c}, 0.8)`; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); ctx.setLineDash([]);
-        } else { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); }
+        } else if (z.type === 'barrier' || z.type === 'towerWall') {
+            ctx.fillStyle = `rgb(${c})`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'trench') {
+            ctx.fillStyle = `rgba(${c}, 0.2)`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = `rgba(${c}, 0.5)`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'tower') {
+            ctx.fillStyle = "#222";
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = "#444";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'depot') {
+            ctx.fillStyle = `rgba(${c}, 0.15)`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = `rgba(${c}, 0.8)`;
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+            ctx.setLineDash([]);
+        } else {
+            ctx.fillStyle = `rgba(${c}, 0.2)`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+        }
     });
     
+    // Draw barricades
     barricades.forEach(b => {
         const cx = b.cx;
         const cy = b.cy;
@@ -2708,10 +2735,12 @@ function draw() {
         ctx.restore();
     });
     
+    // Draw oasis pools, leeches, drones
     drawOasisPools();
     drawLeeches();
     drawDrones();
     
+    // Draw powerups
     if (gameMode === 'powerups') {
         powerups.forEach(p => {
             const colors = { speed: '#22c55e', ammo: '#fbbf24', shield: '#a855f7', score: '#ef4444' };
@@ -2729,6 +2758,7 @@ function draw() {
         });
     }
     
+    // Draw robots
     const t = Date.now();
     if (p1Enabled && t < p1FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
     if (p1Enabled) botRed.draw(ctx, 'red');
@@ -2749,17 +2779,16 @@ function draw() {
         ctx.globalAlpha = 1.0;
     }
     
-    // Draw balls - FOG hides them outside vision
+    // Draw balls
     for (const b of balls) {
-        if (gameMode === 'fog' && !isPointVisibleInFog(b.x, b.y, robots)) continue;
         ctx.fillStyle = "#fbbf24";
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
         ctx.fill();
     }
     
-    // Draw projectiles - FOG hides them outside vision
+    // Draw projectiles
     for (const p of projectiles) {
-        if (gameMode === 'fog' && !isPointVisibleInFog(p.x, p.y, robots)) continue;
         if (p.isEcho) {
             ctx.fillStyle = '#f59e0b';
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
@@ -2826,6 +2855,7 @@ function draw() {
         }
     }
     
+    // Warning indicators
     const botList = [];
     if (p1Enabled) botList.push(botRed);
     if (p2Enabled) botList.push(botRed2);
@@ -2849,24 +2879,23 @@ function draw() {
     }
     ctx.restore();
     
-// FOG OF WAR overlay - darken outside vision circles, keep circles at normal brightness
-if (gameMode === 'fog') {
-    ctx.save();
-    // Draw dark overlay over EVERYTHING (using your specified color)
-    ctx.fillStyle = 'rgb(17, 17, 17)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Cut out vision circles - this removes the dark overlay in those areas,
-    // revealing the normal-brightness field underneath
-    ctx.globalCompositeOperation = 'destination-out';
-    for (const robot of robots) {
-        const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
-        const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
-        ctx.beginPath();
-        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
-        ctx.fill();
+    // FOG OF WAR - Apply dark overlay, cut out vision circles
+    if (gameMode === 'fog') {
+        ctx.save();
+        // Dark overlay over everything
+        ctx.fillStyle = 'rgb(17, 17, 17)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Cut out vision circles (this reveals the field underneath at full brightness)
+        ctx.globalCompositeOperation = 'destination-out';
+        for (const robot of robots) {
+            const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
+            const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
+            ctx.beginPath();
+            ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
     }
-    ctx.restore();
-}
     
     requestAnimationFrame(draw);
 }
