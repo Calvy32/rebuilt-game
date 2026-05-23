@@ -1544,17 +1544,21 @@ function update() {
             if (!p.consumedCount) p.consumedCount = 0;
             const pullRadius = 35, pullStrength = 0.7;
             for (let bi = balls.length - 1; bi >= 0; bi--) {
-                const bl = balls[bi];
-                const dx = p.x - bl.x, dy = p.y - bl.y;
-                const d = Math.hypot(dx, dy);
-                if (d < pullRadius && d > 1) {
-                    bl.isStatic = false;
-                    const force = pullStrength * (1 - d / pullRadius);
-                    bl.vx += (dx / d) * force;
-                    bl.vy += (dy / d) * force;
-                    if (d < 10) { p.consumedCount++; balls.splice(bi, 1); }
-                }
-            }
+    const bl = balls[bi];
+    const dx = p.x - bl.x, dy = p.y - bl.y;
+    const d = Math.hypot(dx, dy);
+    if (d < pullRadius && d > 1) {
+        bl.isStatic = false;
+        const force = pullStrength * (1 - d / pullRadius);
+        bl.vx += (dx / d) * force;
+        bl.vy += (dy / d) * force;
+        if (d < 10) { 
+            p.consumedCount++; 
+            balls.splice(bi, 1); 
+        }
+    }
+}
+
 if (t >= 1) {
     if (p.isPass) {
         // PASSING LOB: drop balls on field at landing point
