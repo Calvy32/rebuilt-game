@@ -925,23 +925,53 @@ function aiDecide(robot, alliance, isHubActive) {
     const hasBalls = robot.inventory > 0;
     const isTurret = robot.model.autoAim === true;
     
+    // Get current and next phase info for pre-positioning
+    const currentPhase = MATCH_PHASES[currentPhaseIdx];
+    const nextPhase = MATCH_PHASES[currentPhaseIdx + 1];
+    let timeUntilHubActive = Infinity;
+    if (nextPhase && nextPhase.redActive === true && alliance === 'red') {
+        timeUntilHubActive = nextPhase.start - matchElapsed;
+    } else if (nextPhase && nextPhase.blueActive === true && alliance === 'blue') {
+        timeUntilHubActive = nextPhase.start - matchElapsed;
+    }
+    const shouldPrePosition = timeUntilHubActive < 5 && timeUntilHubActive > 0;
+    
     let moveX = 0, moveY = 0, rotInput = 0, act = false;
     
-    // WALL AVOIDANCE - push AWAY from nearest wall (not away from center)
+    // WALL AVOIDANCE - much weaker, only when very close
     let avoidX = 0, avoidY = 0;
     const leftDist = rcx;
     const rightDist = FIELD_W - rcx;
     const topDist = rcy;
     const bottomDist = FIELD_H - rcy;
-    const wallThreshold = 80;
+    const wallThreshold = 40; // Only avoid when VERY close
     
-    if (leftDist < wallThreshold) avoidX = 0.8;
-    else if (rightDist < wallThreshold) avoidX = -0.8;
-    if (topDist < wallThreshold) avoidY = 0.8;
-    else if (bottomDist < wallThreshold) avoidY = -0.8;
+    if (leftDist < wallThreshold) avoidX = 0.3;
+    else if (rightDist < wallThreshold) avoidX = -0.3;
+    if (topDist < wallThreshold) avoidY = 0.3;
+    else if (bottomDist < wallThreshold) avoidY = -0.3;
+    
+    // BARRIER WALL AVOIDANCE (between bump and trench)
+    let barrierAvoidX = 0, barrierAvoidY = 0;
+    for (const o of obstacles) {
+        if (o.type === 'barrier') {
+            // Distance to barrier
+            const barrierCenterX = o.x + o.w/2;
+            const barrierCenterY = o.y + o.h/2;
+            const dx = rcx - barrierCenterX;
+            const dy = rcy - barrierCenterY;
+            const distToBarrier = Math.hypot(dx, dy);
+            if (distToBarrier < 50) {
+                // Push away from barrier
+                const pushStrength = 0.4 * (1 - distToBarrier / 50);
+                barrierAvoidX += dx * pushStrength;
+                barrierAvoidY += dy * pushStrength;
+            }
+        }
+    }
     
     // SCORING: Has balls AND hub active -> go score
-    if (hasBalls && hubActive) {
+    if (hasBalls && (hubActive || shouldPrePosition)) {
         const targetHub = zones.find(z => z.type === 'hub' && z.side === alliance);
         if (targetHub) {
             const hubX = targetHub.x + targetHub.w/2;
@@ -960,18 +990,19 @@ function aiDecide(robot, alliance, isHubActive) {
                 rotInput = Math.max(-0.8, Math.min(0.8, angleDiff));
             }
             
-            act = true; // ONLY shoot when hub active
+            act = hubActive; // Only shoot if hub active, otherwise just position
         }
     }
-    // PASSING/COLLECTING: Has balls but hub inactive OR no balls
+    // COLLECTING: No balls OR hub inactive -> go get balls (including passing)
     else {
-        // Find weighted ball target (prioritizes depot balls 3x)
+        // Weighted ball targeting (depot = 3x weight, clusters = bonus)
         let bestBall = null;
         let bestScore = -Infinity;
         const depots = zones.filter(z => z.type === 'depot');
         
         for (const ball of balls) {
             let weight = 1.0;
+            // Depot bonus
             for (const depot of depots) {
                 if (ball.x > depot.x && ball.x < depot.x + depot.w && 
                     ball.y > depot.y && ball.y < depot.y + depot.h) {
@@ -979,6 +1010,7 @@ function aiDecide(robot, alliance, isHubActive) {
                     break;
                 }
             }
+            // Cluster bonus
             let nearbyCount = 0;
             for (const other of balls) {
                 if (other !== ball && Math.hypot(other.x - ball.x, other.y - ball.y) < 80) {
@@ -986,6 +1018,7 @@ function aiDecide(robot, alliance, isHubActive) {
                 }
             }
             weight += nearbyCount * 0.3;
+            
             const dist = Math.hypot(ball.x - rcx, ball.y - rcy);
             const score = weight / (dist + 1);
             if (score > bestScore) {
@@ -1009,24 +1042,30 @@ function aiDecide(robot, alliance, isHubActive) {
                 rotInput = Math.max(-0.6, Math.min(0.6, angleDiff));
             }
             
-            act = false; // No shooting when collecting/passing
+            // Pass if we have balls (shoot toward center) OR just collect
+            act = hasBalls; // If has balls, shoot (pass) while moving
         } else {
-            // Wander
-            moveX = (Math.random() - 0.5) * 0.5;
-            moveY = (Math.random() - 0.5) * 0.5;
-            rotInput = (Math.random() - 0.5) * 0.4;
+            // No balls on field - wander toward center
+            const centerX = FIELD_W / 2;
+            const centerY = FIELD_H / 2;
+            const dx = centerX - rcx;
+            const dy = centerY - rcy;
+            const angle = Math.atan2(dy, dx);
+            
+            moveX = Math.cos(angle) * 0.6;
+            moveY = Math.sin(angle) * 0.6;
+            rotInput = (Math.random() - 0.5) * 0.3;
         }
     }
     
-    // Apply wall avoidance (adds to movement, not overriding)
-    moveX += avoidX;
-    moveY += avoidY;
+    // Apply avoidance (add to movement, gentle strength)
+    moveX += avoidX * 0.5 + barrierAvoidX * 0.3;
+    moveY += avoidY * 0.5 + barrierAvoidY * 0.3;
     const mag = Math.hypot(moveX, moveY);
     if (mag > 1) { moveX /= mag; moveY /= mag; }
     
-    const currentPhase = MATCH_PHASES[currentPhaseIdx];
-    const canMove = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
-    if (canMove || currentPhaseIdx === 1) {
+    const canMovePhase = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
+    if (canMovePhase || currentPhaseIdx === 1) {
         robot.update(moveX, moveY, rotInput, act, false, alliance, obstacles, zones, null);
     } else {
         robot.update(0, 0, 0, act, false, alliance, obstacles, zones, null);
