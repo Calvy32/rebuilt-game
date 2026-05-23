@@ -921,316 +921,220 @@ function aiDecide(robot, alliance, isHubActive) {
 
     const rcx = robot.x + robot.model.w / 2;
     const rcy = robot.y + robot.model.h / 2;
+    const hw  = robot.model.w / 2;
     const hubActive = isHubActive(alliance);
-    const hasBalls = robot.inventory > 0;
-    const isTurret = robot.model.autoAim === true;
+    const hasBalls  = robot.inventory > 0;
+    const isTurret  = robot.model.autoAim === true;
 
-    // Role: P3 = SCORER (own side only), P4 = PASSER (crosses to opponent side)
     const isScorer = (robot === botBlue);
     const isPasser = (robot === botBlue2);
 
-    const timeLeft = 163 - matchElapsed;
-    const endgame = timeLeft < 15;
-
     // ── GEOMETRY ──────────────────────────────────────────────────────────────
-    // Red barrier column: x from redBumpX to redBumpX+BUMP_W
-    // Blue barrier column: x from blueBumpX to blueBumpX+BUMP_W
-    // Both share the same Y because the field is vertically symmetric.
-    const redBumpX    = 156.61 * S;
-    const blueBumpX   = FIELD_W - (156.61 * S) - BUMP_W;
+    const redBumpX   = 156.61 * S;
+    const blueBumpX  = FIELD_W - (156.61 * S) - BUMP_W;
 
-    // Own/opponent barrier X range (the column robots must NOT drive through)
-    const ownBarrierX1  = alliance === 'red' ? redBumpX  : blueBumpX;
-    const ownBarrierX2  = ownBarrierX1 + BUMP_W;
-    const oppBarrierX1  = alliance === 'red' ? blueBumpX : redBumpX;
-    const oppBarrierX2  = oppBarrierX1 + BUMP_W;
+    // Own-side barrier column X extents
+    const ownBar1 = alliance === 'red' ? redBumpX  : blueBumpX;
+    const ownBar2 = ownBar1 + BUMP_W;
+    // Opponent-side barrier column X extents
+    const oppBar1 = alliance === 'red' ? blueBumpX : redBumpX;
+    const oppBar2 = oppBar1 + BUMP_W;
 
-    // Barrier Y extents (same for both sides — field is symmetric)
-    const hubY         = FIELD_H / 2 - HUB_S / 2;
-    const topBarY1     = hubY - BUMP_L - BAR_L;   // top edge of top barrier
-    const topBarY2     = hubY - BUMP_L;            // bottom edge of top barrier
-    const botBarY1     = hubY + HUB_S + BUMP_L;   // top edge of bottom barrier
-    const botBarY2     = botBarY1 + BAR_L;         // bottom edge of bottom barrier
+    // Barrier Y extents (same both sides — field is vertically symmetric)
+    const hubTopY    = FIELD_H / 2 - HUB_S / 2;
+    const topBarY1   = hubTopY - BUMP_L - BAR_L;
+    const topBarY2   = hubTopY - BUMP_L;
+    const botBarY1   = hubTopY + HUB_S + BUMP_L;
+    const botBarY2   = botBarY1 + BAR_L;
 
-    // Safe Y to cross OVER the barrier column without hitting barriers
-    // Top gap: above topBarY1 — use Y ~ 40 (well above the top barrier)
-    // Bottom gap: below botBarY2 — use Y ~ FIELD_H - 40
-    const SAFE_TOP_Y = 40;
-    const SAFE_BOT_Y = FIELD_H - 40;
+    // The two clear corridor Y values that thread between the barriers and walls
+    const SAFE_TOP_Y = topBarY1 * 0.5;           // well above the top barrier
+    const SAFE_BOT_Y = botBarY2 + (FIELD_H - botBarY2) * 0.5; // well below bot barrier
 
-    // "Own side" means the X side where our hub is
-    // Red robots stay left of (ownBarrierX1 - robot half-width)
-    // Blue robots stay right of (ownBarrierX2 + robot half-width)
-    const ownSideMaxX = alliance === 'red' ? ownBarrierX1 - 10 : FIELD_W;
-    const ownSideMinX = alliance === 'red' ? 0               : ownBarrierX2 + 10;
+    const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
+    const hubCX  = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? redBumpX - 80 : blueBumpX + BUMP_W + 80);
+    const hubCY  = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
 
-    // Depot approach offset — depots are flush against the wall,
-    // so approach from a point slightly away from the wall edge
-    const DEPOT_APPROACH = robot.model.w * 0.9;
-
-    const ownHub     = zones.find(z => z.type === 'hub'   && z.side === alliance);
-    const ownDepot   = zones.find(z => z.type === 'depot' && z.side === alliance);
-    const oppDepot   = zones.find(z => z.type === 'depot' && z.side !== alliance);
-
-    // Hub center
-    const hubCX = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? redBumpX - 80 : blueBumpX + 80 + BUMP_W);
-    const hubCY = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
-
-    // ── HELPERS ───────────────────────────────────────────────────────────────
-
-    // Nearest ball on OWN side (scorer uses this)
-    function nearestOwnBall() {
+    // ── BALL QUERIES (no depot logic) ─────────────────────────────────────────
+    // Find nearest ball on a given side, optionally within an X bound
+    function nearestBallOnSide(minX, maxX) {
         let best = null, bestDist = Infinity;
         for (const b of balls) {
-            const onOwn = alliance === 'red' ? b.x < ownBarrierX1 : b.x > ownBarrierX2;
-            if (!onOwn) continue;
+            if (b.x < minX || b.x > maxX) continue;
             const d = Math.hypot(b.x - rcx, b.y - rcy);
             if (d < bestDist) { bestDist = d; best = b; }
         }
         return best;
     }
 
-    // Nearest ball on OPPONENT side (passer uses this)
-    function nearestOppBall() {
-        let best = null, bestDist = Infinity;
-        for (const b of balls) {
-            const onOpp = alliance === 'red' ? b.x > oppBarrierX2 : b.x < oppBarrierX1;
-            if (!onOpp) continue;
-            const d = Math.hypot(b.x - rcx, b.y - rcy);
-            if (d < bestDist) { bestDist = d; best = b; }
+    function countBallsOnSide(minX, maxX) {
+        let n = 0;
+        for (const b of balls) { if (b.x >= minX && b.x <= maxX) n++; }
+        return n;
+    }
+
+    const ownMinX  = alliance === 'red' ? 0          : ownBar2;
+    const ownMaxX  = alliance === 'red' ? ownBar1     : FIELD_W;
+    const oppMinX  = alliance === 'red' ? oppBar2     : 0;
+    const oppMaxX  = alliance === 'red' ? FIELD_W     : oppBar1;
+
+    const ownBallCount = countBallsOnSide(ownMinX, ownMaxX);
+    const FEW_BALLS    = 18;   // threshold: switch to passing mode
+
+    // ── ROBOT-ROBOT AVOIDANCE ─────────────────────────────────────────────────
+    const buddy = isScorer ? botBlue2 : botBlue;
+    let avoidX = 0, avoidY = 0;
+    if (buddy) {
+        const bx = buddy.x + buddy.model.w / 2;
+        const by = buddy.y + buddy.model.h / 2;
+        const sep = Math.hypot(rcx - bx, rcy - by);
+        const MIN_SEP = robot.model.w + buddy.model.w + 10;
+        if (sep < MIN_SEP && sep > 0.1) {
+            const push = (MIN_SEP - sep) / MIN_SEP;
+            avoidX = ((rcx - bx) / sep) * push * 1.6;
+            avoidY = ((rcy - by) / sep) * push * 1.6;
         }
-        return best;
     }
 
-    // Depot approach point — offset away from wall so robot doesn't faceplant
-    function depotApproach(depot) {
-        if (!depot) return null;
-        if (depot.x < FIELD_W / 2) {
-            // Left-wall depot (red): approach from the right side
-            return { x: depot.x + depot.w + DEPOT_APPROACH, y: depot.y + depot.h / 2 };
-        } else {
-            // Right-wall depot (blue): approach from the left side
-            return { x: depot.x - DEPOT_APPROACH, y: depot.y + depot.h / 2 };
-        }
-    }
+    // ── WAYPOINT NAVIGATION ───────────────────────────────────────────────────
+    // Route a robot around a barrier column (barX1..barX2) at the correct gap.
+    function waypoint(rawX, rawY, barX1, barX2) {
+        const crossingNeeded = (rcx < barX1 && rawX > barX2) ||
+                               (rcx > barX2 && rawX < barX1);
+        if (!crossingNeeded) return { x: rawX, y: rawY };
 
-    // Does the robot need to cross a barrier column to reach targetX?
-    function needsCrossing(fromX, toX, barX1, barX2) {
-        return (fromX < barX1 && toX > barX2) || (fromX > barX2 && toX < barX1);
-    }
+        const gapY    = (rcy < FIELD_H / 2) ? SAFE_TOP_Y : SAFE_BOT_Y;
+        const atGapY  = Math.abs(rcy - gapY) < 50;
+        const robLeft = rcx < barX1;
 
-    // Pick the safer gap Y (whichever is closer to current rcy)
-    function chooseGapY() {
-        return (rcy < FIELD_H / 2) ? SAFE_TOP_Y : SAFE_BOT_Y;
-    }
-
-    // ── WAYPOINT SYSTEM ───────────────────────────────────────────────────────
-    // Returns a waypointed target if we need to navigate around a barrier.
-    // The path is: robot → gap align → cross → continue to target
-    // We use a simple state: if we're not yet at the gap side, go there first.
-    function waypointedTarget(rawTargetX, rawTargetY, barX1, barX2) {
-        if (!needsCrossing(rcx, rawTargetX, barX1, barX2)) {
-            return { x: rawTargetX, y: rawTargetY };
-        }
-        const gapY = chooseGapY();
-        const crossingY = gapY;
-        const robotIsLeft = rcx < barX1;
-        // Step 1: Align Y to gap
-        // Step 2: Cross through gap column
-        // Step 3: Proceed to target
-        // We detect which step by how close we are to the alignment
-        const atGapY = Math.abs(rcy - crossingY) < 55;
         if (!atGapY) {
-            // First go to same X but at gap Y
-            return { x: rcx, y: crossingY };
+            // Phase 1: align to gap row, stay on current side of barrier
+            return { x: rcx, y: gapY };
         }
-        // At gap Y — now drive through the barrier column
-        const midX = robotIsLeft ? barX2 + 30 : barX1 - 30;
-        const throughX = robotIsLeft ? barX1 - 10 : barX2 + 10;
-        const pastBarrier = robotIsLeft ? rcx > barX1 - 5 : rcx < barX2 + 5;
-        if (!pastBarrier) {
-            return { x: midX, y: crossingY };
+        // Phase 2: drive through
+        const cleared = robLeft ? rcx > barX2 + 30 : rcx < barX1 - 30;
+        if (!cleared) {
+            return { x: robLeft ? barX2 + 50 : barX1 - 50, y: gapY };
         }
-        // Through — head to final target (but keep gap Y until well past barrier)
-        const clearOfBar = robotIsLeft ? rcx > barX2 + 40 : rcx < barX1 - 40;
-        if (!clearOfBar) {
-            return { x: rawTargetX, y: crossingY };
-        }
-        return { x: rawTargetX, y: rawTargetY };
+        // Phase 3: resume to final target, keep gap Y until well clear
+        return { x: rawX, y: rawY };
     }
 
-    // ── DECISION LOGIC ────────────────────────────────────────────────────────
+    // ── DECISION ──────────────────────────────────────────────────────────────
     let targetX = null, targetY = null;
     let act = false;
+    const timeLeft   = 163 - matchElapsed;
+    const endgame    = timeLeft < 20;
+    // Passer mode for scorer: hub inactive OR very few balls on own side
+    const scorerShouldPass = !hubActive || ownBallCount < FEW_BALLS;
 
-    // ── SCORER (P3): stays on own side, collects, scores ──────────────────────
+    // ── SCORER ────────────────────────────────────────────────────────────────
     if (isScorer) {
-        if (hasBalls && hubActive) {
+        if (hasBalls && hubActive && !scorerShouldPass) {
             // Drive to hub and shoot
             targetX = hubCX;
             targetY = hubCY;
             act = true;
-        } else if (hasBalls && !hubActive) {
-            // Hub inactive — park near hub ready to score the moment it activates
-            // Stay close but slightly in front (don't block it)
-            const standoffDist = 70;
-            const angleToHub = Math.atan2(hubCY - rcy, hubCX - rcx);
-            targetX = hubCX - Math.cos(angleToHub) * standoffDist;
-            targetY = hubCY - Math.sin(angleToHub) * standoffDist;
-            act = false;
+        } else if (hasBalls && scorerShouldPass) {
+            // Pass toward own side center so passer can pick it up if needed,
+            // or just dump near center field
+            const passToX = alliance === 'red'
+                ? ownBar1 - 100
+                : ownBar2 + 100;
+            targetX = passToX;
+            targetY = FIELD_H / 2;
+            act = true;
         } else {
-            // Need balls — collect from own side
-            // Check if own depot has balls (visible balls near depot)
-            let depotBall = null;
-            if (ownDepot) {
-                for (const b of balls) {
-                    if (b.x > ownDepot.x - 15 && b.x < ownDepot.x + ownDepot.w + 15 &&
-                        b.y > ownDepot.y - 15 && b.y < ownDepot.y + ownDepot.h + 15) {
-                        depotBall = b;
-                        break;
-                    }
-                }
-            }
-
-            if (depotBall) {
-                // There are balls near the depot — approach from the side, NOT into wall
-                const ap = depotApproach(ownDepot);
-                targetX = ap.x;
-                targetY = ap.y;
-                act = false;
+            // Collect: go to nearest ball on own side
+            const ball = nearestBallOnSide(ownMinX, ownMaxX);
+            if (ball) {
+                targetX = ball.x;
+                targetY = ball.y;
             } else {
-                const ball = nearestOwnBall();
-                if (ball) {
-                    targetX = ball.x;
-                    targetY = ball.y;
-                    act = false;
-                } else if (ownDepot) {
-                    // No balls visible — idle near depot approach point waiting for spawn
-                    const ap = depotApproach(ownDepot);
-                    targetX = ap.x;
-                    targetY = ap.y;
-                    act = false;
-                } else {
-                    // Fallback: wait near hub
-                    targetX = hubCX - 80;
-                    targetY = hubCY;
-                    act = false;
-                }
+                // No balls on own side — drift toward center/hub to receive passes
+                targetX = alliance === 'red' ? ownBar1 - 80 : ownBar2 + 80;
+                targetY = hubCY;
             }
+            act = false;
         }
     }
 
-    // ── PASSER (P4): crosses to opponent side, collects, passes back ───────────
+    // ── PASSER ────────────────────────────────────────────────────────────────
     else if (isPasser) {
         if (endgame && hasBalls && hubActive) {
-            // Emergency score in last 15 seconds
+            // Emergency score
             targetX = hubCX;
             targetY = hubCY;
             act = true;
         } else if (hasBalls) {
-            // Pass toward own side — aim for a point clearly on OWN side of own barrier
-            const passTargetX = alliance === 'red'
-                ? ownBarrierX1 - 120   // clearly left of red barrier
-                : ownBarrierX2 + 120;  // clearly right of blue barrier
-            const passTargetY = FIELD_H / 2;
-            // Position robot so it's facing own side just outside own barrier
-            const fireFromX = alliance === 'red'
-                ? ownBarrierX1 + BUMP_W + 40   // just right of red barrier (opp side), shoot left
-                : ownBarrierX1 - 40;           // just left of blue barrier (opp side), shoot right
-            targetX = fireFromX;
-            targetY = passTargetY;
+            // Fire pass back toward own side from just outside the own barrier
+            const fireX = alliance === 'red'
+                ? ownBar2 + 60    // just right of red barrier, shoot left
+                : ownBar1 - 60;   // just left of blue barrier, shoot right
+            targetX = fireX;
+            targetY = FIELD_H / 2;
             act = true;
         } else {
-            // Collect from opponent side — must cross own barrier first, then opp barrier
-            let oppBall = nearestOppBall();
-
-            // Check opp depot for balls
-            let oppDepotBall = null;
-            if (oppDepot) {
-                for (const b of balls) {
-                    if (b.x > oppDepot.x - 15 && b.x < oppDepot.x + oppDepot.w + 15 &&
-                        b.y > oppDepot.y - 15 && b.y < oppDepot.y + oppDepot.h + 15) {
-                        oppDepotBall = b;
-                        break;
-                    }
-                }
-            }
-
+            // Collect from opponent side
+            const oppBall = nearestBallOnSide(oppMinX, oppMaxX);
             let rawX, rawY;
-            if (oppDepotBall) {
-                const ap = depotApproach(oppDepot);
-                rawX = ap.x;
-                rawY = ap.y;
-            } else if (oppBall) {
+            if (oppBall) {
                 rawX = oppBall.x;
                 rawY = oppBall.y;
-            } else if (oppDepot) {
-                // No balls — idle near opp depot approach
-                const ap = depotApproach(oppDepot);
-                rawX = ap.x;
-                rawY = ap.y;
             } else {
-                // Opponent side center
-                rawX = alliance === 'red' ? FIELD_W - 150 : 150;
+                // No balls on opp side — roam opponent center
+                rawX = alliance === 'red' ? FIELD_W - 160 : 160;
                 rawY = FIELD_H / 2;
             }
+            act = false;
 
-            // Navigate: first cross own barrier, then cross opp barrier if needed
-            // Step 1: are we still on own side?
-            const onOwnSide = alliance === 'red' ? rcx < ownBarrierX1 : rcx > ownBarrierX2;
-            const onOppSide = alliance === 'red' ? rcx > oppBarrierX2 : rcx < oppBarrierX1;
+            // Navigate: cross own barrier first if still on own side
+            const onOwnSide = alliance === 'red' ? rcx < ownBar1 : rcx > ownBar2;
+            const onOppSide = alliance === 'red' ? rcx > oppBar2 : rcx < oppBar1;
 
             if (onOwnSide) {
-                // Cross own barrier toward middle field
-                const midFieldX = alliance === 'red' ? ownBarrierX2 + 80 : ownBarrierX1 - 80;
-                const wp = waypointedTarget(midFieldX, FIELD_H / 2, ownBarrierX1, ownBarrierX2);
-                targetX = wp.x;
-                targetY = wp.y;
+                // Still on own side — cross own barrier toward midfield
+                const midX = alliance === 'red' ? ownBar2 + 80 : ownBar1 - 80;
+                const wp = waypoint(midX, FIELD_H / 2, ownBar1, ownBar2);
+                targetX = wp.x; targetY = wp.y;
             } else if (onOppSide) {
-                // Already on opp side — go to raw target directly (no barrier in the way)
-                targetX = rawX;
-                targetY = rawY;
+                // On opponent side — head straight to ball (no barrier)
+                targetX = rawX; targetY = rawY;
             } else {
-                // In the middle — cross opp barrier
-                const wp = waypointedTarget(rawX, rawY, oppBarrierX1, oppBarrierX2);
-                targetX = wp.x;
-                targetY = wp.y;
+                // Midfield — cross opp barrier
+                const wp = waypoint(rawX, rawY, oppBar1, oppBar2);
+                targetX = wp.x; targetY = wp.y;
             }
-            act = false;
         }
     }
 
-    // Fallback
     if (targetX === null) { targetX = FIELD_W / 2; targetY = FIELD_H / 2; }
 
     // ── MOVEMENT ──────────────────────────────────────────────────────────────
-    const dx = targetX - rcx;
-    const dy = targetY - rcy;
+    const dx   = targetX - rcx;
+    const dy   = targetY - rcy;
     const dist = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
 
-    let speed = dist < 30 ? 0.5 : dist < 80 ? 0.9 : 1.4;
+    // Speed: fast baseline with slow-down only when very close to target
+    const speed = dist < 25 ? 0.8 : dist < 60 ? 1.8 : 2.8;
 
-    let moveX = Math.cos(angle) * speed;
-    let moveY = Math.sin(angle) * speed;
+    let moveX = Math.cos(angle) * speed + avoidX;
+    let moveY = Math.sin(angle) * speed + avoidY;
 
     // Wall push
-    if (rcx < 30) moveX = Math.max(moveX, 0.6);
-    if (rcx > FIELD_W - 30) moveX = Math.min(moveX, -0.6);
-    if (rcy < 30) moveY = Math.max(moveY, 0.6);
-    if (rcy > FIELD_H - 30) moveY = Math.min(moveY, -0.6);
+    if (rcx < 30)            moveX = Math.max(moveX,  0.8);
+    if (rcx > FIELD_W - 30)  moveX = Math.min(moveX, -0.8);
+    if (rcy < 30)            moveY = Math.max(moveY,  0.8);
+    if (rcy > FIELD_H - 30)  moveY = Math.min(moveY, -0.8);
 
-    // Barrier push — if somehow inside a barrier column, escape perpendicular
-    const inOwnBarCol = rcx > ownBarrierX1 - 5 && rcx < ownBarrierX2 + 5
-                     && rcy > topBarY1 && rcy < botBarY2;
-    if (inOwnBarCol) {
-        // Push up or down out of barrier column
-        moveY = rcy < FIELD_H / 2 ? -1.4 : 1.4;
-    }
-    const inOppBarCol = rcx > oppBarrierX1 - 5 && rcx < oppBarrierX2 + 5
-                     && rcy > topBarY1 && rcy < botBarY2;
-    if (inOppBarCol) {
-        moveY = rcy < FIELD_H / 2 ? -1.4 : 1.4;
+    // Barrier escape — if somehow stuck inside the barrier Y band, push out vertically
+    const inBarrierYBand = rcy > topBarY1 - 5 && rcy < botBarY2 + 5
+                        && ((rcx > ownBar1 - 5 && rcx < ownBar2 + 5) ||
+                            (rcx > oppBar1 - 5 && rcx < oppBar2 + 5));
+    if (inBarrierYBand) {
+        moveX = 0;
+        moveY = rcy < FIELD_H / 2 ? -2.0 : 2.0;
     }
 
     let rotInput = 0;
