@@ -925,79 +925,36 @@ function aiDecide(robot, alliance, isHubActive) {
     const hasBalls = robot.inventory > 0;
     const isTurret = robot.model.autoAim === true;
     
-    // Barrier positions (the wall between bump and trench)
-    const barrierLeftX = 156.61 * S;
-    const barrierRightX = FIELD_W - (156.61 * S) - BUMP_W;
-    const barrierTopY = FIELD_H/2 - 100;
-    const barrierBottomY = FIELD_H/2 + 100;
-    
-    // Determine which side of barrier the robot is on
-    const isLeftSide = rcx < barrierLeftX + BUMP_W;
-    const isRightSide = rcx > barrierRightX;
-    const isMiddleSide = !isLeftSide && !isRightSide;
-    const isTopHalf = rcy < FIELD_H/2;
+    // Barrier boundaries
+    const barrierStartX = 156.61 * S;
+    const barrierEndX = barrierStartX + BUMP_W;
+    const barrierTopY = FIELD_H/2 - HUB_S/2 - BUMP_L - 20;
+    const barrierBottomY = FIELD_H/2 + HUB_S/2 + BUMP_L + 20;
     
     let targetX = null, targetY = null;
     let act = false;
     
-    // DECISION TREE
     const hub = zones.find(z => z.type === 'hub' && z.side === alliance);
     
-    // SCENARIO 1: HAS BALLS AND HUB ACTIVE -> SCORE
+    // Determine primary target based on game state
+    let primaryX = null, primaryY = null;
+    
     if (hasBalls && hubActive && hub) {
-        targetX = hub.x + hub.w/2;
-        targetY = hub.y + hub.h/2;
+        // SCORE
+        primaryX = hub.x + hub.w/2;
+        primaryY = hub.y + hub.h/2;
         act = true;
-        
-        // If target is on other side of barrier, go around through gaps
-        if (isLeftSide && targetX > barrierLeftX + BUMP_W) {
-            // Go to top or bottom gap first
-            if (isTopHalf) {
-                targetX = barrierLeftX + BUMP_W;
-                targetY = barrierTopY - 30;
-            } else {
-                targetX = barrierLeftX + BUMP_W;
-                targetY = barrierBottomY + 30;
-            }
-        } else if (isRightSide && targetX < barrierRightX) {
-            if (isTopHalf) {
-                targetX = barrierRightX;
-                targetY = barrierTopY - 30;
-            } else {
-                targetX = barrierRightX;
-                targetY = barrierBottomY + 30;
-            }
-        }
-    }
-    // SCENARIO 2: HAS BALLS BUT HUB INACTIVE -> PASS (go to center, shoot)
+    } 
     else if (hasBalls && !hubActive) {
-        targetX = FIELD_W / 2;
-        targetY = FIELD_H / 2;
-        act = true; // SHOOT (pass)
-        
-        // Path around barrier
-        if (isLeftSide && targetX > barrierLeftX + BUMP_W) {
-            if (isTopHalf) {
-                targetX = barrierLeftX + BUMP_W;
-                targetY = barrierTopY - 30;
-            } else {
-                targetX = barrierLeftX + BUMP_W;
-                targetY = barrierBottomY + 30;
-            }
-        } else if (isRightSide && targetX < barrierRightX) {
-            if (isTopHalf) {
-                targetX = barrierRightX;
-                targetY = barrierTopY - 30;
-            } else {
-                targetX = barrierRightX;
-                targetY = barrierBottomY + 30;
-            }
-        }
-    }
-    // SCENARIO 3: NO BALLS -> COLLECT BALLS (weighted: depot balls = 3x)
+        // PASS - go to center field
+        primaryX = FIELD_W / 2;
+        primaryY = FIELD_H / 2;
+        act = true;
+    } 
     else {
+        // COLLECT BALLS - weighted
         let bestBall = null;
-        let bestDist = Infinity;
+        let bestScore = -Infinity;
         const depots = zones.filter(z => z.type === 'depot');
         
         for (const ball of balls) {
@@ -1009,61 +966,96 @@ function aiDecide(robot, alliance, isHubActive) {
                     break;
                 }
             }
-            // Fake distance = real distance / weight
-            const fakeDist = Math.hypot(ball.x - rcx, ball.y - rcy) / weight;
-            if (fakeDist < bestDist) {
-                bestDist = fakeDist;
+            const dist = Math.hypot(ball.x - rcx, ball.y - rcy);
+            const score = weight / (dist + 1);
+            if (score > bestScore) {
+                bestScore = score;
                 bestBall = ball;
             }
         }
         
         if (bestBall) {
-            targetX = bestBall.x;
-            targetY = bestBall.y;
+            primaryX = bestBall.x;
+            primaryY = bestBall.y;
             act = false;
         } else {
-            // No balls - wander to center
-            targetX = FIELD_W / 2;
-            targetY = FIELD_H / 2;
+            primaryX = FIELD_W / 2;
+            primaryY = FIELD_H / 2;
         }
     }
     
-    // If no target, just wander
-    if (targetX === null) {
-        targetX = FIELD_W / 2;
-        targetY = FIELD_H / 2;
+    // WAYPOINT LOGIC: Check if path is blocked by barrier
+    const onLeftSide = rcx < barrierStartX;
+    const onRightSide = rcx > barrierEndX;
+    const targetOnLeft = primaryX < barrierStartX;
+    const targetOnRight = primaryX > barrierEndX;
+    const targetInMiddle = primaryX >= barrierStartX && primaryX <= barrierEndX;
+    
+    // If crossing from left to right (or vice versa) through the barrier
+    let needWaypoint = false;
+    let waypointX = null, waypointY = null;
+    
+    if ((onLeftSide && (targetOnRight || targetInMiddle)) ||
+        (onRightSide && (targetOnLeft || targetInMiddle))) {
+        needWaypoint = true;
+        
+        // Choose top or bottom gap based on robot's current Y position
+        if (rcy < FIELD_H/2) {
+            // Go through TOP gap
+            waypointX = barrierStartX + BUMP_W/2;
+            waypointY = barrierTopY - 30;
+        } else {
+            // Go through BOTTOM gap
+            waypointX = barrierStartX + BUMP_W/2;
+            waypointY = barrierBottomY + 30;
+        }
     }
     
-    // Calculate movement
+    // Set final target (waypoint first, then primary)
+    if (needWaypoint) {
+        // Check if we're already at the waypoint
+        const distToWaypoint = Math.hypot(rcx - waypointX, rcy - waypointY);
+        if (distToWaypoint < 50) {
+            // At waypoint, now go to primary target
+            targetX = primaryX;
+            targetY = primaryY;
+        } else {
+            // Go to waypoint first
+            targetX = waypointX;
+            targetY = waypointY;
+        }
+    } else {
+        targetX = primaryX;
+        targetY = primaryY;
+    }
+    
+    // MOVE toward target
     const dx = targetX - rcx;
     const dy = targetY - rcy;
     const dist = Math.hypot(dx, dy);
     const angle = Math.atan2(dy, dx);
     
-    // FULL SPEED (1.5x faster than before)
-    let speed = 1.5;
-    if (dist < 30) speed = 0.8;
-    else if (dist < 80) speed = 1.2;
+    // Speed - full speed (1.3x)
+    let speed = 1.3;
+    if (dist < 40) speed = 0.8;
     
     let moveX = Math.cos(angle) * speed;
     let moveY = Math.sin(angle) * speed;
     
-    // SIMPLE WALL PUSH (only if literally touching wall)
-    if (rcx < 15) moveX = 0.8;
-    if (rcx > FIELD_W - 15) moveX = -0.8;
-    if (rcy < 15) moveY = 0.8;
-    if (rcy > FIELD_H - 15) moveY = -0.8;
+    // Gentle wall push (only at edges)
+    if (rcx < 25) moveX = 0.6;
+    if (rcx > FIELD_W - 25) moveX = -0.6;
+    if (rcy < 25) moveY = 0.6;
+    if (rcy > FIELD_H - 25) moveY = -0.6;
     
-    // Rotation
     let rotInput = 0;
     if (!isTurret) {
         let angleDiff = angle - robot.angle;
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        rotInput = Math.max(-1.0, Math.min(1.0, angleDiff));
+        rotInput = Math.max(-0.9, Math.min(0.9, angleDiff));
     }
     
-    // Normalize
     const mag = Math.hypot(moveX, moveY);
     if (mag > 1) { moveX /= mag; moveY /= mag; }
     
