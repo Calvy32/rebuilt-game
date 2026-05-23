@@ -1555,22 +1555,22 @@ function update() {
                     if (d < 10) { p.consumedCount++; balls.splice(bi, 1); }
                 }
             }
-           if (t >= 1) {
+if (t >= 1) {
     if (p.isPass) {
         // PASSING LOB: drop balls on field at landing point
         const dropCount = 1 + (p.consumedCount || 0);
         for (let i = 0; i < dropCount; i++) {
             const angle = (Math.PI * 2 * i) / dropCount;
             const spread = dropCount > 1 ? BALL_R * 2.5 : 0;
-            balls.push({ 
-                x: p.x + Math.cos(angle) * spread, 
-                y: p.y + Math.sin(angle) * spread, 
-                r: BALL_R, 
-                vx: Math.cos(angle) * (dropCount > 1 ? 0.8 : 0), 
-                vy: Math.sin(angle) * (dropCount > 1 ? 0.8 : 0), 
-                isStatic: false, 
-                wasOnBump: false, 
-                owner: p.owner 
+            balls.push({
+                x: p.x + Math.cos(angle) * spread,
+                y: p.y + Math.sin(angle) * spread,
+                r: BALL_R,
+                vx: Math.cos(angle) * (dropCount > 1 ? 0.8 : 0),
+                vy: Math.sin(angle) * (dropCount > 1 ? 0.8 : 0),
+                isStatic: false,
+                wasOnBump: false,
+                owner: p.owner
             });
         }
     } else {
@@ -1583,14 +1583,14 @@ function update() {
                 const ejectDelay = i * 80;
                 scoringBalls.push({ exitTime: now + 300 + ejectDelay, hubX: z.x, hubY: z.y, side: z.side });
                 if (matchRunning && isHubActive) {
-                    if (p.owner === 'red') { 
-                        scoreRed++; 
-                        document.getElementById('scoreRedDisplay').innerText = scoreRed; 
-                        if (!autoPhaseEnded) autoScoreRed++; 
-                    } else { 
-                        scoreBlue++; 
-                        document.getElementById('scoreBlueDisplay').innerText = scoreBlue; 
-                        if (!autoPhaseEnded) autoScoreBlue++; 
+                    if (p.owner === 'red') {
+                        scoreRed++;
+                        document.getElementById('scoreRedDisplay').innerText = scoreRed;
+                        if (!autoPhaseEnded) autoScoreRed++;
+                    } else {
+                        scoreBlue++;
+                        document.getElementById('scoreBlueDisplay').innerText = scoreBlue;
+                        if (!autoPhaseEnded) autoScoreBlue++;
                     }
                 }
             }
@@ -1598,8 +1598,8 @@ function update() {
     }
     return false;
 }
-            }
-            return true;
+
+return true;
         }
         p.x+=p.vx; p.y+=p.vy; if (p.isPass) { p.vx*=0.975; p.vy*=0.975; }
         // Howitzer pass: gravity well and absorption (FIXED: now works for pass shots)
