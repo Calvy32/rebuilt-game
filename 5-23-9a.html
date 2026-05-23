@@ -532,12 +532,11 @@ const BOT_MODELS = {
     'Howitzer': { accel: 0.28, rotSpeed: 0.032, capacity: 30, fireRate: 850, w: 46, h: 46 },
     'Magnet': { accel: 0.36, rotSpeed: 0.042, capacity: 70, fireRate: 90, w: 42, h: 42 },
     'Minigun': { accel: 0.42, rotSpeed: 0.050, capacity: 130, fireRate: 75, w: 42, h: 42 },
-    'Miss Daisy': { accel: 0.38, rotSpeed: 0.036, capacity: 8, fireRate: 85, w: 41, h: 41 },
-    'Phantom': { accel: 0.34, rotSpeed: 0.032, capacity: 20, fireRate: 380, w: 40, h: 40 },
-    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 375, w: 42, h: 42 },
+    'Phantom': { accel: 0.38, rotSpeed: 0.032, capacity: 28, fireRate: 260, w: 40, h: 40 },
+    'Plasma': { accel: 0.35, rotSpeed: 0.030, capacity: 30, fireRate: 425, w: 42, h: 42 },
     'Ricochet': { accel: 0.40, rotSpeed: 0.046, capacity: 60, fireRate: 220, w: 40, h: 40 },
     'Scattershot': { accel: 0.40, rotSpeed: 0.042, capacity: 90, fireRate: 272, w: 43, h: 43 },
-    'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 600, w: 39, h: 39 },
+    'Sniper': { accel: 0.34, rotSpeed: 0.028, capacity: 25, fireRate: 450, w: 39, h: 39 },
     'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
     'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
     'SPEDO': { accel: 0.65, rotSpeed: 0.0425, capacity: 30, fireRate: 100, w: 40, h: 40 },
@@ -545,7 +544,7 @@ const BOT_MODELS = {
     // NEW ROBOTS
     'Leech': { accel: 0.36, rotSpeed: 0.036, capacity: 60, fireRate: 200, w: 42, h: 42 },
     'Thief': { accel: 0.40, rotSpeed: 0.040, capacity: 50, fireRate: 120, w: 41, h: 41, noIntake: true },
-    'Oasis': { accel: 0.32, rotSpeed: 0.032, capacity: 45, fireRate: 220, w: 44, h: 44 }
+    'Oasis': { accel: 0.32, rotSpeed: 0.032, capacity: 45, fireRate: 160, w: 44, h: 44 }
 };
 
 const S = 1.6; 
@@ -2850,23 +2849,24 @@ function draw() {
     }
     ctx.restore();
     
-    // FOG OF WAR overlay - darken outside vision circles, keep circles at normal brightness
-    if (gameMode === 'fog') {
-        ctx.save();
-        // Darken everything
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Cut out vision circles (reveal normal-brightness field underneath)
-        ctx.globalCompositeOperation = 'destination-out';
-        for (const robot of robots) {
-            const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
-            const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
-            ctx.beginPath();
-            ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
+// FOG OF WAR overlay - darken outside vision circles, keep circles at normal brightness
+if (gameMode === 'fog') {
+    ctx.save();
+    // Draw dark overlay over EVERYTHING (using your specified color)
+    ctx.fillStyle = 'rgb(17, 17, 17)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Cut out vision circles - this removes the dark overlay in those areas,
+    // revealing the normal-brightness field underneath
+    ctx.globalCompositeOperation = 'destination-out';
+    for (const robot of robots) {
+        const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
+        const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
+        ctx.beginPath();
+        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
     }
+    ctx.restore();
+}
     
     requestAnimationFrame(draw);
 }
