@@ -1763,6 +1763,7 @@ function update() {
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
         // Phantom shot - passes through walls, drops balls on pass
+        // Phantom shot - passes through walls, drops balls on pass
         if (p.isPhantom) {
             // Check for scoring (only if not a pass)
             if (!p.isPass) {
@@ -1773,19 +1774,24 @@ function update() {
                         scored = true;
                         const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
                         if (matchRunning && isHubActive) {
-                            if (p.owner === 'red') {
-                                scoreRed++;
-                                document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed);
-                                if (!autoPhaseEnded) autoScoreRed++;
-                            } else {
-                                scoreBlue++;
-                                document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue);
-                                if (!autoPhaseEnded) autoScoreBlue++;
-                            }
+                            if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
+                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
                         }
                     }
                 });
                 return !scored;
+            } else {
+                // Phantom PASSING shot - travel until slow, then drop a ball
+                p.x += p.vx;
+                p.y += p.vy;
+                if (Math.hypot(p.vx, p.vy) < 0.95) {
+                    balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+                    return false;
+                }
+                if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
+                return true;
+            }
+        }
             } else {
                 // Phantom PASSING shot - travel until slow, then drop a ball
                 p.x += p.vx;
