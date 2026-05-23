@@ -1763,33 +1763,34 @@ function update() {
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
         // Phantom shot - passes through walls, drops balls on pass
-if (p.isPhantom) {
-    // Check for scoring (only if not a pass)
-    if (!p.isPass) {
-        let scored = false;
-        zones.forEach(z => {
-            if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
-                scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
-                scored = true;
-                const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
-                if (matchRunning && isHubActive) {
-                    if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
-                    else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
+        if (p.isPhantom) {
+            // Check for scoring (only if not a pass)
+            if (!p.isPass) {
+                let scored = false;
+                zones.forEach(z => {
+                    if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
+                        scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
+                        scored = true;
+                        const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+                        if (matchRunning && isHubActive) {
+                            if (p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
+                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
+                        }
+                    }
+                });
+                return !scored;
+            } else {
+                // Phantom PASSING shot - travel until slow, then drop a ball
+                p.x += p.vx;
+                p.y += p.vy;
+                if (Math.hypot(p.vx, p.vy) < 0.95) {
+                    balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+                    return false;
                 }
+                if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
+                return true;
             }
-        });
-        return !scored;
-    } else {
-        // Phantom PASSING shot - travel until slow, then drop a ball
-        p.x += p.vx;
-        p.y += p.vy;
-        if (Math.hypot(p.vx, p.vy) < 0.95) {
-            balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
-            return false;
         }
-        if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
-        return true;
-    }
 }
         let hitWall = false; const wallR = p.isRicochet ? 0.944 : 0.4;
         if (p.x < p.r) { if (p.isSniper) return false; p.x = p.r; p.vx = Math.abs(p.vx)*wallR; hitWall = true; }
