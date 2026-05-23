@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom + Duplicator + Echo + SPEDO + DRONE)</title>
+    <title>FRC 2026 - Local Multiplayer (Plasma + Phantom + Duplicator + Echo + SPEDO + DRONE + 3 NEW MODES)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -342,12 +342,12 @@
         </div>
         <div class="control-section" style="border-left-color:#8b5cf6;background:rgba(139,92,246,0.08);">
             <h3 style="color:#8b5cf6;">DRONE Robot</h3>
-            <p><b>X / LT / RCtrl</b> = Deploy autonomous drone (20 sec duration, 15 sec cooldown). Drone flies in its field section (left/middle/right based on robot position), collects up to 15 balls, fires every 300ms, passes to its alliance.</p>
+            <p><b>X / LT / RCtrl</b> = Deploy autonomous drone (no timeout). Drone flies in its field section (left/middle/right based on robot position when X pressed), collects up to 15 balls, fires every 300ms. Drone PASSES to alliance corner when in middle/opposite zone, SCORES when in friendly zone.</p>
             <p>Drone robot: 40 capacity, 250ms fire rate.</p>
         </div>
         <div class="control-section highlight">
             <h3>Ability Button Uses</h3>
-            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2, 10 sec life) | <b>Drone:</b> Deploy autonomous helper</p>
+            <p><b>Blitz:</b> Toggles intake side | <b>Barricade:</b> Places obstacle (max 2 PER ROBOT, 10 sec life) | <b>Drone:</b> Deploy/relocate autonomous helper</p>
         </div>
         <div class="control-section" style="border-left-color:#a78bfa;background:rgba(167,139,250,0.08);">
             <h3 style="color:#a78bfa;">Phantom Robot</h3>
@@ -355,7 +355,7 @@
         </div>
         <div class="control-section" style="border-left-color:#facc15;background:rgba(250,204,21,0.08);">
             <h3 style="color:#facc15;">Barricade Robot</h3>
-            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a <b>small barrier</b> with a timer circle. Max 2 barriers, 10 second lifespan.</p>
+            <p>Press <b>Ability (X / LT / RCtrl)</b> to place a <b>small barrier</b> with a timer circle. Max 2 barriers PER ROBOT, 10 second lifespan.</p>
         </div>
         <div class="control-section" style="border-left-color:#ec4899;background:rgba(236,72,153,0.08);">
             <h3 style="color:#ec4899;">Plasma Robot</h3>
@@ -371,8 +371,7 @@
         </div>
         <div class="control-section" style="border-left-color:#06b6d4;background:rgba(6,182,212,0.08);">
             <h3 style="color:#06b6d4;">Game Modes</h3>
-            <p><b>Triple Balls</b>, <b>Slippery Field</b>, and <b>Rapid Fire</b> change field density, traction, and fire cadence.</p>
-            <p><b>Power-ups</b> spawn temporary Speed, Ammo, Shield, and +10 Score pickups. <b>Random Shifts</b> changes hub activity on irregular timers after auto.</p>
+            <p><b>Triple Balls</b>, <b>Slippery Field</b>, <b>Rapid Fire</b>, <b>Power-ups</b>, <b>Random Shifts</b>, <b>KING OF THE HUB</b>, <b>FOG OF WAR</b>, <b>CHAINED</b></p>
         </div>
         <button id="close-controls-btn">CLOSE</button>
     </div>
@@ -404,7 +403,7 @@
                 <button class="player-card-collapse" data-target="card-p3">−</button>
             </div>
             <div class="player-card-body">
-                <button id="p3-toggle" class="pc-btn on-btn">P3: ON</button>
+                <button id="p3-toggle" class="pc-btn on-btn disabled">P3: OFF</button>
                 <select id="bot-blue-select" class="bot-select blue-team"></select>
                 <select id="p3-input-select" class="input-select blue-team" data-player="p3">
                     <option value="keyboard">P3: KEYBOARD 1</option>
@@ -429,7 +428,7 @@
                 <button class="player-card-collapse" data-target="card-p4">−</button>
             </div>
             <div class="player-card-body">
-                <button id="p4-toggle" class="pc-btn on-btn">P4: ON</button>
+                <button id="p4-toggle" class="pc-btn on-btn disabled">P4: OFF</button>
                 <select id="bot-blue2-select" class="bot-select blue-team"></select>
                 <select id="p4-input-select" class="input-select blue-team" data-player="p4">
                     <option value="keyboard">P4: KEYBOARD 1</option>
@@ -486,7 +485,7 @@
                 <button class="player-card-collapse" data-target="card-p2">−</button>
             </div>
             <div class="player-card-body">
-                <button id="p2-toggle" class="pc-btn on-btn">P2: ON</button>
+                <button id="p2-toggle" class="pc-btn on-btn disabled">P2: OFF</button>
                 <select id="bot-red2-select" class="bot-select red-team"></select>
                 <select id="p2-input-select" class="input-select red-team" data-player="p2">
                     <option value="keyboard">P2: KEYBOARD 1</option>
@@ -554,7 +553,7 @@ const BOT_MODELS = {
     'turret': { accel: 0.38, rotSpeed: 0.036, capacity: 105, fireRate: 70, w: 41, h: 41 },
     'Vortex': { accel: 0.44, rotSpeed: 0.048, capacity: 95, fireRate: 110, w: 44, h: 44 },
     // NEW ROBOTS
-    'SPEDO': { accel: 0.68, rotSpeed: 0.0425, capacity: 30, fireRate: 100, w: 40, h: 40, speedMultiplier: 1 },
+    'SPEDO': { accel: 0.65, rotSpeed: 0.0425, capacity: 30, fireRate: 100, w: 40, h: 40 },
     'Drone': { accel: 0.32, rotSpeed: 0.034, capacity: 40, fireRate: 250, w: 44, h: 44 }
 };
 
@@ -608,7 +607,7 @@ let powerups = [];
 let nextPowerupSpawnTime = 0;
 let nextShiftTime = 0;
 let barricades = [];
-let drones = []; // Active drones: { x, y, owner, alliance, capacity, inventory, lastShot, expiry, section }
+let drones = []; // Active drones: { x, y, owner, alliance, capacity, inventory, lastShot, section }
 let p1Input = 'keyboard';
 let p2Input = 'controller';
 let p3Input = 'keyboard2';
@@ -621,6 +620,13 @@ let p2GamepadIndex = 0;
 let p3GamepadIndex = 1;
 let p4GamepadIndex = 1;
 const START_LABELS = ['TOP TRENCH', 'TOP BUMP', 'HUB', 'BOTTOM BUMP', 'BOTTOM TRENCH'];
+
+// NEW MODE VARIABLES
+let kingOfTheHubActive = 'red';
+let kingHubTimer = 0;
+const FOG_RADIUS = 150;
+let fogOverlay = null;
+
 function handleGamepadConnected(e) { gamepads[e.gamepad.index] = e.gamepad; updateGamepadStatusUI(); }
 function handleGamepadDisconnected(e) { gamepads[e.gamepad.index] = null; updateGamepadStatusUI(); }
 function updateGamepadStatusUI() {
@@ -651,7 +657,7 @@ function setupInputDropdowns() {
     });
     updateGamepadStatusUI();
 }
-  function formatTime(s) { s = Math.max(0, Math.ceil(s)); let m = Math.floor(s / 60), sec = s % 60; return m + ":" + (sec < 10 ? "0" : "") + sec; }
+function formatTime(s) { s = Math.max(0, Math.ceil(s)); let m = Math.floor(s / 60), sec = s % 60; return m + ":" + (sec < 10 ? "0" : "") + sec; }
 function getDisplayTime(elapsed) {
     if (elapsed <= 20) return formatTime(20 - elapsed);
     if (elapsed <= 23) return formatTime(23 - elapsed);
@@ -670,11 +676,13 @@ function resetModeState() {
     drones = [];
     nextPowerupSpawnTime = Date.now() + 2500;
     nextShiftTime = Date.now() + 9000 + Math.random() * 6000;
+    kingHubTimer = 0;
+    kingOfTheHubActive = 'red';
     [botRed, botRed2, botBlue, botBlue2].forEach(bot => {
         bot.speedBoostUntil = 0;
         bot.rapidBoostUntil = 0;
         bot.shieldUntil = 0;
-        if (bot.name === 'Barricade') { bot.barricadeCount = 0; bot.placedBarricades = []; }
+        if (bot.name === 'Barricade') { bot.barricadeCount = 0; bot.myBarricades = []; bot.barricadeCooldown = 0; }
         if (bot.name === 'Drone') { bot.droneCooldownUntil = 0; bot.activeDrone = null; }
     });
 }
@@ -716,12 +724,60 @@ function updateHudBar() {
     else hud.style.borderBottomColor = 'rgb(85, 85, 85)';
 }
 
+// CHAINED mode physics constraint
+function applyChainConstraint(robots, maxDist = 200, strength = 0.05) {
+    if (gameMode !== 'chained') return;
+    for (let i = 0; i < robots.length; i++) {
+        for (let j = i + 1; j < robots.length; j++) {
+            const allianceI = (robots[i] === botRed || robots[i] === botRed2) ? 'red' : (sameTeamMode ? 'red' : 'blue');
+            const allianceJ = (robots[j] === botRed || robots[j] === botRed2) ? 'red' : (sameTeamMode ? 'red' : 'blue');
+            if (allianceI === allianceJ) {
+                const dx = robots[j].x - robots[i].x;
+                const dy = robots[j].y - robots[i].y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > maxDist) {
+                    const angle = Math.atan2(dy, dx);
+                    const force = (dist - maxDist) * strength;
+                    robots[i].vx += Math.cos(angle) * force;
+                    robots[i].vy += Math.sin(angle) * force;
+                    robots[j].vx -= Math.cos(angle) * force;
+                    robots[j].vy -= Math.sin(angle) * force;
+                }
+            }
+        }
+    }
+}
+
+// FOG OF WAR visibility check
+function isPointVisible(x, y, robots) {
+    if (gameMode !== 'fog') return true;
+    for (const robot of robots) {
+        const rx = robot.x + robot.model.w/2;
+        const ry = robot.y + robot.model.h/2;
+        if (Math.hypot(x - rx, y - ry) <= FOG_RADIUS) return true;
+    }
+    return false;
+}
+
 function tickMatch() {
     if (!matchRunning) return;
     matchElapsed += 1/60;
     const now = Date.now();
 
-    if (gameMode === 'random' && matchElapsed >= 23 && matchElapsed < 133) applyRandomHubShift(now);
+    // KING OF THE HUB mode
+    if (gameMode === 'kinghub') {
+        kingHubTimer += 1/60;
+        if (kingHubTimer >= 20) {
+            kingHubTimer = 0;
+            kingOfTheHubActive = kingOfTheHubActive === 'red' ? 'blue' : 'red';
+            triggerShiftFlash();
+            playSound('shiftChange');
+        }
+        if (kingOfTheHubActive === 'red') updateHubUI(true, false);
+        else updateHubUI(false, true);
+    } else if (gameMode === 'random' && matchElapsed >= 23 && matchElapsed < 133) {
+        applyRandomHubShift(now);
+    }
 
     if (matchElapsed >= 163) {
         matchRunning = false; endCooldown = 10;
@@ -732,7 +788,8 @@ function tickMatch() {
         document.getElementById('phase-timer').innerText = "";
         document.getElementById('start-btn-main').innerText = "▶ START MATCH";
         document.getElementById('start-btn-main').classList.remove('running');
-        updateHubUI(false, false); return;
+        if (gameMode !== 'kinghub') updateHubUI(false, false);
+        return;
     }
 
     let phaseIdx = MATCH_PHASES.findIndex(p => matchElapsed >= p.start && matchElapsed < p.end);
@@ -763,12 +820,15 @@ function tickMatch() {
     if (phaseIdx !== currentPhaseIdx) {
         currentPhaseIdx = phaseIdx;
         let rAct = phase.redActive, bAct = phase.blueActive;
-        if (rAct === null) { rAct = SHIFT_STATES[autoWinner][phaseIdx - 3].redActive; bAct = SHIFT_STATES[autoWinner][phaseIdx - 3].blueActive; }
+        if (rAct === null && gameMode !== 'kinghub') { 
+            rAct = SHIFT_STATES[autoWinner][phaseIdx - 3].redActive; 
+            bAct = SHIFT_STATES[autoWinner][phaseIdx - 3].blueActive; 
+        }
         if (gameMode === 'random' && phaseIdx >= 3 && phaseIdx <= 6) applyRandomHubShift(now, true);
-        else updateHubUI(rAct, bAct);
+        else if (gameMode !== 'kinghub') updateHubUI(rAct, bAct);
         if (phaseIdx === 2) playSound('teleopStart');
         if (phaseIdx === 7) playSound('endgameStart');
-        if (gameMode !== 'random' && phaseIdx >= 3 && phaseIdx <= 6) { triggerShiftFlash(); playSound('shiftChange'); }
+        if (gameMode !== 'random' && gameMode !== 'kinghub' && phaseIdx >= 3 && phaseIdx <= 6) { triggerShiftFlash(); playSound('shiftChange'); }
     }
 }
 
@@ -787,7 +847,7 @@ class Robot {
         this.prevIntakeInput = false;
         this.prevAbilityInput = false;
         this.barricadeCount = 0;
-        this.placedBarricades = [];
+        this.myBarricades = [];
         this.barricadeCooldown = 0;
         // Drone specific properties
         this.droneCooldownUntil = 0;
@@ -939,6 +999,9 @@ class Robot {
             owner: alliance,
             isPass: !isShooting
         });
+        this.inventory--;
+        this.lastShot = now;
+        document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
     }
     
     fireSingleStream(streamIdx, totalStreams, customSpacing, isShooting, alliance, rcx, rcy) {
@@ -1042,9 +1105,6 @@ class Robot {
         }
         if (isSpedo) {
             this.fireSpedo(isShooting, alliance, rcx, rcy, now);
-            this.inventory--;
-            this.lastShot = now;
-            document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
             return;
         }
         if (this.name === 'Howitzer') {
@@ -1101,9 +1161,6 @@ class Robot {
                     this.fireEcho(isShootingZone, alliance, rcx, rcy, now);
                 } else if (this.name === 'SPEDO') {
                     this.fireSpedo(isShootingZone, alliance, rcx, rcy, now);
-                    this.inventory--;
-                    this.lastShot = now;
-                    document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
                 } else {
                     this.fireStandard(isShootingZone, alliance, rcx, rcy, now);
                 }
@@ -1149,11 +1206,6 @@ class Robot {
         if (moveX !== 0 || moveY !== 0) { const mag = Math.sqrt(moveX*moveX + moveY*moveY); if (mag > 0.8) { moveX /= mag; moveY /= mag; } }
 
         let speedMod = (inDepot ? 0.65 : 1.0) * (now < (this.speedBoostUntil || 0) ? 1.45 : 1.0);
-        
-        // SPEDO speed multiplier
-        if (this.name === 'SPEDO' && this.model.speedMultiplier) {
-            speedMod *= this.model.speedMultiplier;
-        }
         
         // Phantom penalty inside hub (reduced to bump-like speed)
         if (this.name === 'Phantom' && inHub) {
@@ -1283,51 +1335,64 @@ class Robot {
             }
         }
 
-        // Barricade placement - 10 second lifespan
+        // Barricade placement - PER ROBOT (max 2 per robot, not global)
         if (this.name === 'Barricade' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
             if (now - this.barricadeCooldown >= 0) {
                 const rcx = this.x + this.model.w/2, rcy = this.y + this.model.h/2;
                 const barricadeSize = 27;
-                const newBarrier = {
-                    x: rcx - barricadeSize/2, y: rcy - barricadeSize/2, w: barricadeSize, h: barricadeSize,
-                    cx: rcx, cy: rcy,
-                    owner: alliance, life: 10000, maxLife: 10000, born: now,
-                    angle: this.angle
-                };
-                if (barricades.filter(b => b.owner === alliance).length >= 2) {
-                    let oldest = barricades.filter(b => b.owner === alliance).sort((a,b) => a.born - b.born)[0];
-                    barricades = barricades.filter(b => b !== oldest);
+                // Count this robot's own barricades
+                const myBarCount = barricades.filter(b => b.ownerBot === this).length;
+                if (myBarCount < 2) {
+                    const newBarrier = {
+                        x: rcx - barricadeSize/2, y: rcy - barricadeSize/2, w: barricadeSize, h: barricadeSize,
+                        cx: rcx, cy: rcy,
+                        owner: alliance, ownerBot: this,
+                        life: 10000, maxLife: 10000, born: now,
+                        angle: this.angle
+                    };
+                    barricades.push(newBarrier);
+                    this.barricadeCooldown = now + 500;
+                    playSound('pickup');
                 }
-                barricades.push(newBarrier);
-                this.barricadeCooldown = now + 500;
-                playSound('pickup');
             }
         }
         
-        // DRONE DEPLOYMENT
+        // DRONE DEPLOYMENT - NO TIMEOUT, drone stays forever, X relocates it
         if (this.name === 'Drone' && isAbilityActive && !this.prevAbilityInput && matchRunning && currentPhaseIdx !== 1) {
-            if (now >= (this.droneCooldownUntil || 0)) {
-                // Determine section based on robot X position
-                let section = 'middle';
-                if (this.x < FIELD_W / 3) section = 'left';
-                else if (this.x > (FIELD_W * 2) / 3) section = 'right';
-                else section = 'middle';
-                
+            // Determine section based on robot position - boundaries at halfway through hubs
+            const redHub = zones.find(z => z.type === 'hub' && z.side === 'red');
+            const blueHub = zones.find(z => z.type === 'hub' && z.side === 'blue');
+            const leftBoundary = redHub ? redHub.x + redHub.w/2 : FIELD_W / 3;
+            const rightBoundary = blueHub ? blueHub.x + blueHub.w/2 : (FIELD_W * 2) / 3;
+            
+            let section = 'middle';
+            if (this.x + this.model.w/2 < leftBoundary) section = 'left';
+            else if (this.x + this.model.w/2 > rightBoundary) section = 'right';
+            
+            // Find existing drone for this robot or create new one
+            let existingDrone = drones.find(d => d.ownerBot === this);
+            if (existingDrone) {
+                // Relocate existing drone
+                existingDrone.section = section;
+                existingDrone.x = this.x + this.model.w/2 - 15;
+                existingDrone.y = this.y + this.model.h/2 - 15;
+                existingDrone.alliance = alliance;
+                playSound('pickup');
+            } else {
+                // Create new drone
                 const newDrone = {
                     x: this.x + this.model.w/2 - 15,
                     y: this.y + this.model.h/2 - 15,
-                    owner: this,
+                    ownerBot: this,
                     alliance: alliance,
                     capacity: 15,
                     inventory: 0,
                     lastShot: 0,
-                    expiry: now + 20000, // 20 seconds
                     section: section,
                     w: 30, h: 30,
                     vx: 0, vy: 0
                 };
                 drones.push(newDrone);
-                this.droneCooldownUntil = now + 15000; // 15 second cooldown
                 playSound('pickup');
             }
         }
@@ -1360,9 +1425,6 @@ class Robot {
             } else if (this.name === 'Boomerang' && !isDisrupted && now - this.lastShot > currentFireRate) { this.fireBoomerang(isShootingZone, alliance, rcx, rcy, now);
             } else if (this.name === 'SPEDO' && !isDisrupted && now - this.lastShot > currentFireRate) { 
                 this.fireSpedo(isShootingZone, alliance, rcx, rcy, now);
-                this.inventory--;
-                this.lastShot = now;
-                document.getElementById(alliance === 'red' ? 'heldRed' : 'heldBlue').innerText = this.inventory;
             } else if (this.name === 'Scattershot' && !isDisrupted && now - this.lastShot > currentFireRate) {
                 const pellets = 5;
                 for (let i = 0; i < pellets && this.inventory > 0; i++) this.fireSingleStream(i, pellets, 6.0, isShootingZone, alliance, rcx, rcy);
@@ -1414,7 +1476,6 @@ class Robot {
             ctx.strokeStyle = "#34d399";
             ctx.lineWidth = 2;
             ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
-            // Lightning bolt icon
             ctx.fillStyle = "#fff";
             ctx.font = "bold 14px Segoe UI";
             ctx.fillText("⚡", -6, 5);
@@ -1424,7 +1485,6 @@ class Robot {
             ctx.strokeStyle = "#a78bfa";
             ctx.lineWidth = 2;
             ctx.strokeRect(-this.model.w/2, -this.model.h/2, this.model.w, this.model.h);
-            // Drone icon
             ctx.fillStyle = "#fff";
             ctx.font = "bold 14px Segoe UI";
             ctx.fillText("✈", -6, 5);
@@ -1799,34 +1859,43 @@ function circleRectCollision(c, r) {
     if (distSq < c.r*c.r) { let dist = Math.sqrt(distSq); if (dist === 0) { dx = 1; dy = 0; dist = 1; } return { hit: true, nx: dx/dist, ny: dy/dist, overlap: c.r - dist }; } return { hit: false };
 }
 
-// Drone AI update function
+// Drone AI update function - NO TIMEOUT, drone persists forever, speed capped at 2x normal bot speed
+// FIXED: Drone now properly passes to corner OR scores in friendly zone
 function updateDrones(now) {
+    const NORMAL_MAX_SPEED = 7;
+    const DRONE_MAX_SPEED = NORMAL_MAX_SPEED * 2;
+    
     for (let i = 0; i < drones.length; i++) {
         const drone = drones[i];
         
-        // Check expiration
-        if (now >= drone.expiry) {
-            drones.splice(i, 1);
-            i--;
-            continue;
+        // Speed cap
+        let spd = Math.hypot(drone.vx, drone.vy);
+        if (spd > DRONE_MAX_SPEED) {
+            drone.vx = (drone.vx / spd) * DRONE_MAX_SPEED;
+            drone.vy = (drone.vy / spd) * DRONE_MAX_SPEED;
+        }
+        
+        // Define section boundaries based on drone's section - boundaries at halfway through hubs
+        const redHub = zones.find(z => z.type === 'hub' && z.side === 'red');
+        const blueHub = zones.find(z => z.type === 'hub' && z.side === 'blue');
+        const leftBoundary = redHub ? redHub.x + redHub.w/2 : FIELD_W / 3;
+        const rightBoundary = blueHub ? blueHub.x + blueHub.w/2 : (FIELD_W * 2) / 3;
+        
+        let leftBound, rightBound;
+        if (drone.section === 'left') {
+            leftBound = 0;
+            rightBound = leftBoundary;
+        } else if (drone.section === 'right') {
+            leftBound = rightBoundary;
+            rightBound = FIELD_W;
+        } else {
+            leftBound = leftBoundary;
+            rightBound = rightBoundary;
         }
         
         // Find nearest ball in drone's section
         let targetBall = null;
         let minDist = Infinity;
-        
-        // Define section boundaries based on drone's section
-        let leftBound, rightBound;
-        if (drone.section === 'left') {
-            leftBound = 0;
-            rightBound = FIELD_W / 3;
-        } else if (drone.section === 'right') {
-            leftBound = (FIELD_W * 2) / 3;
-            rightBound = FIELD_W;
-        } else {
-            leftBound = FIELD_W / 3;
-            rightBound = (FIELD_W * 2) / 3;
-        }
         
         for (const ball of balls) {
             if (ball.x >= leftBound && ball.x <= rightBound) {
@@ -1872,30 +1941,63 @@ function updateDrones(now) {
             }
         }
         
-        // Shoot at hub (passing)
-        if (drone.inventory > 0 && now - drone.lastShot > 300) {
-            const z = zones.find(zone => zone.type === 'hub' && zone.side === drone.alliance);
-            if (z) {
-                const fromX = drone.x + drone.w/2;
-                const fromY = drone.y + drone.h/2;
-                const targetX = z.x + z.w/2;
-                const targetY = z.y + z.h/2;
-                const angle = Math.atan2(targetY - fromY, targetX - fromX);
-                const speed = 9 + Math.random() * 2;
-                
-                projectiles.push({
-                    x: fromX + Math.cos(angle) * 18,
-                    y: fromY + Math.sin(angle) * 18,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    r: 4,
-                    owner: drone.alliance,
-                    isPass: true
-                });
-                
-                drone.inventory--;
-                drone.lastShot = now;
+        // Determine target based on section:
+        // Left section = red territory - shoot at RED HUB (score if active)
+        // Right section = blue territory - shoot at BLUE HUB (score if active)
+        // Middle section = pass to alliance corner (no scoring)
+        let targetX, targetY, shouldScore = false;
+        const isHubActiveForScoring = (drone.alliance === 'red' ? hubRedActive : hubBlueActive);
+        
+        if (drone.section === 'left') {
+            // Left side = red territory - shoot at red hub (score if active)
+            const redHubZone = zones.find(z => z.type === 'hub' && z.side === 'red');
+            if (redHubZone) {
+                targetX = redHubZone.x + redHubZone.w/2;
+                targetY = redHubZone.y + redHubZone.h/2;
+                shouldScore = isHubActiveForScoring;
             }
+        } else if (drone.section === 'right') {
+            // Right side = blue territory - shoot at blue hub (score if active)
+            const blueHubZone = zones.find(z => z.type === 'hub' && z.side === 'blue');
+            if (blueHubZone) {
+                targetX = blueHubZone.x + blueHubZone.w/2;
+                targetY = blueHubZone.y + blueHubZone.h/2;
+                shouldScore = isHubActiveForScoring;
+            }
+        } else {
+            // Middle section - pass to alliance corner (no scoring)
+            if (drone.alliance === 'red') {
+                targetX = 40;
+                targetY = FIELD_H/2;
+            } else {
+                targetX = FIELD_W - 40;
+                targetY = FIELD_H/2;
+            }
+            shouldScore = false;
+        }
+        
+        if (drone.inventory > 0 && now - drone.lastShot > 300 && targetX !== undefined) {
+            const fromX = drone.x + drone.w/2;
+            const fromY = drone.y + drone.h/2;
+            const angle = Math.atan2(targetY - fromY, targetX - fromX);
+            const speed = 9 + Math.random() * 2;
+            
+            // Mark projectile so it can score if shouldScore is true
+            const proj = {
+                x: fromX + Math.cos(angle) * 18,
+                y: fromY + Math.sin(angle) * 18,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                r: 4,
+                owner: drone.alliance,
+                isPass: true,
+                isDronePass: true,
+                shouldScore: shouldScore
+            };
+            projectiles.push(proj);
+            
+            drone.inventory--;
+            drone.lastShot = now;
         }
     }
 }
@@ -1905,7 +2007,6 @@ function drawDrones() {
     for (const drone of drones) {
         ctx.save();
         ctx.translate(drone.x + drone.w/2, drone.y + drone.h/2);
-        // Rotate based on velocity
         if (drone.vx !== 0 || drone.vy !== 0) {
             ctx.rotate(Math.atan2(drone.vy, drone.vx));
         }
@@ -1921,17 +2022,235 @@ function drawDrones() {
         ctx.font = "bold 10px monospace";
         ctx.fillText(drone.inventory, -3, -8);
         
-        // Draw cooldown/progress ring
-        const progress = 1 - (drone.expiry - Date.now()) / 20000;
-        ctx.beginPath();
-        ctx.arc(0, 0, drone.w/2 + 3, 0, Math.PI * 2 * progress);
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
         ctx.restore();
     }
 }
+
+// FOG OF WAR drawing - override standard draw when fog mode is active
+function drawWithFog() {
+    const robots = [];
+    if (p1Enabled) robots.push(botRed);
+    if (p2Enabled) robots.push(botRed2);
+    if (p3Enabled) robots.push(botBlue);
+    if (p4Enabled) robots.push(botBlue2);
+    
+    // Draw field normally
+    ctx.clearRect(0,0, canvas.width, canvas.height);
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0,0, canvas.width, canvas.height);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(0,0, canvas.width, WALL_VISUAL);
+    ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
+    ctx.fillRect(0,0, WALL_VISUAL, canvas.height);
+    ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
+    ctx.save();
+    ctx.translate(WALL_VISUAL, WALL_VISUAL);
+    
+    // Draw zones (always visible)
+    zones.forEach(z => {
+        const c = z.side === 'red' ? '239, 68, 68' : '59, 130, 246';
+        if (z.type === 'hub') {
+            const act = matchRunning ? (z.side === 'red' ? hubRedActive : hubBlueActive) : true;
+            ctx.globalAlpha = act ? 1.0 : 0.4;
+            ctx.strokeStyle = `rgb(${c})`;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+            ctx.beginPath();
+            ctx.fillStyle = "white";
+            for(let i=0; i<6; i++) {
+                let a = (Math.PI/3)*i;
+                let px = (z.x+z.w/2) + (z.w/2)*Math.cos(a);
+                let py = (z.y+z.h/2) + (z.w/2)*Math.sin(a);
+                if(i===0) ctx.moveTo(px,py);
+                else ctx.lineTo(px,py);
+            }
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            if (matchRunning && !act && gameMode !== 'kinghub') {
+                ctx.font = 'bold 18px "Segoe UI", system-ui';
+                ctx.textAlign = 'center';
+                const textX = z.x + z.w/2;
+                const textY = z.y + z.h/2 + 6;
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                const textWidth = ctx.measureText('INACTIVE').width;
+                ctx.fillRect(textX - textWidth/2 - 8, textY - 16, textWidth + 16, 24);
+                ctx.fillStyle = `rgb(${c})`;
+                ctx.fillText('INACTIVE', textX, textY);
+            }
+        } else if (z.type === 'barrier' || z.type === 'towerWall') {
+            ctx.fillStyle = `rgb(${c})`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'trench') {
+            ctx.fillStyle = `rgba(${c}, 0.2)`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = `rgba(${c}, 0.5)`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'tower') {
+            ctx.fillStyle = "#222";
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = "#444";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+        } else if (z.type === 'depot') {
+            ctx.fillStyle = `rgba(${c}, 0.15)`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+            ctx.strokeStyle = `rgba(${c}, 0.8)`;
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(z.x, z.y, z.w, z.h);
+            ctx.setLineDash([]);
+        } else {
+            ctx.fillStyle = `rgba(${c}, 0.2)`;
+            ctx.fillRect(z.x, z.y, z.w, z.h);
+        }
+    });
+    
+    // Draw barricades
+    barricades.forEach(b => {
+        const cx = b.cx;
+        const cy = b.cy;
+        const hw = b.w/2, hh = b.h/2;
+        const ang = b.angle || 0;
+        const progress = b.life / b.maxLife;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(ang);
+        ctx.fillStyle = 'rgba(250,204,21,0.85)';
+        ctx.fillRect(-hw, -hh, b.w, b.h);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-hw, -hh, b.w, b.h);
+        const radius = Math.min(hw, hh) - 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#ef4444';
+        ctx.fill();
+        if (progress > 0) {
+            const startAngle = -Math.PI / 2;
+            const endAngle = startAngle + (Math.PI * 2 * progress);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, radius, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = '#22c55e';
+            ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+    });
+    
+    // Draw drones
+    drawDrones();
+    
+    // Draw robots
+    if(p1Enabled) botRed.draw(ctx, 'red');
+    if(p2Enabled) botRed2.draw(ctx, 'red');
+    if(p3Enabled) botBlue.draw(ctx, sameTeamMode ? 'red' : 'blue');
+    if(p4Enabled) botBlue2.draw(ctx, sameTeamMode ? 'red' : 'blue');
+    
+    // Draw balls and projectiles with fog visibility
+    for (const b of balls) {
+        if (isPointVisible(b.x, b.y, robots)) {
+            ctx.fillStyle = "#fbbf24";
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+    for (const p of projectiles) {
+        if (isPointVisible(p.x, p.y, robots)) {
+            if (p.isEcho) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (p.isBoomerang) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(167,139,250,0.3)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = '#a78bfa'; ctx.fill();
+            } else if (p.isPhantom) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(217,70,239,0.35)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = '#d946ef'; ctx.fill();
+            } else if (p.isSniper) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+            } else if (p.isRicochet) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 1.5, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(6,182,212,0.35)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = '#06b6d4'; ctx.fill();
+            } else if (p.isLob) {
+                const tt = Math.min(1, p.lobAge / p.lobDuration);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.beginPath(); ctx.ellipse(p.x, p.y + 4, 5 + Math.sin(tt*Math.PI)*2, 2.5, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(167,139,250,0.4)';
+                ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(tt*Math.PI)*18, p.r + 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#7c3aed';
+                ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(tt*Math.PI)*18, p.r, 0, Math.PI*2); ctx.fill();
+            } else if (p.isPlasmaBall) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(236,72,153,0.4)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 1, 0, Math.PI*2);
+                ctx.fillStyle = '#ec4899'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 3, 0, Math.PI*2);
+                ctx.fillStyle = '#facc15'; ctx.fill();
+                if (p.lightningFlashes) p.lightningFlashes.forEach(f => {
+                    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(f.x, f.y);
+                    ctx.strokeStyle = `rgba(255, 220, 80, ${1 - f.age / 5})`;
+                    ctx.lineWidth = 2.5; ctx.stroke();
+                });
+            } else if (p.isVortex) {
+                if (p.isPlasma) {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2.5, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(236,72,153,0.3)'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                    ctx.fillStyle = '#ec4899'; ctx.fill();
+                } else {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(6,182,212,0.3)'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                    ctx.fillStyle = '#06b6d4'; ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = "#fbbf24";
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+            }
+        }
+    }
+    
+    ctx.restore();
+    
+    // Apply fog overlay using destination-out composite
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+    for (const robot of robots) {
+        const rx = robot.x + robot.model.w/2 + WALL_VISUAL;
+        const ry = robot.y + robot.model.h/2 + WALL_VISUAL;
+        ctx.beginPath();
+        ctx.arc(rx, ry, FOG_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+}
+
+// FIXED: Phantom and Echo passing shots - they should drop a ball when slow, not disappear
+// This is handled in the projectiles filter below
 
 function update() {
     tickMatch(); updateHudBar(); const now = Date.now();
@@ -1946,6 +2265,10 @@ function update() {
     if (p3Enabled) activeBotsList.push(botBlue);
     if (p4Enabled) activeBotsList.push(botBlue2);
     if (gameMode === 'slippery') activeBotsList.forEach(bot => { bot.vx *= 1.05; bot.vy *= 1.05; });
+    
+    // Apply CHAINED constraint before robot updates so positions are corrected
+    applyChainConstraint(activeBotsList, 200, 0.05);
+    
     if (p1Enabled) botRed.update(p1State.x, p1State.y, p1State.rot, p1State.act, p1State.toggleIn, 'red', obstacles, zones, null);
     if (p2Enabled) botRed2.update(p2State.x, p2State.y, p2State.rot, p2State.act, p2State.toggleIn, 'red', obstacles, zones, null);
     if (p3Enabled) botBlue.update(p3State.x, p3State.y, p3State.rot, p3State.act, p3State.toggleIn, sameTeamMode ? 'red' : 'blue', obstacles, zones, null);
@@ -2151,6 +2474,46 @@ function update() {
         
         p.x += p.vx; p.y += p.vy;
         if (p.isPass) { p.vx *= 0.975; p.vy *= 0.975; }
+        
+        // FIXED: Phantom passing shot - drop ball when slow instead of disappearing
+        if (p.isPhantom && p.isPass && Math.hypot(p.vx, p.vy) < 0.95) {
+            balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+            return false;
+        }
+        
+        // FIXED: Echo passing shot - drop ball when slow
+        if (p.isEcho && p.isPass && Math.hypot(p.vx, p.vy) < 0.95) {
+            balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+            return false;
+        }
+        
+        // FIXED: Drone pass scoring - drone can score when shouldScore is true
+        if (p.isDronePass && p.shouldScore) {
+            // Check if it reached its target hub
+            let targetHub = zones.find(z => z.type === 'hub' && z.side === p.owner);
+            if (targetHub && Math.hypot(p.x - (targetHub.x + targetHub.w/2), p.y - (targetHub.y + targetHub.h/2)) < HUB_S/2) {
+                let canScore = true;
+                if (gameMode === 'kinghub') {
+                    canScore = (p.owner === kingOfTheHubActive);
+                } else {
+                    canScore = (p.owner === 'red' ? hubRedActive : hubBlueActive);
+                }
+                if (matchRunning && canScore) {
+                    if (p.owner === 'red') { scoreRed++; if (!autoPhaseEnded) autoScoreRed++; }
+                    else { scoreBlue++; if (!autoPhaseEnded) autoScoreBlue++; }
+                    document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed);
+                    document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue);
+                }
+                return false;
+            }
+        }
+        
+        // Standard non-pass projectile: drop when slow
+        if (!p.isPass && !p.isPlasmaBall && !p.isLob && !p.isEcho && !p.isPhantom && Math.hypot(p.vx, p.vy) < 1.2 && !p.isSniper) {
+            balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner, bonusValue: 0 });
+            return false;
+        }
+        
         if (p.isPass && p.isHowitzerPass) {
             if (!p.consumedCount) p.consumedCount = 0;
             const pullRadius = 35, pullStrength = 0.7;
@@ -2194,38 +2557,29 @@ function update() {
             }
             if (p.isPass) { p.vx *= 0.97; p.vy *= 0.97; }
         }
-        if (p.isPhantom) {
-            if (!p.isPass) {
-                let scored = false;
-                zones.forEach(z => {
-                    if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
-                        scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
-                        scored = true;
-                        const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
-                        if (matchRunning && isHubActive) {
-                            if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
-                            else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
-                        }
+        if (p.isPhantom && !p.isPass) {
+            let scored = false;
+            zones.forEach(z => {
+                if (z.type === 'hub' && z.side === p.owner && Math.hypot(p.x-(z.x+z.w/2), p.y-(z.y+z.h/2)) < HUB_S/2) {
+                    scoringBalls.push({ exitTime: now + 300, hubX: z.x, hubY: z.y, side: z.side });
+                    scored = true;
+                    const isHubActive = p.owner === 'red' ? hubRedActive : hubBlueActive;
+                    if (matchRunning && isHubActive) {
+                        if(p.owner === 'red') { scoreRed++; document.getElementById('scoreRedDisplay').innerText = Math.floor(scoreRed); if (!autoPhaseEnded) autoScoreRed++; }
+                        else { scoreBlue++; document.getElementById('scoreBlueDisplay').innerText = Math.floor(scoreBlue); if (!autoPhaseEnded) autoScoreBlue++; }
                     }
-                });
-                return !scored;
-            } else {
-                p.x += p.vx;
-                p.y += p.vy;
-                if (Math.hypot(p.vx, p.vy) < 0.95) {
-                    balls.push({ x: p.x, y: p.y, r: BALL_R, vx: p.vx * 0.35, vy: p.vy * 0.35, isStatic: false, wasOnBump: false, owner: p.owner, bonusValue: 0 });
-                    return false;
                 }
-                if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
-                return true;
-            }
+            });
+            if (scored) return false;
+            if (p.x < -100 || p.x > FIELD_W+100 || p.y < -100 || p.y > FIELD_H+100) return false;
+            return true;
         }
         let hitWall = false; const wallR = p.isRicochet ? 0.944 : 0.4;
         if (p.x < p.r) { if (p.isSniper) return false; p.x = p.r; p.vx = Math.abs(p.vx)*wallR; hitWall = true; }
         else if (p.x > FIELD_W-p.r) { if (p.isSniper) return false; p.x = FIELD_W-p.r; p.vx = -Math.abs(p.vx)*wallR; hitWall = true; }
         if (p.y < p.r) { if (p.isSniper) return false; p.y = p.r; p.vy = Math.abs(p.vy)*wallR; hitWall = true; }
         else if (p.y > FIELD_H-p.r) { if (p.isSniper) return false; p.y = FIELD_H-p.r; p.vy = -Math.abs(p.vy)*wallR; hitWall = true; }
-        if (hitWall) { p.wallHits = (p.wallHits || 0) + 1; const maxHits = p.isRicochet ? 4 : 3; const minSpd = p.isRicochet ? 0.5 : 1.2; if (p.wallHits >= maxHits || Math.hypot(p.vx, p.vy) < minSpd) { if (!p.isPhantom) balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner, bonusValue: 0 }); return false; } }
+        if (hitWall) { p.wallHits = (p.wallHits || 0) + 1; const maxHits = p.isRicochet ? 4 : 3; const minSpd = p.isRicochet ? 0.5 : 1.2; if (p.wallHits >= maxHits || Math.hypot(p.vx, p.vy) < minSpd) { if (!p.isPhantom && !p.isEcho) balls.push({ x: p.x, y: p.y, r: BALL_R, vx: 0, vy: 0, isStatic: true, wasOnBump: false, owner: p.owner, bonusValue: 0 }); return false; } }
         obstacles.forEach(o => { if (o.type==='hub' && !p.isPass && !p.isSniper && !p.isRicochet && o.side!==p.owner) { let col = circleRectCollision(p, o); if(col.hit){p.vx*=-0.2;p.vy*=-0.2;} } });
         if (p.isRicochet) { obstacles.forEach(o => { if (o.type==='hub' && o.side!==p.owner) { const col = circleRectCollision(p, o); if (col.hit) { const cx = o.x + o.w/2, cy = o.y + o.h/2, dx = p.x - cx, dy = p.y - cy; if (Math.abs(dx)/o.w > Math.abs(dy)/o.h) { p.vx = Math.sign(dx)*Math.abs(p.vx)*0.95; p.x = cx + Math.sign(dx)*(o.w/2 + p.r + 0.5); } else { p.vy = Math.sign(dy)*Math.abs(p.vy)*0.95; p.y = cy + Math.sign(dy)*(o.h/2 + p.r + 0.5); } p.wallHits = (p.wallHits || 0) + 1; } } }); }
         if (!p.isSniper && !p.isLob) { obstacles.forEach(o => { if (o.type !== 'hub' || o.side !== p.owner) return; const innerX = o.side === 'red' ? o.x + o.w : o.x; const withinY = p.y > o.y - p.r - 2 && p.y < o.y + o.h + p.r + 2; if (!withinY) return; if (o.side === 'red') { if (p.vx < 0 && p.x - p.r < innerX && p.x > innerX - 4) { p.x = innerX + p.r; p.vx = Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; } } else { if (p.vx > 0 && p.x + p.r > innerX && p.x < innerX + 4) { p.x = innerX - p.r; p.vx = -Math.abs(p.vx) * (p.isRicochet ? 0.95 : 0.5); if (p.isRicochet) p.wallHits = (p.wallHits || 0) + 1; } } }); }
@@ -2244,217 +2598,230 @@ function update() {
     });
 }
 
+// Main draw function - routes to fog version if needed
 function draw() {
-    ctx.clearRect(0,0, canvas.width, canvas.height); ctx.fillStyle = "#111"; ctx.fillRect(0,0, canvas.width, canvas.height);
-    ctx.fillStyle = "#222"; ctx.fillRect(0,0, canvas.width, WALL_VISUAL); ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
-    ctx.fillRect(0,0, WALL_VISUAL, canvas.height); ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
-    ctx.save(); ctx.translate(WALL_VISUAL, WALL_VISUAL);
-    zones.forEach(z => {
-        const c = z.side === 'red' ? '239, 68, 68' : '59, 130, 246';
-        if (z.type === 'hub') {
-            const act = matchRunning ? (z.side === 'red' ? hubRedActive : hubBlueActive) : true;
-            ctx.globalAlpha = act ? 1.0 : 0.4;
-            ctx.strokeStyle = `rgb(${c})`;
-            ctx.lineWidth = 4;
-            ctx.strokeRect(z.x, z.y, z.w, z.h);
-            ctx.beginPath();
-            ctx.fillStyle = "white";
-            for(let i=0; i<6; i++) {
-                let a = (Math.PI/3)*i;
-                let px = (z.x+z.w/2) + (z.w/2)*Math.cos(a);
-                let py = (z.y+z.h/2) + (z.w/2)*Math.sin(a);
-                if(i===0) ctx.moveTo(px,py);
-                else ctx.lineTo(px,py);
-            }
-            ctx.fill();
-            ctx.globalAlpha = 1.0;
-            if (matchRunning && !act) {
-                ctx.font = 'bold 18px "Segoe UI", system-ui';
-                ctx.textAlign = 'center';
-                ctx.shadowBlur = 0;
-                const textX = z.x + z.w/2;
-                const textY = z.y + z.h/2 + 6;
-                ctx.fillStyle = 'rgba(0,0,0,0.75)';
-                const textWidth = ctx.measureText('INACTIVE').width;
-                ctx.fillRect(textX - textWidth/2 - 8, textY - 16, textWidth + 16, 24);
-                ctx.fillStyle = `rgb(${c})`;
-                ctx.fillText('INACTIVE', textX, textY);
-                ctx.fillStyle = 'white';
-                ctx.shadowBlur = 0;
-            }
-        } else if (z.type === 'barrier' || z.type === 'towerWall') { ctx.fillStyle = `rgb(${c})`; ctx.fillRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'trench') { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = `rgba(${c}, 0.5)`; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h);
-        } else if (z.type === 'tower') { ctx.fillStyle = "#222"; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); 
-        } else if (z.type === 'depot') { 
-            ctx.fillStyle = `rgba(${c}, 0.15)`; ctx.fillRect(z.x, z.y, z.w, z.h); 
-            ctx.strokeStyle = `rgba(${c}, 0.8)`; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); ctx.setLineDash([]);
-        } else { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); }
-    });
-    
-    barricades.forEach(b => {
-        const cx = b.cx;
-        const cy = b.cy;
-        const hw = b.w/2, hh = b.h/2;
-        const ang = b.angle || 0;
-        const progress = b.life / b.maxLife;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(ang);
-        ctx.fillStyle = 'rgba(250,204,21,0.85)';
-        ctx.fillRect(-hw, -hh, b.w, b.h);
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(-hw, -hh, b.w, b.h);
-        const radius = Math.min(hw, hh) - 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#ef4444';
-        ctx.fill();
-        if (progress > 0) {
-            const startAngle = -Math.PI / 2;
-            const endAngle = startAngle + (Math.PI * 2 * progress);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, radius, startAngle, endAngle);
-            ctx.closePath();
-            ctx.fillStyle = '#22c55e';
-            ctx.fill();
-        }
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.restore();
-    });
-    
-    // Draw drones
-    drawDrones();
-    
-    if (gameMode === 'powerups') {
-        powerups.forEach(p => {
-            const colors = { speed: '#22c55e', ammo: '#fbbf24', shield: '#a855f7', score: '#ef4444' };
-            const labels = { speed: 'SPD', ammo: 'AMO', shield: 'SHD', score: '+10' };
-            const pulse = 1 + Math.sin(Date.now() / 130 + p.x) * 0.08;
+    if (gameMode === 'fog') {
+        drawWithFog();
+    } else {
+        // Original draw (preserved exactly)
+        ctx.clearRect(0,0, canvas.width, canvas.height); ctx.fillStyle = "#111"; ctx.fillRect(0,0, canvas.width, canvas.height);
+        ctx.fillStyle = "#222"; ctx.fillRect(0,0, canvas.width, WALL_VISUAL); ctx.fillRect(0, canvas.height-WALL_VISUAL, canvas.width, WALL_VISUAL);
+        ctx.fillRect(0,0, WALL_VISUAL, canvas.height); ctx.fillRect(canvas.width-WALL_VISUAL, 0, WALL_VISUAL, canvas.height);
+        ctx.save(); ctx.translate(WALL_VISUAL, WALL_VISUAL);
+        zones.forEach(z => {
+            const c = z.side === 'red' ? '239, 68, 68' : '59, 130, 246';
+            if (z.type === 'hub') {
+                const act = matchRunning ? (z.side === 'red' ? hubRedActive : hubBlueActive) : true;
+                ctx.globalAlpha = act ? 1.0 : 0.4;
+                ctx.strokeStyle = `rgb(${c})`;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(z.x, z.y, z.w, z.h);
+                ctx.beginPath();
+                ctx.fillStyle = "white";
+                for(let i=0; i<6; i++) {
+                    let a = (Math.PI/3)*i;
+                    let px = (z.x+z.w/2) + (z.w/2)*Math.cos(a);
+                    let py = (z.y+z.h/2) + (z.w/2)*Math.sin(a);
+                    if(i===0) ctx.moveTo(px,py);
+                    else ctx.lineTo(px,py);
+                }
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                if (matchRunning && !act && gameMode !== 'kinghub') {
+                    ctx.font = 'bold 18px "Segoe UI", system-ui';
+                    ctx.textAlign = 'center';
+                    ctx.shadowBlur = 0;
+                    const textX = z.x + z.w/2;
+                    const textY = z.y + z.h/2 + 6;
+                    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                    const textWidth = ctx.measureText('INACTIVE').width;
+                    ctx.fillRect(textX - textWidth/2 - 8, textY - 16, textWidth + 16, 24);
+                    ctx.fillStyle = `rgb(${c})`;
+                    ctx.fillText('INACTIVE', textX, textY);
+                    ctx.fillStyle = 'white';
+                    ctx.shadowBlur = 0;
+                }
+                // King of the hub indicator
+                if (gameMode === 'kinghub' && matchRunning && z.side === kingOfTheHubActive) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 12px monospace';
+                    ctx.fillText('ACTIVE', z.x + z.w/2 - 25, z.y - 5);
+                }
+            } else if (z.type === 'barrier' || z.type === 'towerWall') { ctx.fillStyle = `rgb(${c})`; ctx.fillRect(z.x, z.y, z.w, z.h);
+            } else if (z.type === 'trench') { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = `rgba(${c}, 0.5)`; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h);
+            } else if (z.type === 'tower') { ctx.fillStyle = "#222"; ctx.fillRect(z.x, z.y, z.w, z.h); ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); 
+            } else if (z.type === 'depot') { 
+                ctx.fillStyle = `rgba(${c}, 0.15)`; ctx.fillRect(z.x, z.y, z.w, z.h); 
+                ctx.strokeStyle = `rgba(${c}, 0.8)`; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.strokeRect(z.x, z.y, z.w, z.h); ctx.setLineDash([]);
+            } else { ctx.fillStyle = `rgba(${c}, 0.2)`; ctx.fillRect(z.x, z.y, z.w, z.h); }
+        });
+        
+        barricades.forEach(b => {
+            const cx = b.cx;
+            const cy = b.cy;
+            const hw = b.w/2, hh = b.h/2;
+            const ang = b.angle || 0;
+            const progress = b.life / b.maxLife;
             ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.scale(pulse, pulse);
-            ctx.fillStyle = colors[p.type];
-            ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center';
-            ctx.fillText(labels[p.type], 0, 3);
+            ctx.translate(cx, cy);
+            ctx.rotate(ang);
+            ctx.fillStyle = 'rgba(250,204,21,0.85)';
+            ctx.fillRect(-hw, -hh, b.w, b.h);
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-hw, -hh, b.w, b.h);
+            const radius = Math.min(hw, hh) - 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+            if (progress > 0) {
+                const startAngle = -Math.PI / 2;
+                const endAngle = startAngle + (Math.PI * 2 * progress);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = '#22c55e';
+                ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
             ctx.restore();
         });
-    }
-    const t = Date.now();
-    if (p1Enabled && t < p1FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
-    if (p1Enabled) botRed.draw(ctx, 'red');
-    ctx.globalAlpha = 1.0;
-    if (p2Enabled) {
-        if (t < p2FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
-        botRed2.draw(ctx, 'red');
-        ctx.globalAlpha = 1.0;
-    }
-    if (p3Enabled) {
-        if (t < p3FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
-        botBlue.draw(ctx, sameTeamMode ? 'red' : 'blue');
-        ctx.globalAlpha = 1.0;
-    }
-    if (p4Enabled) {
-        if (t < p4FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
-        botBlue2.draw(ctx, sameTeamMode ? 'red' : 'blue');
-        ctx.globalAlpha = 1.0;
-    }
-    ctx.fillStyle = "#fbbf24"; balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); });
-    projectiles.forEach(p => {
-        if (p.isEcho) {
-            ctx.fillStyle = '#f59e0b';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = '#fef08a';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 4, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = '#f59e0b';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
-            ctx.fill();
-        } else if (p.isBoomerang) {
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(167,139,250,0.3)'; ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fillStyle = '#a78bfa'; ctx.fill();
-        } else if (p.isPhantom) {
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(217,70,239,0.35)'; ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fillStyle = '#d946ef'; ctx.fill();
-        } else if (p.isSniper) {
-            ctx.fillStyle = '#f59e0b';
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-        } else if (p.isRicochet) {
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 1.5, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(6,182,212,0.35)'; ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fillStyle = '#06b6d4'; ctx.fill();
-        } else if (p.isLob) {
-            const t = Math.min(1, p.lobAge / p.lobDuration);
-            ctx.fillStyle = 'rgba(0,0,0,0.35)';
-            ctx.beginPath(); ctx.ellipse(p.x, p.y + 4, 5 + Math.sin(t*Math.PI)*2, 2.5, 0, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'rgba(167,139,250,0.4)';
-            ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(t*Math.PI)*18, p.r + 2, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#7c3aed';
-            ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(t*Math.PI)*18, p.r, 0, Math.PI*2); ctx.fill();
-        } else if (p.isPlasmaBall) {
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(236,72,153,0.4)'; ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 1, 0, Math.PI*2);
-            ctx.fillStyle = '#ec4899'; ctx.fill();
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 3, 0, Math.PI*2);
-            ctx.fillStyle = '#facc15'; ctx.fill();
-            if (p.lightningFlashes) p.lightningFlashes.forEach(f => {
-                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(f.x, f.y);
-                ctx.strokeStyle = `rgba(255, 220, 80, ${1 - f.age / 5})`;
-                ctx.lineWidth = 2.5; ctx.stroke();
+        
+        // Draw drones
+        drawDrones();
+        
+        if (gameMode === 'powerups') {
+            powerups.forEach(p => {
+                const colors = { speed: '#22c55e', ammo: '#fbbf24', shield: '#a855f7', score: '#ef4444' };
+                const labels = { speed: 'SPD', ammo: 'AMO', shield: 'SHD', score: '+10' };
+                const pulse = 1 + Math.sin(Date.now() / 130 + p.x) * 0.08;
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.scale(pulse, pulse);
+                ctx.fillStyle = colors[p.type];
+                ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center';
+                ctx.fillText(labels[p.type], 0, 3);
+                ctx.restore();
             });
-        } else if (p.isVortex) {
-            if (p.isPlasma) {
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2.5, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(236,72,153,0.3)'; ctx.fill();
+        }
+        const t = Date.now();
+        if (p1Enabled && t < p1FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
+        if (p1Enabled) botRed.draw(ctx, 'red');
+        ctx.globalAlpha = 1.0;
+        if (p2Enabled) {
+            if (t < p2FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
+            botRed2.draw(ctx, 'red');
+            ctx.globalAlpha = 1.0;
+        }
+        if (p3Enabled) {
+            if (t < p3FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
+            botBlue.draw(ctx, sameTeamMode ? 'red' : 'blue');
+            ctx.globalAlpha = 1.0;
+        }
+        if (p4Enabled) {
+            if (t < p4FreezeUntil && matchRunning) ctx.globalAlpha = 0.5 + Math.sin(t/100)*0.3;
+            botBlue2.draw(ctx, sameTeamMode ? 'red' : 'blue');
+            ctx.globalAlpha = 1.0;
+        }
+        ctx.fillStyle = "#fbbf24"; balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); });
+        projectiles.forEach(p => {
+            if (p.isEcho) {
+                ctx.fillStyle = '#f59e0b';
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-                ctx.fillStyle = '#ec4899'; ctx.fill();
-            } else {
+                ctx.fill();
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#f59e0b';
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
-                ctx.fillStyle = 'rgba(6,182,212,0.3)'; ctx.fill();
+                ctx.fill();
+            } else if (p.isBoomerang) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(167,139,250,0.3)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = '#a78bfa'; ctx.fill();
+            } else if (p.isPhantom) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(217,70,239,0.35)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = '#d946ef'; ctx.fill();
+            } else if (p.isSniper) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+            } else if (p.isRicochet) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 1.5, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(6,182,212,0.35)'; ctx.fill();
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
                 ctx.fillStyle = '#06b6d4'; ctx.fill();
+            } else if (p.isLob) {
+                const t = Math.min(1, p.lobAge / p.lobDuration);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.beginPath(); ctx.ellipse(p.x, p.y + 4, 5 + Math.sin(t*Math.PI)*2, 2.5, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'rgba(167,139,250,0.4)';
+                ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(t*Math.PI)*18, p.r + 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#7c3aed';
+                ctx.beginPath(); ctx.arc(p.x, p.y - Math.sin(t*Math.PI)*18, p.r, 0, Math.PI*2); ctx.fill();
+            } else if (p.isPlasmaBall) {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(236,72,153,0.4)'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 1, 0, Math.PI*2);
+                ctx.fillStyle = '#ec4899'; ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 3, 0, Math.PI*2);
+                ctx.fillStyle = '#facc15'; ctx.fill();
+                if (p.lightningFlashes) p.lightningFlashes.forEach(f => {
+                    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(f.x, f.y);
+                    ctx.strokeStyle = `rgba(255, 220, 80, ${1 - f.age / 5})`;
+                    ctx.lineWidth = 2.5; ctx.stroke();
+                });
+            } else if (p.isVortex) {
+                if (p.isPlasma) {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2.5, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(236,72,153,0.3)'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                    ctx.fillStyle = '#ec4899'; ctx.fill();
+                } else {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 2, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(6,182,212,0.3)'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                    ctx.fillStyle = '#06b6d4'; ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = "#fbbf24";
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
             }
-        } else {
-            ctx.fillStyle = "#fbbf24";
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        });
+        const robots = [];
+        if (p1Enabled) robots.push(botRed);
+        if (p2Enabled) robots.push(botRed2);
+        if (p3Enabled) robots.push(botBlue);
+        if (p4Enabled) robots.push(botBlue2);
+        for (let bot of robots) {
+            if (bot.inventory >= 85) {
+                ctx.save();
+                ctx.font = 'bold 32px "Segoe UI", system-ui';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 0;
+                const worldX = bot.x + bot.model.w/2;
+                const worldY = bot.y + bot.model.h/2 - bot.model.h/2 - 10;
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeText('⚠', worldX, worldY);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillText('⚠', worldX, worldY);
+                ctx.restore();
+            }
         }
-    });
-    const robots = [];
-    if (p1Enabled) robots.push(botRed);
-    if (p2Enabled) robots.push(botRed2);
-    if (p3Enabled) robots.push(botBlue);
-    if (p4Enabled) robots.push(botBlue2);
-    for (let bot of robots) {
-        if (bot.inventory >= 85) {
-            ctx.save();
-            ctx.font = 'bold 32px "Segoe UI", system-ui';
-            ctx.textAlign = 'center';
-            ctx.shadowBlur = 0;
-            const worldX = bot.x + bot.model.w/2;
-            const worldY = bot.y + bot.model.h/2 - bot.model.h/2 - 10;
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#ffffff';
-            ctx.strokeText('⚠', worldX, worldY);
-            ctx.fillStyle = '#ff0000';
-            ctx.fillText('⚠', worldX, worldY);
-            ctx.restore();
-        }
+        ctx.restore();
     }
-    ctx.restore(); requestAnimationFrame(draw);
+    requestAnimationFrame(draw);
 }
 
 window.addEventListener('keydown', e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftRight', 'ControlRight'].includes(e.code)) e.preventDefault(); }, { passive: false });
@@ -2544,6 +2911,16 @@ function setupStartDropdowns() {
 }
 setupStartDropdowns();
 
+// Set initial button states - P1 ON, others OFF
+document.getElementById('p1-toggle').classList.remove('disabled');
+document.getElementById('p1-toggle').innerText = 'P1: ON';
+document.getElementById('p2-toggle').classList.add('disabled');
+document.getElementById('p2-toggle').innerText = 'P2: OFF';
+document.getElementById('p3-toggle').classList.add('disabled');
+document.getElementById('p3-toggle').innerText = 'P3: OFF';
+document.getElementById('p4-toggle').classList.add('disabled');
+document.getElementById('p4-toggle').innerText = 'P4: OFF';
+
 document.getElementById('toggle-controls-btn-blue').onclick = function() { const p = document.getElementById('control-panel-blue'); p.classList.toggle('collapsed'); this.innerText = p.classList.contains('collapsed') ? '☰ SHOW BLUE' : '☰ HIDE BLUE'; };
 document.getElementById('toggle-controls-btn-red').onclick = function() { const p = document.getElementById('control-panel-red'); p.classList.toggle('collapsed'); this.innerText = p.classList.contains('collapsed') ? '☰ SHOW RED' : '☰ HIDE RED'; };
 document.querySelectorAll('.player-card-collapse').forEach(btn => {
@@ -2558,69 +2935,106 @@ document.getElementById('show-controls-btn-blue').onclick = function() { documen
 document.getElementById('show-controls-btn-red').onclick = function() { document.getElementById('controls-modal').classList.remove('hidden'); };
 document.getElementById('close-controls-btn').onclick = function() { document.getElementById('controls-modal').classList.add('hidden'); };
 document.getElementById('team-mode-toggle-center').onclick = function() { sameTeamMode = !sameTeamMode; this.innerText = 'TEAM: ' + (sameTeamMode ? 'CO-OP (RED)' : 'STARTERED'); ['bot-blue-select','bot-blue2-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = (sameTeamMode ? 'red-team' : 'blue-team') + ' bot-select'; }); ['p3-input-select','p4-input-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'input-select ' + (sameTeamMode ? 'red-team' : 'blue-team'); }); ['p3-start-select','p4-start-select'].forEach(id => { const el = document.getElementById(id); if (el) el.className = 'start-select ' + (sameTeamMode ? 'red-team' : 'blue-team'); }); document.getElementById('reset-btn-center').click(); };
-document.getElementById('game-mode-toggle-center').onclick = function() { const modes = ['standard', 'triple', 'slippery', 'rapid', 'powerups', 'random']; const labels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID FIRE', 'POWER-UPS', 'RANDOM SHIFTS']; let idx = (modes.indexOf(gameMode) + 1) % modes.length; gameMode = modes[idx]; this.innerText = 'MODE: ' + labels[idx]; document.getElementById('reset-btn-center').click(); };
-document.getElementById('p1-toggle').onclick = () => { p1Enabled = !p1Enabled; const btn = document.getElementById('p1-toggle'); btn.innerText = 'P1: ' + (p1Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p1Enabled); resetBots(); };
-document.getElementById('p2-toggle').onclick = () => { p2Enabled = !p2Enabled; const btn = document.getElementById('p2-toggle'); btn.innerText = 'P2: ' + (p2Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p2Enabled); resetBots(); };
-document.getElementById('p3-toggle').onclick = () => { p3Enabled = !p3Enabled; const btn = document.getElementById('p3-toggle'); btn.innerText = 'P3: ' + (p3Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p3Enabled); resetBots(); };
-document.getElementById('p4-toggle').onclick = () => { p4Enabled = !p4Enabled; const btn = document.getElementById('p4-toggle'); btn.innerText = 'P4: ' + (p4Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p4Enabled); resetBots(); };
-document.getElementById('start-btn-main').onclick = () => {
-    if (matchRunning || startCountdown > 0) {
-        matchRunning = false; startCountdown = 0; endCooldown = 0;
-        if (countdownInterval) clearInterval(countdownInterval);
-        projectiles = [];
-        scoringBalls = [];
-        document.getElementById('start-btn-main').innerText = '▶ START MATCH';
-        document.getElementById('start-btn-main').classList.remove('running');
-        document.getElementById('match-clock').className = 'stopped';
-        document.getElementById('match-clock').innerText = '2:20';
-        document.getElementById('phase-label').innerText = 'MATCH STOPPED';
-        document.getElementById('phase-timer').innerText = '';
-        updateHubUI(false, false);
-    } else {
-        document.getElementById('control-panel-blue').classList.add('collapsed');
-        document.getElementById('control-panel-red').classList.add('collapsed');
-        document.getElementById('toggle-controls-btn-blue').innerText = '☰ SHOW BLUE';
-        document.getElementById('toggle-controls-btn-red').innerText = '☰ SHOW RED';
-        scoreRed = 0; scoreBlue = 0;
-        document.getElementById('scoreRedDisplay').innerText = 0;
-        document.getElementById('scoreBlueDisplay').innerText = 0;
-        if (p1Enabled) botRed.inventory = 0;
-        if (p2Enabled) botRed2.inventory = 0;
-        if (p3Enabled) botBlue.inventory = 0;
-        if (p4Enabled) botBlue2.inventory = 0;
-        document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0;
-        autoScoreRed = 0; autoScoreBlue = 0; autoPhaseEnded = false; currentPhaseIdx = -1;
-        projectiles = [];
-        scoringBalls = [];
-        resetModeState(); spawnBalls(); resetBots();
-        startCountdown = 3;
-        document.getElementById('match-clock').innerText = startCountdown;
-        document.getElementById('match-clock').className = 'stopped';
-        document.getElementById('phase-label').innerText = 'MATCH STARTING...';
-        document.getElementById('phase-timer').innerText = '';
-        document.getElementById('start-btn-main').innerText = '⏹ CANCEL START';
-        document.getElementById('start-btn-main').classList.add('running');
-        countdownInterval = setInterval(() => {
-            startCountdown--;
-            if (startCountdown > 0) document.getElementById('match-clock').innerText = startCountdown;
-            else {
-                clearInterval(countdownInterval); startCountdown = 0; matchElapsed = 0; matchRunning = true;
-                nextShiftTime = Date.now() + 9000 + Math.random() * 6000;
-                nextPowerupSpawnTime = Date.now() + 1800;
-                playSound('autoStart');
-                updateHubUI(true, true);
-                document.getElementById('start-btn-main').innerText = '⏹ STOP MATCH';
-            }
-        }, 1000);
+document.getElementById('game-mode-toggle-center').onclick = function() { 
+    const modes = ['standard', 'triple', 'slippery', 'rapid', 'powerups', 'random', 'kinghub', 'fog', 'chained'];
+    const labels = ['STANDARD', 'TRIPLE BALLS', 'SLIPPERY FIELD', 'RAPID FIRE', 'POWER-UPS', 'RANDOM SHIFTS', 'KING OF THE HUB', 'FOG OF WAR', 'CHAINED'];
+    let idx = (modes.indexOf(gameMode) + 1) % modes.length;
+    gameMode = modes[idx];
+    this.innerText = 'MODE: ' + labels[idx];
+    resetMatch();
+    if (gameMode !== 'kinghub' && gameMode !== 'fog') updateHubUI(true, true);
+    if (gameMode === 'kinghub') {
+        kingHubTimer = 0;
+        kingOfTheHubActive = 'red';
+        updateHubUI(true, false);
     }
 };
+document.getElementById('p1-toggle').onclick = () => { p1Enabled = !p1Enabled; const btn = document.getElementById('p1-toggle'); btn.innerText = 'P1: ' + (p1Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p1Enabled); resetMatch(); };
+document.getElementById('p2-toggle').onclick = () => { p2Enabled = !p2Enabled; const btn = document.getElementById('p2-toggle'); btn.innerText = 'P2: ' + (p2Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p2Enabled); resetMatch(); };
+document.getElementById('p3-toggle').onclick = () => { p3Enabled = !p3Enabled; const btn = document.getElementById('p3-toggle'); btn.innerText = 'P3: ' + (p3Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p3Enabled); resetMatch(); };
+document.getElementById('p4-toggle').onclick = () => { p4Enabled = !p4Enabled; const btn = document.getElementById('p4-toggle'); btn.innerText = 'P4: ' + (p4Enabled ? 'ON' : 'OFF'); btn.classList.toggle('disabled', !p4Enabled); resetMatch(); };
+
+function resetMatch() {
+    matchRunning = false;
+    if (countdownInterval) clearInterval(countdownInterval);
+    startCountdown = 0;
+    matchElapsed = 0;
+    endCooldown = 0;
+    scoreRed = 0;
+    scoreBlue = 0;
+    autoScoreRed = 0;
+    autoScoreBlue = 0;
+    autoPhaseEnded = false;
+    projectiles = [];
+    scoringBalls = [];
+    drones = [];
+    barricades = [];
+    kingHubTimer = 0;
+    kingOfTheHubActive = 'red';
+    document.getElementById('scoreRedDisplay').innerText = '0';
+    document.getElementById('scoreBlueDisplay').innerText = '0';
+    document.getElementById('heldRed').innerText = '0';
+    document.getElementById('heldBlue').innerText = '0';
+    document.getElementById('match-clock').innerText = '2:20';
+    document.getElementById('match-clock').className = 'stopped';
+    document.getElementById('phase-label').innerText = 'MATCH NOT STARTED';
+    document.getElementById('phase-timer').innerText = '';
+    document.getElementById('start-btn-main').innerText = '▶ START MATCH';
+    document.getElementById('start-btn-main').classList.remove('running');
+    if (gameMode !== 'kinghub' && gameMode !== 'fog') updateHubUI(true, true);
+    if (gameMode === 'kinghub') updateHubUI(true, false);
+    if (gameMode === 'fog') updateHubUI(true, true);
+    spawnBalls();
+    resetBots();
+    resetModeState();
+}
+
+function startMatch() {
+    if (matchRunning || startCountdown > 0) {
+        resetMatch();
+        return;
+    }
+    resetMatch();
+    startCountdown = 3;
+    document.getElementById('match-clock').innerText = '3';
+    document.getElementById('match-clock').className = 'stopped';
+    document.getElementById('phase-label').innerText = 'MATCH STARTING...';
+    document.getElementById('start-btn-main').innerText = '⏹ CANCEL START';
+    document.getElementById('start-btn-main').classList.add('running');
+    countdownInterval = setInterval(() => {
+        startCountdown--;
+        if (startCountdown > 0) {
+            document.getElementById('match-clock').innerText = startCountdown;
+        } else {
+            clearInterval(countdownInterval);
+            startCountdown = 0;
+            matchElapsed = 0;
+            matchRunning = true;
+            autoPhaseEnded = false;
+            currentPhaseIdx = -1;
+            kingHubTimer = 0;
+            nextShiftTime = Date.now() + 9000 + Math.random() * 6000;
+            nextPowerupSpawnTime = Date.now() + 1800;
+            playSound('autoStart');
+            if (gameMode !== 'kinghub' && gameMode !== 'fog') updateHubUI(true, true);
+            if (gameMode === 'kinghub') {
+                kingOfTheHubActive = 'red';
+                updateHubUI(true, false);
+            }
+            if (gameMode === 'fog') updateHubUI(true, true);
+            document.getElementById('start-btn-main').innerText = '⏹ STOP MATCH';
+        }
+    }, 1000);
+}
+
+document.getElementById('start-btn-main').onclick = startMatch;
 
 (function populateBotSelects() { const mk = Object.keys(BOT_MODELS); const selMap = [{ id: 'bot-red-select', bot: botRed }, { id: 'bot-red2-select', bot: botRed2 }, { id: 'bot-blue-select', bot: botBlue }, { id: 'bot-blue2-select', bot: botBlue2 }]; selMap.forEach(({ id, bot }) => { const sel = document.getElementById(id); if (!sel) return; sel.innerHTML = ''; mk.forEach(name => { const opt = document.createElement('option'); opt.value = name; opt.textContent = name; sel.appendChild(opt); }); sel.value = bot.name; }); })();
 document.getElementById('bot-red-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed.name; return; } if (p1Enabled) botRed.setModel(this.value); };
 document.getElementById('bot-red2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botRed2.name; return; } if (p2Enabled) botRed2.setModel(this.value); };
 document.getElementById('bot-blue-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue.name; return; } if (p3Enabled) botBlue.setModel(this.value); };
 document.getElementById('bot-blue2-select').onchange = function() { if (matchRunning || startCountdown > 0) { this.value = botBlue2.name; return; } if (p4Enabled) botBlue2.setModel(this.value); };
-document.getElementById('reset-btn-center').onclick = () => { matchRunning = false; scoreRed = 0; scoreBlue = 0; startCountdown = 0; endCooldown = 0; if (countdownInterval) clearInterval(countdownInterval); document.getElementById('scoreRedDisplay').innerText = 0; document.getElementById('scoreBlueDisplay').innerText = 0; if (p1Enabled) botRed.inventory = 0; if (p2Enabled) botRed2.inventory = 0; if (p3Enabled) botBlue.inventory = 0; if (p4Enabled) botBlue2.inventory = 0; document.getElementById('heldRed').innerText = 0; document.getElementById('heldBlue').innerText = 0; matchElapsed = 0; resetModeState(); projectiles = []; scoringBalls = []; document.getElementById('match-clock').innerText = '2:20'; document.getElementById('match-clock').className = 'stopped'; document.getElementById('phase-label').innerText = 'MATCH NOT STARTED'; document.getElementById('phase-timer').innerText = ''; document.getElementById('start-btn-main').innerText = '▶ START MATCH'; document.getElementById('start-btn-main').classList.remove('running'); updateHubUI(false, false); spawnBalls(); resetBots(); };
+document.getElementById('reset-btn-center').onclick = resetMatch;
 
 document.getElementById('control-panel-blue').classList.add('collapsed');
 document.getElementById('control-panel-red').classList.add('collapsed');
