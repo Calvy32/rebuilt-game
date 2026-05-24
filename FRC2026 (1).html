@@ -918,305 +918,400 @@ function updateAI() {
 
 function aiDecide(robot, alliance, isHubActive) {
     if (!robot) return;
-
+    
+    // ──────────────────────────────────────────────────────────────────────────
+    // POSITION & STATE
+    // ──────────────────────────────────────────────────────────────────────────
     const rcx = robot.x + robot.model.w / 2;
     const rcy = robot.y + robot.model.h / 2;
     const hubActive = isHubActive(alliance);
     const hasBalls = robot.inventory > 0;
     const isTurret = robot.model.autoAim === true;
+    const isTopBot = (robot === botBlue);      // P3 takes upper routes
+    const isBottomBot = (robot === botBlue2);  // P4 takes lower routes
     
-    // Separate top/bottom routes
-    const isTopBot = (robot === botBlue);
-    const isBottomBot = (robot === botBlue2);
-    
-    // ── GEOMETRY ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
+    // FIELD GEOMETRY (PRECISE VALUES)
+    // ──────────────────────────────────────────────────────────────────────────
     const redBumpX = 156.61 * S;
     const blueBumpX = FIELD_W - (156.61 * S) - BUMP_W;
     
-    const ownBar1 = alliance === 'red' ? redBumpX : blueBumpX;
-    const ownBar2 = ownBar1 + BUMP_W;
-    const oppBar1 = alliance === 'red' ? blueBumpX : redBumpX;
-    const oppBar2 = oppBar1 + BUMP_W;
+    // Barrier walls (the obstacles between bump and trench)
+    const ownBarrierX1 = alliance === 'red' ? redBumpX : blueBumpX;
+    const ownBarrierX2 = ownBarrierX1 + BUMP_W;
+    const oppBarrierX1 = alliance === 'red' ? blueBumpX : redBumpX;
+    const oppBarrierX2 = oppBarrierX1 + BUMP_W;
     
-    const centerMinX = alliance === 'red' ? ownBar2 : oppBar1;
-    const centerMaxX = alliance === 'red' ? oppBar1 : ownBar2;
+    // Hub positions
+    const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
+    const ownHubX = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? 180 : FIELD_W - 180);
+    const ownHubY = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
+    const ownHubTopY = ownHub ? ownHub.y - 25 : ownHubY - 25;
+    const ownHubBottomY = ownHub ? ownHub.y + ownHub.h + 25 : ownHubY + 25;
+    
+    // Depot positions
+    const ownDepot = zones.find(z => z.type === 'depot' && z.side === alliance);
+    const ownDepotX = ownDepot ? ownDepot.x + ownDepot.w / 2 : (alliance === 'red' ? 60 : FIELD_W - 60);
+    const ownDepotY = ownDepot ? ownDepot.y + ownDepot.h / 2 : (alliance === 'red' ? 80 : FIELD_H - 80);
+    
+    const oppDepot = zones.find(z => z.type === 'depot' && z.side !== alliance);
+    const oppDepotX = oppDepot ? oppDepot.x + oppDepot.w / 2 : (alliance === 'red' ? FIELD_W - 60 : 60);
+    const oppDepotY = oppDepot ? oppDepot.y + oppDepot.h / 2 : (alliance === 'red' ? FIELD_H - 80 : 80);
+    
+    // Zone boundaries
+    const ownSideMinX = alliance === 'red' ? 0 : ownBarrierX2;
+    const ownSideMaxX = alliance === 'red' ? ownBarrierX1 : FIELD_W;
+    const centerMinX = alliance === 'red' ? ownBarrierX2 : oppBarrierX1;
+    const centerMaxX = alliance === 'red' ? oppBarrierX1 : ownBarrierX2;
+    const oppSideMinX = alliance === 'red' ? oppBarrierX2 : 0;
+    const oppSideMaxX = alliance === 'red' ? FIELD_W : oppBarrierX1;
+    
+    // Route Y positions (top/bottom separation)
+    const topRouteY = FIELD_H * 0.28;   // Upper third
+    const bottomRouteY = FIELD_H * 0.72; // Lower third
     const centerX = (centerMinX + centerMaxX) / 2;
     
-    // Top/bottom route Y positions
-    const topRouteY = FIELD_H * 0.28;
-    const bottomRouteY = FIELD_H * 0.72;
-    const centerY = FIELD_H / 2;
-    
-    // Count balls by zone (for collection priority)
-    let ownBalls = 0, centerBalls = 0, oppBalls = 0;
-    for (const b of balls) {
-        if (b.x < ownBar1 && alliance === 'red' || b.x > ownBar2 && alliance === 'blue') ownBalls++;
-        else if (b.x >= centerMinX && b.x <= centerMaxX) centerBalls++;
-        else oppBalls++;
-    }
-    
-    const ownHub = zones.find(z => z.type === 'hub' && z.side === alliance);
-    const hubCX = ownHub ? ownHub.x + ownHub.w / 2 : (alliance === 'red' ? redBumpX - 80 : blueBumpX + BUMP_W + 80);
-    const hubCY = ownHub ? ownHub.y + ownHub.h / 2 : FIELD_H / 2;
-    
-    // Shooting position (stand just outside hub)
-    function hubShootSpot() {
-        if (!ownHub) return { x: hubCX, y: hubCY };
-        const clearance = 38;
-        const standY = rcy < hubCY ? ownHub.y - clearance : ownHub.y + ownHub.h + clearance;
-        return { x: hubCX, y: standY };
-    }
-    
-    let targetX = null, targetY = null;
-    let act = false;
-    
-    // ── SIMPLE RULES ──────────────────────────────────────────────────────────
-    
-    // RULE 1: Hub ACTIVE → SCORE (go to own hub)
-    if (hubActive && ownHub) {
-        const spot = hubShootSpot();
-        targetX = spot.x;
-        targetY = isTopBot ? spot.y - 20 : spot.y + 20; // Separate top/bottom at hub
-        act = hasBalls;
-    }
-    // RULE 2: Hub INACTIVE but HAS BALLS → PASS (go to center, shoot toward own side)
-    else if (!hubActive && hasBalls) {
-        targetX = centerX;
-        targetY = isTopBot ? topRouteY : bottomRouteY;
-        act = true; // Pass
-    }
-    // RULE 3: Hub INACTIVE and NO BALLS → COLLECT BALLS
-    else if (!hubActive && !hasBalls) {
-        // Prioritize: own side balls (for scoring later) > center balls > opponent balls
-        let targetZone = null;
-        let targetZoneY = null;
+    // ──────────────────────────────────────────────────────────────────────────
+    // BALL ANALYSIS (WEIGHTED BY POSITION AND DEPOT)
+    // ──────────────────────────────────────────────────────────────────────────
+    function getWeightedBallTarget(preferZone = null) {
+        if (balls.length === 0) return null;
         
-        if (ownBalls > 0) {
-            // Collect from own side
-            targetZone = { minX: alliance === 'red' ? 0 : ownBar2, maxX: alliance === 'red' ? ownBar1 : FIELD_W };
-            targetZoneY = isTopBot ? topRouteY : bottomRouteY;
-        } else if (centerBalls > 0) {
-            // Collect from center
-            targetZone = { minX: centerMinX, maxX: centerMaxX };
-            targetZoneY = isTopBot ? topRouteY : bottomRouteY;
-        } else if (oppBalls > 0) {
-            // Collect from opponent side (need to cross barrier)
-            targetZone = { minX: alliance === 'red' ? oppBar2 : 0, maxX: alliance === 'red' ? FIELD_W : oppBar1 };
-            targetZoneY = isTopBot ? topRouteY : bottomRouteY;
-        } else {
-            // No balls anywhere - go to center
-            targetX = centerX;
-            targetY = isTopBot ? topRouteY : bottomRouteY;
-            act = false;
-        }
+        const depots = zones.filter(z => z.type === 'depot');
+        let bestBall = null;
+        let bestScore = -Infinity;
         
-        if (targetZone) {
-            // Find nearest ball in target zone
-            let bestBall = null;
-            let bestDist = Infinity;
-            // Weight depot balls higher (3x)
-            const depots = zones.filter(z => z.type === 'depot');
-            for (const b of balls) {
-                if (b.x >= targetZone.minX && b.x <= targetZone.maxX) {
-                    let weight = 1.0;
-                    for (const depot of depots) {
-                        if (b.x > depot.x && b.x < depot.x + depot.w && 
-                            b.y > depot.y && b.y < depot.y + depot.h) {
-                            weight = 3.0;
-                            break;
-                        }
-                    }
-                    const d = Math.hypot(b.x - rcx, b.y - rcy) / weight;
-                    if (d < bestDist) {
-                        bestDist = d;
-                        bestBall = b;
-                    }
-                }
-            }
-            if (bestBall) {
-                targetX = bestBall.x;
-                targetY = bestBall.y;
-            } else {
-                targetX = centerX;
-                targetY = targetZoneY;
-            }
-        }
-        act = false;
-    }
-    // RULE 4: Hub ACTIVE but NO BALLS → go to own depot or own side balls
-    else if (hubActive && !hasBalls && ownHub) {
-        // Check own depot first
-        const ownDepot = zones.find(z => z.type === 'depot' && z.side === alliance);
-        let depotHasBalls = false;
-        if (ownDepot) {
-            for (const b of balls) {
-                if (b.x > ownDepot.x && b.x < ownDepot.x + ownDepot.w &&
-                    b.y > ownDepot.y && b.y < ownDepot.y + ownDepot.h) {
-                    depotHasBalls = true;
+        for (const ball of balls) {
+            let score = 0;
+            
+            // Distance score (closer = higher)
+            const dist = Math.hypot(ball.x - rcx, ball.y - rcy);
+            const distScore = 1000 / (dist + 1);
+            score += distScore;
+            
+            // Depot bonus (3x weight)
+            let inDepot = false;
+            for (const depot of depots) {
+                if (ball.x > depot.x && ball.x < depot.x + depot.w &&
+                    ball.y > depot.y && ball.y < depot.y + depot.h) {
+                    inDepot = true;
+                    score += 200;
                     break;
                 }
             }
-        }
-        
-        if (ownDepot && depotHasBalls) {
-            targetX = ownDepot.x + ownDepot.w / 2;
-            targetY = ownDepot.y + ownDepot.h / 2;
-        } else {
-            // Find nearest ball on own side
-            let bestBall = null;
-            let bestDist = Infinity;
-            for (const b of balls) {
-                const isOnOwnSide = (alliance === 'red' && b.x < ownBar1) || (alliance === 'blue' && b.x > ownBar2);
-                if (isOnOwnSide) {
-                    const d = Math.hypot(b.x - rcx, b.y - rcy);
-                    if (d < bestDist) {
-                        bestDist = d;
-                        bestBall = b;
-                    }
+            
+            // Zone preference
+            if (preferZone === 'own' && ball.x >= ownSideMinX && ball.x <= ownSideMaxX) score += 150;
+            else if (preferZone === 'center' && ball.x >= centerMinX && ball.x <= centerMaxX) score += 100;
+            else if (preferZone === 'opp' && ball.x >= oppSideMinX && ball.x <= oppSideMaxX) score += 50;
+            
+            // Cluster bonus (balls near each other)
+            let nearbyCount = 0;
+            for (const other of balls) {
+                if (other !== ball && Math.hypot(other.x - ball.x, other.y - ball.y) < 80) {
+                    nearbyCount++;
                 }
             }
-            if (bestBall) {
-                targetX = bestBall.x;
-                targetY = bestBall.y;
-            } else {
-                const spot = hubShootSpot();
-                targetX = spot.x;
-                targetY = isTopBot ? spot.y - 20 : spot.y + 20;
+            score += nearbyCount * 15;
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestBall = ball;
             }
         }
-        act = false;
+        return bestBall;
     }
     
-    // Fallback
+    function countBallsInZone(minX, maxX) {
+        let count = 0;
+        for (const ball of balls) {
+            if (ball.x >= minX && ball.x <= maxX) count++;
+        }
+        return count;
+    }
+    
+    const ownSideBallCount = countBallsInZone(ownSideMinX, ownSideMaxX);
+    const centerBallCount = countBallsInZone(centerMinX, centerMaxX);
+    const oppSideBallCount = countBallsInZone(oppSideMinX, oppSideMaxX);
+    const totalBalls = ownSideBallCount + centerBallCount + oppSideBallCount;
+    
+    // ──────────────────────────────────────────────────────────────────────────
+    // DECISION VARIABLES
+    // ──────────────────────────────────────────────────────────────────────────
+    let targetX = null;
+    let targetY = null;
+    let shouldShoot = false;
+    
+    // Game timing
+    const timeLeft = 163 - matchElapsed;
+    const isEndgame = timeLeft < 20;
+    const isAutoPhase = matchElapsed < 20;
+    const isDelayPhase = matchElapsed >= 20 && matchElapsed < 23;
+    
+    // ──────────────────────────────────────────────────────────────────────────
+    // CORE DECISION LOGIC
+    // ──────────────────────────────────────────────────────────────────────────
+    
+    // SPECIAL: AUTO/DELAY PHASE - ONLY COLLECT BALLS, NEVER SHOOT
+    if (isAutoPhase || isDelayPhase) {
+        const targetBall = getWeightedBallTarget();
+        if (targetBall) {
+            targetX = targetBall.x;
+            targetY = targetBall.y;
+        } else if (ownDepot) {
+            targetX = ownDepotX;
+            targetY = ownDepotY;
+        } else {
+            targetX = centerX;
+            targetY = isTopBot ? topRouteY : bottomRouteY;
+        }
+        shouldShoot = false;
+    }
+    // SCENARIO 1: HUB ACTIVE - PRIORITIZE SCORING
+    else if (hubActive) {
+        // If we have balls OR there are balls on our side, SCORE
+        const shouldScore = hasBalls || ownSideBallCount > 5 || (isEndgame && robot.inventory > 0);
+        
+        if (shouldScore) {
+            // Position at hub (top/bot separate)
+            targetX = ownHubX;
+            targetY = isTopBot ? ownHubTopY : ownHubBottomY;
+            shouldShoot = hasBalls;
+        } else {
+            // No balls - go collect from own side or depot
+            const targetBall = getWeightedBallTarget('own');
+            if (targetBall) {
+                targetX = targetBall.x;
+                targetY = targetBall.y;
+            } else if (ownDepot) {
+                targetX = ownDepotX;
+                targetY = ownDepotY;
+            } else {
+                targetX = ownHubX;
+                targetY = isTopBot ? ownHubTopY : ownHubBottomY;
+            }
+            shouldShoot = false;
+        }
+    }
+    // SCENARIO 2: HUB INACTIVE - PRIORITIZE PASSING AND COLLECTING
+    else if (!hubActive) {
+        // If we have balls, PASS from center
+        if (hasBalls) {
+            targetX = centerX;
+            targetY = isTopBot ? topRouteY : bottomRouteY;
+            shouldShoot = true; // Pass toward own side
+        }
+        // No balls - need to collect
+        else {
+            // Determine best zone to collect from
+            let preferZone = null;
+            
+            // Prioritize based on ball distribution
+            if (ownSideBallCount > 8) {
+                preferZone = 'own'; // Collect own side balls for future scoring
+            } else if (centerBallCount > 5) {
+                preferZone = 'center';
+            } else if (oppSideBallCount > 3) {
+                preferZone = 'opp';
+            } else if (ownSideBallCount > 0) {
+                preferZone = 'own';
+            } else if (centerBallCount > 0) {
+                preferZone = 'center';
+            } else if (oppSideBallCount > 0) {
+                preferZone = 'opp';
+            }
+            
+            const targetBall = getWeightedBallTarget(preferZone);
+            
+            if (targetBall) {
+                targetX = targetBall.x;
+                targetY = targetBall.y;
+            } else if (ownDepot) {
+                targetX = ownDepotX;
+                targetY = ownDepotY;
+            } else {
+                // No balls anywhere - go to center and wait
+                targetX = centerX;
+                targetY = isTopBot ? topRouteY : bottomRouteY;
+            }
+            shouldShoot = false;
+        }
+    }
+    
+    // Fallback safety
     if (targetX === null) {
         targetX = centerX;
         targetY = isTopBot ? topRouteY : bottomRouteY;
     }
     
-    // ── WAYPOINT NAVIGATION (barrier crossing) ────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
+    // WAYPOINT NAVIGATION (BARRIER CROSSING)
+    // ──────────────────────────────────────────────────────────────────────────
     const hubTopY = FIELD_H / 2 - HUB_S / 2;
-    const topBarY1 = hubTopY - BUMP_L - BAR_L;
-    const topBarY2 = hubTopY - BUMP_L;
-    const botBarY1 = hubTopY + HUB_S + BUMP_L;
-    const botBarY2 = botBarY1 + BAR_L;
+    const topTrenchY = hubTopY - BUMP_L - BAR_L - 30;
+    const topBumpGapY = (hubTopY - BUMP_L + hubTopY) / 2;
+    const bottomBumpGapY = (hubTopY + HUB_S + hubTopY + HUB_S + BUMP_L) / 2;
+    const bottomTrenchY = hubTopY + HUB_S + BUMP_L + BAR_L + 30;
     
-    const CROSS_Y = [
-        topBarY1 * 0.5,
-        (topBarY2 + hubTopY) / 2,
-        (hubTopY + HUB_S + botBarY1) / 2,
-        botBarY2 + (FIELD_H - botBarY2) * 0.5,
-    ];
+    const CROSSING_GAPS = [topTrenchY, topBumpGapY, bottomBumpGapY, bottomTrenchY];
     
-    function bestCrossY(currentY) {
-        let best = CROSS_Y[0], bestDist = Math.abs(currentY - CROSS_Y[0]);
-        for (let i = 1; i < CROSS_Y.length; i++) {
-            const d = Math.abs(currentY - CROSS_Y[i]);
-            if (d < bestDist) { bestDist = d; best = CROSS_Y[i]; }
+    function findNearestGapY(currentY) {
+        let best = CROSSING_GAPS[0];
+        let bestDist = Math.abs(currentY - CROSSING_GAPS[0]);
+        for (let i = 1; i < CROSSING_GAPS.length; i++) {
+            const dist = Math.abs(currentY - CROSSING_GAPS[i]);
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = CROSSING_GAPS[i];
+            }
         }
         return best;
     }
     
-    function navigate(tx, ty) {
-        const checkBarrier = (barX1, barX2) => {
-            const needsCross = (rcx < barX1 && tx > barX2) || (rcx > barX2 && tx < barX1);
-            if (needsCross) {
-                const gapY = bestCrossY(rcy);
-                const atGapY = Math.abs(rcy - gapY) < 40;
-                if (!atGapY) return { x: rcx, y: gapY };
-                const goingLeft = rcx > barX2;
-                const exitX = goingLeft ? barX1 - 70 : barX2 + 70;
-                const cleared = goingLeft ? rcx < barX1 - 15 : rcx > barX2 + 15;
-                if (!cleared) return { x: exitX, y: gapY };
+    function applyWaypointNavigation(tx, ty) {
+        let finalX = tx;
+        let finalY = ty;
+        
+        // Check if we need to cross own barrier
+        const needCrossOwn = (rcx < ownBarrierX1 && tx > ownBarrierX2) || (rcx > ownBarrierX2 && tx < ownBarrierX1);
+        // Check if we need to cross opponent barrier
+        const needCrossOpp = (rcx < oppBarrierX1 && tx > oppBarrierX2) || (rcx > oppBarrierX2 && tx < oppBarrierX1);
+        
+        if (needCrossOwn || needCrossOpp) {
+            // Determine which barrier we're trying to cross
+            const barrierX1 = needCrossOwn ? ownBarrierX1 : oppBarrierX1;
+            const barrierX2 = needCrossOwn ? ownBarrierX2 : oppBarrierX2;
+            
+            // Find the nearest gap Y
+            const targetGapY = findNearestGapY(rcy);
+            
+            // If not at gap Y, go to gap Y first
+            if (Math.abs(rcy - targetGapY) > 30) {
+                return { x: rcx, y: targetGapY };
             }
-            return null;
-        };
-        let nav = checkBarrier(ownBar1, ownBar2) || checkBarrier(oppBar1, oppBar2);
-        if (nav) return nav;
-        return { x: tx, y: ty };
+            
+            // At gap Y, determine exit side
+            const goingRight = rcx < barrierX1;
+            const exitX = goingRight ? barrierX2 + 40 : barrierX1 - 40;
+            
+            // If not past barrier, go to exit point
+            const isPastBarrier = goingRight ? rcx > barrierX2 : rcx < barrierX1;
+            if (!isPastBarrier) {
+                return { x: exitX, y: targetGapY };
+            }
+        }
+        
+        return { x: finalX, y: finalY };
     }
     
-    const nav = navigate(targetX, targetY);
-    targetX = nav.x; targetY = nav.y;
+    const waypoint = applyWaypointNavigation(targetX, targetY);
+    targetX = waypoint.x;
+    targetY = waypoint.y;
     
-    // ── ROBOT-ROBOT AVOIDANCE ─────────────────────────────────────────────────
-    const otherBot = isTopBot ? botBlue2 : botBlue;
-    let avoidX = 0, avoidY = 0;
-    if (otherBot) {
-        const bx = otherBot.x + otherBot.model.w / 2;
-        const by = otherBot.y + otherBot.model.h / 2;
-        const sep = Math.hypot(rcx - bx, rcy - by);
-        const MIN_SEP = robot.model.w + otherBot.model.w + 25;
-        if (sep < MIN_SEP && sep > 0.1) {
-            const strength = (MIN_SEP - sep) / MIN_SEP;
-            avoidX = ((rcx - bx) / sep) * strength * 1.2;
-            avoidY = ((rcy - by) / sep) * strength * 1.2;
+    // ──────────────────────────────────────────────────────────────────────────
+    // ROBOT-ROBOT AVOIDANCE (PREVENT COLLISIONS)
+    // ──────────────────────────────────────────────────────────────────────────
+    const otherBlueBot = isTopBot ? botBlue2 : botBlue;
+    let pushX = 0, pushY = 0;
+    
+    if (otherBlueBot && matchRunning) {
+        const otherX = otherBlueBot.x + otherBlueBot.model.w / 2;
+        const otherY = otherBlueBot.y + otherBlueBot.model.h / 2;
+        const sep = Math.hypot(rcx - otherX, rcy - otherY);
+        const minSeparation = robot.model.w + otherBlueBot.model.w + 20;
+        
+        if (sep < minSeparation && sep > 0.01) {
+            const strength = (minSeparation - sep) / minSeparation * 1.5;
+            pushX = ((rcx - otherX) / sep) * strength;
+            pushY = ((rcy - otherY) / sep) * strength;
         }
     }
     
-    // ── TOWER AVOIDANCE ───────────────────────────────────────────────────────
-    const redTowerY1 = TOWER_OFFSET - 30;
-    const redTowerY2 = TOWER_OFFSET + TOWER_DIM + 30;
-    const redTowerX2 = TOWER_DIM + 30;
-    const blueTowerY1 = FIELD_H - TOWER_OFFSET - TOWER_DIM - 30;
-    const blueTowerY2 = FIELD_H - TOWER_OFFSET + 30;
-    const blueTowerX1 = FIELD_W - TOWER_DIM - 30;
+    // ──────────────────────────────────────────────────────────────────────────
+    // TOWER AVOIDANCE
+    // ──────────────────────────────────────────────────────────────────────────
+    const redTowerX = TOWER_DIM;
+    const redTowerY1 = TOWER_OFFSET;
+    const redTowerY2 = TOWER_OFFSET + TOWER_DIM;
+    const blueTowerX = FIELD_W - TOWER_DIM;
+    const blueTowerY1 = FIELD_H - TOWER_OFFSET - TOWER_DIM;
+    const blueTowerY2 = FIELD_H - TOWER_OFFSET;
     
-    function nearTower(x, y) {
-        if (x < redTowerX2 && y > redTowerY1 && y < redTowerY2) return true;
-        if (x > blueTowerX1 && y > blueTowerY1 && y < blueTowerY2) return true;
+    function isInTower(x, y) {
+        if (x < redTowerX + 30 && y > redTowerY1 - 30 && y < redTowerY2 + 30) return true;
+        if (x > blueTowerX - 30 && y > blueTowerY1 - 30 && y < blueTowerY2 + 30) return true;
         return false;
     }
     
-    if (nearTower(rcx, rcy)) {
-        avoidX += rcx < FIELD_W / 2 ? 0.6 : -0.6;
-        avoidY += rcy < (TOWER_OFFSET + TOWER_DIM / 2) ? -0.6 : 0.6;
+    if (isInTower(rcx, rcy)) {
+        pushX += (rcx < FIELD_W / 2 ? 0.8 : -0.8);
+        pushY += (rcy < FIELD_H / 2 ? -0.8 : 0.8);
     }
     
-    // ── MOVEMENT ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
+    // WALL AVOIDANCE
+    // ──────────────────────────────────────────────────────────────────────────
+    const WALL_MARGIN = 35;
+    if (rcx < WALL_MARGIN) pushX = Math.max(pushX, 0.6);
+    if (rcx > FIELD_W - WALL_MARGIN) pushX = Math.min(pushX, -0.6);
+    if (rcy < WALL_MARGIN) pushY = Math.max(pushY, 0.6);
+    if (rcy > FIELD_H - WALL_MARGIN) pushY = Math.min(pushY, -0.6);
+    
+    // ──────────────────────────────────────────────────────────────────────────
+    // MOVEMENT CALCULATION
+    // ──────────────────────────────────────────────────────────────────────────
     const dx = targetX - rcx;
     const dy = targetY - rcy;
-    const dist = Math.hypot(dx, dy);
-    const angle = Math.atan2(dy, dx);
+    const distanceToTarget = Math.hypot(dx, dy);
+    const targetAngle = Math.atan2(dy, dx);
     
-    const inputMag = dist < 18 ? 0.15 : 0.8;
-    let moveX = Math.cos(angle) * inputMag + avoidX;
-    let moveY = Math.sin(angle) * inputMag + avoidY;
+    // Speed based on distance (slower when close to target)
+    let moveMagnitude = 0.8;
+    if (distanceToTarget < 40) moveMagnitude = 0.4;
+    if (distanceToTarget < 20) moveMagnitude = 0.2;
     
-    // Wall push
-    if (rcx < 25) moveX = Math.max(moveX, 0.7);
-    if (rcx > FIELD_W - 25) moveX = Math.min(moveX, -0.7);
-    if (rcy < 25) moveY = Math.max(moveY, 0.7);
-    if (rcy > FIELD_H - 25) moveY = Math.min(moveY, -0.7);
+    let moveX = Math.cos(targetAngle) * moveMagnitude + pushX;
+    let moveY = Math.sin(targetAngle) * moveMagnitude + pushY;
     
-    // Barrier escape
-    const inBarColOwn = rcx > ownBar1 - 4 && rcx < ownBar2 + 4;
-    const inBarColOpp = rcx > oppBar1 - 4 && rcx < oppBar2 + 4;
-    const inTopBar = rcy > topBarY1 - 4 && rcy < topBarY2 + 4;
-    const inBotBar = rcy > botBarY1 - 4 && rcy < botBarY2 + 4;
-    if ((inBarColOwn || inBarColOpp) && (inTopBar || inBotBar)) {
-        const gapY = bestCrossY(rcy);
-        moveX = 0;
-        moveY = gapY < rcy ? -0.7 : 0.7;
+    // Clamp movement magnitude
+    const moveMag = Math.hypot(moveX, moveY);
+    if (moveMag > 0.8) {
+        moveX = (moveX / moveMag) * 0.8;
+        moveY = (moveY / moveMag) * 0.8;
     }
     
+    // Rotation input (for non-turret robots)
     let rotInput = 0;
     if (!isTurret) {
-        let angleDiff = angle - robot.angle;
+        let angleDiff = targetAngle - robot.angle;
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-        rotInput = Math.max(-0.9, Math.min(0.9, angleDiff));
+        rotInput = Math.max(-0.8, Math.min(0.8, angleDiff));
     }
     
-    const mag = Math.hypot(moveX, moveY);
-    if (mag > 0.8) { moveX = moveX / mag * 0.8; moveY = moveY / mag * 0.8; }
+    // ──────────────────────────────────────────────────────────────────────────
+    // BARRIER STUCK ESCAPE (if stuck in barrier wall)
+    // ──────────────────────────────────────────────────────────────────────────
+    const inOwnBarrier = rcx > ownBarrierX1 - 15 && rcx < ownBarrierX2 + 15;
+    const inOppBarrier = rcx > oppBarrierX1 - 15 && rcx < oppBarrierX2 + 15;
+    const inBarrierYRange = rcy > hubTopY - 100 && rcy < hubTopY + HUB_S + 100;
     
+    if ((inOwnBarrier || inOppBarrier) && inBarrierYRange) {
+        const nearestGapY = findNearestGapY(rcy);
+        moveX = 0;
+        moveY = nearestGapY < rcy ? -0.6 : 0.6;
+    }
+    
+    // ──────────────────────────────────────────────────────────────────────────
+    // FINAL UPDATE
+    // ──────────────────────────────────────────────────────────────────────────
     const currentPhase = MATCH_PHASES[currentPhaseIdx];
-    const canMovePhase = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
+    const canMove = currentPhase && currentPhase.canMove !== undefined ? currentPhase.canMove : true;
     
-    if (canMovePhase || currentPhaseIdx === 1) {
-        robot.update(moveX, moveY, rotInput, act, false, alliance, obstacles, zones, null, true);
+    if (canMove || currentPhaseIdx === 1) {
+        robot.update(moveX, moveY, rotInput, shouldShoot, false, alliance, obstacles, zones, null, true);
     } else {
-        robot.update(0, 0, 0, act, false, alliance, obstacles, zones, null, true);
+        robot.update(0, 0, 0, shouldShoot, false, alliance, obstacles, zones, null, true);
     }
 }
     
