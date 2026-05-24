@@ -974,14 +974,29 @@ function aiDecide(robot, alliance, isHubActive) {
     // ──────────────────────────────────────────────────────────────────────────
     // BALL ANALYSIS (WEIGHTED BY POSITION AND DEPOT)
     // ──────────────────────────────────────────────────────────────────────────
-    function getWeightedBallTarget(preferZone = null) {
+    function getWeightedBallTarget(preferZone = null, avoidBumpTrench = false) {
         if (balls.length === 0) return null;
         
         const depots = zones.filter(z => z.type === 'depot');
+        const bumpTrenchAreas = zones.filter(z => z.type === 'bump' || z.type === 'trench');
+        
         let bestBall = null;
         let bestScore = -Infinity;
         
         for (const ball of balls) {
+            // Skip balls inside bump/trench if requested
+            if (avoidBumpTrench) {
+                let inBumpOrTrench = false;
+                for (const area of bumpTrenchAreas) {
+                    if (ball.x > area.x && ball.x < area.x + area.w &&
+                        ball.y > area.y && ball.y < area.y + area.h) {
+                        inBumpOrTrench = true;
+                        break;
+                    }
+                }
+                if (inBumpOrTrench) continue;
+            }
+            
             let score = 0;
             
             // Distance score (closer = higher)
@@ -1054,7 +1069,9 @@ function aiDecide(robot, alliance, isHubActive) {
     
     // SPECIAL: AUTO/DELAY PHASE - ONLY COLLECT BALLS, NEVER SHOOT
     if (isAutoPhase || isDelayPhase) {
-        const targetBall = getWeightedBallTarget();
+        // Find a ball that is NOT inside the bump/trench area
+        const targetBall = getWeightedBallTarget(null, true); // avoidBumpTrench = true
+        
         if (targetBall) {
             targetX = targetBall.x;
             targetY = targetBall.y;
@@ -1121,7 +1138,7 @@ function aiDecide(robot, alliance, isHubActive) {
                 preferZone = 'opp';
             }
             
-            const targetBall = getWeightedBallTarget(preferZone);
+            const targetBall = getWeightedBallTarget(preferZone, false);
             
             if (targetBall) {
                 targetX = targetBall.x;
